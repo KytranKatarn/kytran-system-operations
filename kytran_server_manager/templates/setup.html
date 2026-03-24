@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Setup - {{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}{% endblock %}
+{% block content %}
+<div class="ksm-auth-container">
+    <div class="ksm-auth-card">
+        <h1><i class="fas fa-cog"></i> First-Time Setup</h1>
+        <p>Create your admin account to get started.</p>
+        <form method="POST">
+            <div class="ksm-form-group">
+                <label for="username">Admin Username</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+            <div class="ksm-form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required minlength="8">
+            </div>
+            <button type="submit" class="ksm-btn ksm-btn-primary">Create Admin Account</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

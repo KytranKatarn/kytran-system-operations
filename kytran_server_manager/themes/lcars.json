@@ -1,0 +1,33 @@
+{
+  "product_name": "System Operations",
+  "product_short": "SYSOPS",
+  "logo": "/static/img/archie-logo.svg",
+  "frame_style": "lcars",
+  "colors": {
+    "accent": "#00e5ff",
+    "accent_bright": "#4df0ff",
+    "accent_rgb": "0, 229, 255",
+    "danger": "#ef4444",
+    "success": "#22c55e",
+    "warning": "#f59e0b",
+    "bg_void": "#000000",
+    "bg_primary": "#0a0a1a",
+    "bg_secondary": "#1a1a2e",
+    "bg_tertiary": "#2a2a3e",
+    "text_primary": "#e0e0e0",
+    "text_secondary": "#b0b0b0",
+    "text_muted": "#808080",
+    "border_default": "#2a2a3e"
+  },
+  "fonts": {
+    "heading": "Orbitron",
+    "body": "IBM Plex Mono",
+    "mono": "IBM Plex Mono"
+  },
+  "layout": {
+    "border_radius": "20px",
+    "nav_position": "top",
+    "sidebar_width": "240px"
+  },
+  "custom_css": "/static/css/lcars-frames.css"
+}

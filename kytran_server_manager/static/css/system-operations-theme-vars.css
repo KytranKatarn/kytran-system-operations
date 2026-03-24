@@ -1,0 +1,22 @@
+:root {
+  --sysops-accent: #2563eb;
+  --sysops-accent-bright: #3b82f6;
+  --sysops-accent-rgb: 37, 99, 235;
+  --sysops-danger: #ef4444;
+  --sysops-success: #22c55e;
+  --sysops-warning: #f59e0b;
+  --sysops-bg-void: #0f172a;
+  --sysops-bg-primary: #1e293b;
+  --sysops-bg-secondary: #334155;
+  --sysops-bg-tertiary: #475569;
+  --sysops-text-primary: #f8fafc;
+  --sysops-text-secondary: #cbd5e1;
+  --sysops-text-muted: #94a3b8;
+  --sysops-border-default: #334155;
+  --sysops-font-heading: 'Inter', sans-serif;
+  --sysops-font-body: 'Inter', sans-serif;
+  --sysops-font-mono: 'JetBrains Mono', sans-serif;
+  --sysops-border-radius: 8px;
+  --sysops-nav-position: top;
+  --sysops-sidebar-width: 240px;
+}

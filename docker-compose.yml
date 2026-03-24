@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  kytran-server-manager:
+    build: .
+    container_name: kytran-server-manager
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+    environment:
+      - KSM_SECRET_KEY=change-me-in-production
+      - KSM_THEME=kytran
+    restart: unless-stopped

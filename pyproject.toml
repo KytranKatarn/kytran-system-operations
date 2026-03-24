@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kytran-server-manager"
+version = "0.1.0"
+description = "Self-hosted server management dashboard — CPU, RAM, disk, Docker, network, firewall"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+authors = [{name = "Kytran Empowerment Inc.", email = "dev@kytranempowerment.com"}]
+dependencies = [
+    "flask>=3.0",
+    "flask-login>=0.6",
+    "psutil>=5.9",
+    "bcrypt>=4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/KytranKatarn/kytran-server-manager"
+
+[project.scripts]
+kytran-server-manager = "kytran_server_manager.app:main"
