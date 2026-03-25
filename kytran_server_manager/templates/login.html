@@ -1,20 +1,130 @@
 {% extends "base.html" %}
-{% block title %}Login - {{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}{% endblock %}
+{% block title %}Login - {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/lcars-frames.css') }}">
+<style>
+    .login-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 60px);
+        padding: 20px;
+        --frame-color: #2563eb;
+        --frame-rgb: 37, 99, 235;
+    }
+    .login-wrapper .lcars-frame {
+        max-width: 480px;
+        width: 100%;
+    }
+    .login-wrapper .lcars-body {
+        padding: 32px 24px;
+    }
+    .login-wrapper .ksm-auth-card h1 {
+        font-family: 'Orbitron', 'Antonio', sans-serif;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--sysops-accent, #00e5ff);
+        margin: 0 0 24px 0;
+        text-align: center;
+    }
+    .login-wrapper .ksm-form-group {
+        margin-bottom: 16px;
+    }
+    .login-wrapper .ksm-form-group label {
+        display: block;
+        font-size: 0.75rem;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: var(--sysops-text-muted, #808080);
+        margin-bottom: 6px;
+        font-family: var(--sysops-font-mono, 'IBM Plex Mono', monospace);
+    }
+    .login-wrapper .ksm-form-group input {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--sysops-bg-tertiary, #2a2a3e);
+        border: 1px solid var(--sysops-border-default, #2a2a3e);
+        border-radius: 4px;
+        color: var(--sysops-text-primary, #e0e0e0);
+        font-size: 0.95rem;
+        font-family: var(--sysops-font-mono, 'IBM Plex Mono', monospace);
+        box-sizing: border-box;
+        transition: border-color 0.2s;
+    }
+    .login-wrapper .ksm-form-group input:focus {
+        outline: none;
+        border-color: var(--sysops-accent, #2563eb);
+        box-shadow: 0 0 8px rgba(var(--frame-rgb), 0.3);
+    }
+    .login-wrapper .ksm-btn-primary {
+        width: 100%;
+        padding: 12px;
+        margin-top: 8px;
+        background: var(--frame-color);
+        border: none;
+        border-radius: 6px;
+        color: var(--sysops-bg-primary, #0a0a1a);
+        font-family: 'Antonio', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: background 0.2s, box-shadow 0.2s;
+    }
+    .login-wrapper .ksm-btn-primary:hover {
+        background: var(--sysops-accent-bright, #4df0ff);
+        box-shadow: 0 0 16px rgba(var(--frame-rgb), 0.4);
+    }
+</style>
+{% endblock %}
 {% block content %}
-<div class="ksm-auth-container">
-    <div class="ksm-auth-card">
-        <h1><i class="fas fa-server"></i> {{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}</h1>
-        <form method="POST">
-            <div class="ksm-form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" required autofocus>
+<div class="login-wrapper">
+    <div class="lcars-frame lcars-frame--tablet frame-build">
+        <!-- Left Sidebar -->
+        <div class="lcars-sidebar">
+            <div class="lcars-elbow-top"></div>
+            <div class="lcars-seg" style="--seg-color: #2563eb"></div>
+            <div class="lcars-seg" style="--seg-color: #00e5ff"></div>
+            <div class="lcars-seg" style="--seg-color: #1d4ed8"></div>
+            <div class="lcars-seg-light" style="--seg-color: #00e5ff"></div>
+            <div class="lcars-seg-fill"></div>
+            <div class="lcars-elbow-bottom"></div>
+        </div>
+        <!-- Right Content Column -->
+        <div class="lcars-content">
+            <!-- Header Bar -->
+            <div class="lcars-bar">
+                <span class="lcars-bar-title">SYSTEM ACCESS</span>
+                <div class="lcars-bar-spacer"></div>
+                <div class="lcars-pips">
+                    <div class="lcars-pip" style="width: 20px"></div>
+                    <div class="lcars-pip" style="width: 12px"></div>
+                    <div class="lcars-pip" style="width: 28px"></div>
+                </div>
+                <span class="lcars-bar-status">AUTH</span>
             </div>
-            <div class="ksm-form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-            </div>
-            <button type="submit" class="ksm-btn ksm-btn-primary">Sign In</button>
-        </form>
-    </div>
+            <!-- Content Body -->
+            <div class="lcars-body">
+                <div class="ksm-auth-card">
+                    <h1><i class="fas fa-server"></i> {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}</h1>
+                    <form method="POST">
+                        <div class="ksm-form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" name="username" required autofocus>
+                        </div>
+                        <div class="ksm-form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="ksm-btn ksm-btn-primary">Sign In</button>
+                    </form>
+                </div>
+            </div><!-- /lcars-body -->
+            <!-- Footer Bar -->
+            <div class="lcars-footer-bar"></div>
+        </div><!-- /lcars-content -->
+    </div><!-- /lcars-frame -->
 </div>
 {% endblock %}
