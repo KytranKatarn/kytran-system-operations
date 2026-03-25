@@ -1,0 +1,666 @@
+{
+  "pack_id": "docker-stig",
+  "name": "Docker STIG",
+  "description": "Security Technical Implementation Guide for Docker Engine based on CIS Docker Benchmark and DISA STIG",
+  "version": "1.0",
+  "category": "container",
+  "rules": [
+    {
+      "rule_id": "D-238001",
+      "severity": "high",
+      "title": "Docker daemon must not listen on TCP socket without TLS",
+      "description": "Exposing the Docker daemon over TCP without TLS allows remote command execution.",
+      "check": {
+        "type": "command_output",
+        "command": "docker info --format '{{.Name}}' 2>/dev/null && echo 'daemon_ok' || echo 'daemon_fail'",
+        "expected": "daemon_ok",
+        "match_pattern": "daemon_ok"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Docker daemon should only listen on unix socket. Remove -H tcp:// from daemon args.'",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "C1.1",
+        "CC6.1",
+        "CC6.7"
+      ],
+      "cci": "CCI-001453"
+    },
+    {
+      "rule_id": "D-238002",
+      "severity": "high",
+      "title": "Docker daemon must enable user namespace remapping",
+      "description": "User namespace remapping prevents container root from being host root.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "userns-remap",
+        "expected": "default"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"userns-remap\": \"default\"}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.3"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238003",
+      "severity": "medium",
+      "title": "Docker daemon must enable live restore",
+      "description": "Live restore keeps containers running during daemon downtime, improving availability.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "live-restore",
+        "expected": "True"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"live-restore\": true}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238004",
+      "severity": "medium",
+      "title": "Docker daemon must configure default ulimits",
+      "description": "Default ulimits prevent containers from consuming excessive system resources.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "default-ulimits",
+        "expected": "nofile"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"default-ulimits\": {\"nofile\": {\"Name\": \"nofile\", \"Hard\": 65536, \"Soft\": 32768}}}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238005",
+      "severity": "medium",
+      "title": "Docker daemon must use a custom bridge network",
+      "description": "The default docker0 bridge has no security controls between containers.",
+      "check": {
+        "type": "command_output",
+        "command": "docker network ls --filter driver=bridge --format '{{.Name}}' 2>/dev/null | head -5 || echo 'none'",
+        "expected": "bridge",
+        "match_pattern": "bridge"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Create custom networks with: docker network create --driver bridge my-net'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238006",
+      "severity": "high",
+      "title": "Docker daemon must disable inter-container communication by default",
+      "description": "ICC allows all containers to communicate which violates least privilege.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "icc",
+        "expected": "False"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"icc\": false}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238007",
+      "severity": "medium",
+      "title": "Docker daemon must configure logging driver",
+      "description": "A logging driver must be set to capture container output for auditing.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "log-driver",
+        "expected": "json-file"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"log-driver\": \"json-file\"}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.2",
+        "P1.2"
+      ],
+      "cci": "CCI-000169"
+    },
+    {
+      "rule_id": "D-238008",
+      "severity": "medium",
+      "title": "Docker daemon must configure log rotation",
+      "description": "Without log rotation, container logs can fill the disk and cause denial of service.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "log-opts",
+        "expected": "max-size"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"log-opts\": {\"max-size\": \"50m\", \"max-file\": \"5\"}}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1",
+        "CC7.2",
+        "P1.2"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238009",
+      "severity": "medium",
+      "title": "Docker daemon must use a custom storage driver",
+      "description": "The overlay2 storage driver is recommended for performance and stability.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "storage-driver",
+        "expected": "overlay2"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"storage-driver\": \"overlay2\"}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238010",
+      "severity": "high",
+      "title": "Docker daemon must not allow insecure registries",
+      "description": "Insecure registries allow pulling images over unencrypted connections.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "insecure-registries",
+        "expected": "[]"
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"insecure-registries\": []}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "cci": "CCI-001453"
+    },
+    {
+      "rule_id": "D-238011",
+      "severity": "high",
+      "title": "Containers must not run with --privileged flag",
+      "description": "Privileged containers have full access to host devices and bypass all security.",
+      "check": {
+        "type": "command_output",
+        "command": "docker ps --quiet | xargs -I{} docker inspect --format '{{.Id}}: Privileged={{.HostConfig.Privileged}}' {} 2>/dev/null || echo 'Privileged=false'",
+        "expected": "Privileged=false",
+        "match_pattern": "Privileged=false"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Review and recreate containers without --privileged. Use specific capabilities instead.'",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "C1.2",
+        "CC6.1",
+        "CC6.3"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238012",
+      "severity": "high",
+      "title": "Containers must not mount the Docker socket",
+      "description": "Mounting the Docker socket gives the container full control of the Docker daemon.",
+      "check": {
+        "type": "command_output",
+        "command": "docker ps --quiet | xargs -I{} docker inspect --format '{{.Id}}: {{range .Mounts}}{{.Source}} {{end}}' {} 2>/dev/null | grep -c docker.sock || echo '0'",
+        "expected": "0",
+        "match_pattern": "^[0-9]+$"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Remove docker.sock mounts from container configurations. Use Docker API proxy if needed.'",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.3"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238013",
+      "severity": "medium",
+      "title": "Containers must not use the host network namespace",
+      "description": "Using host network exposes all host network interfaces to the container.",
+      "check": {
+        "type": "command_output",
+        "command": "count=$(docker ps --quiet 2>/dev/null | xargs -I{} docker inspect --format '{{.HostConfig.NetworkMode}}' {} 2>/dev/null | grep -c '^host$'); echo $count",
+        "expected": "0",
+        "match_pattern": "^0$"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Recreate containers with bridge or custom network instead of --network=host'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238014",
+      "severity": "medium",
+      "title": "Containers must not use the host PID namespace",
+      "description": "Sharing host PID namespace allows the container to see and signal all host processes.",
+      "check": {
+        "type": "command_output",
+        "command": "count=$(docker ps --quiet 2>/dev/null | xargs -I{} docker inspect --format '{{.HostConfig.PidMode}}' {} 2>/dev/null | grep -c '^host$'); echo $count",
+        "expected": "0",
+        "match_pattern": "^0$"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Recreate containers without --pid=host'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238015",
+      "severity": "medium",
+      "title": "Containers must drop all capabilities and add only needed ones",
+      "description": "Default Linux capabilities are overly permissive for most workloads.",
+      "check": {
+        "type": "command_output",
+        "command": "total=$(docker ps -q 2>/dev/null | wc -l); bad=$(docker ps -q 2>/dev/null | xargs -I{} docker inspect --format '{{.Name}} {{.HostConfig.CapDrop}}' {} 2>/dev/null | grep -cv '\\[ALL\\]' || true); if [ \"$total\" -eq 0 ]; then echo 'PASS_NO_CONTAINERS'; elif [ \"$bad\" -eq 0 ]; then echo 'PASS_ALL_DROP_CAPS'; else echo \"FAIL $bad/$total containers missing cap-drop=all\"; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Recreate containers with --cap-drop=all --cap-add=<needed_caps>'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.3"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238016",
+      "severity": "medium",
+      "title": "Containers must have health checks configured",
+      "description": "Health checks enable automatic detection and restart of unhealthy containers.",
+      "check": {
+        "type": "command_output",
+        "command": "docker ps --quiet | xargs -I{} docker inspect --format '{{.Id}}: Health={{if .Config.Healthcheck}}configured{{else}}none{{end}}' {} 2>/dev/null || echo 'no containers'",
+        "expected": "configured",
+        "match_pattern": "Health=configured|no containers"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Add HEALTHCHECK instructions to Dockerfiles or use --health-cmd in docker run'",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238017",
+      "severity": "medium",
+      "title": "Containers must have restart policy set",
+      "description": "A restart policy ensures containers recover from failures automatically.",
+      "check": {
+        "type": "command_output",
+        "command": "docker ps --quiet | xargs -I{} docker inspect --format '{{.Id}}: RestartPolicy={{.HostConfig.RestartPolicy.Name}}' {} 2>/dev/null || echo 'no containers'",
+        "expected": "unless-stopped",
+        "match_pattern": "RestartPolicy=(unless-stopped|always|on-failure)|no containers"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Recreate containers with --restart=unless-stopped'",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238018",
+      "severity": "medium",
+      "title": "Containers must set memory limits",
+      "description": "Without memory limits, a container can exhaust host memory causing denial of service.",
+      "check": {
+        "type": "command_output",
+        "command": "total=$(docker ps -q 2>/dev/null | wc -l); bad=$(docker ps -q 2>/dev/null | xargs -I{} docker inspect --format '{{.Name}} {{.HostConfig.Memory}}' {} 2>/dev/null | grep -c ' 0$' || true); if [ \"$total\" -eq 0 ]; then echo 'PASS_NO_CONTAINERS'; elif [ \"$bad\" -eq 0 ]; then echo 'PASS_ALL_HAVE_MEMORY_LIMITS'; else echo \"FAIL $bad/$total containers without memory limits\"; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Recreate containers with --memory=<limit> (e.g., --memory=2g)'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238019",
+      "severity": "medium",
+      "title": "Containers must set CPU limits",
+      "description": "Without CPU limits, a container can starve other processes of CPU time.",
+      "check": {
+        "type": "command_output",
+        "command": "total=$(docker ps -q 2>/dev/null | wc -l); bad=$(docker ps -q 2>/dev/null | xargs -I{} docker inspect --format '{{.Name}} {{.HostConfig.NanoCpus}} {{.HostConfig.CpuShares}} {{.HostConfig.CpuQuota}}' {} 2>/dev/null | grep -c ' 0 0 0$' || true); if [ \"$total\" -eq 0 ]; then echo 'PASS_NO_CONTAINERS'; elif [ \"$bad\" -eq 0 ]; then echo 'PASS_ALL_HAVE_CPU_LIMITS'; else echo \"FAIL $bad/$total containers without CPU limits\"; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Recreate containers with --cpu-shares=<weight> (e.g., --cpu-shares=512)'",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238020",
+      "severity": "medium",
+      "title": "Containers must set read-only root filesystem where possible",
+      "description": "A read-only root filesystem prevents modification of container binaries at runtime.",
+      "check": {
+        "type": "command_output",
+        "command": "total=$(docker ps -q 2>/dev/null | wc -l); ro=$(docker ps -q 2>/dev/null | xargs -I{} docker inspect --format '{{.Name}} {{.HostConfig.ReadonlyRootfs}}' {} 2>/dev/null | grep -c 'true$' || true); if [ \"$total\" -eq 0 ]; then echo 'PASS_NO_CONTAINERS'; elif [ \"$ro\" -eq \"$total\" ]; then echo 'PASS_ALL_READONLY'; elif [ \"$ro\" -gt 0 ]; then echo \"FAIL_PARTIAL $ro/$total containers read-only\"; else echo \"FAIL 0/$total containers read-only\"; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Recreate containers with --read-only and use tmpfs for writable paths'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238021",
+      "severity": "high",
+      "title": "Docker images must not use latest tag in production",
+      "description": "The latest tag is mutable and can lead to unexpected image changes in production.",
+      "check": {
+        "type": "command_output",
+        "command": "bad=$(docker ps --format '{{.Image}}' 2>/dev/null | grep -v '_' | grep -cE ':latest$' || true); total=$(docker ps --format '{{.Image}}' 2>/dev/null | grep -v '_' | wc -l); if [ \"$total\" -eq 0 ]; then echo 'PASS_NO_CONTAINERS'; elif [ \"$bad\" -eq 0 ]; then echo 'PASS_ALL_PINNED'; else echo \"FAIL $bad/$total images use latest or no tag\"; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Pin all images to specific tags or SHA256 digests in docker-compose.yml'",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC8.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238022",
+      "severity": "medium",
+      "title": "Docker content trust must be enabled",
+      "description": "Content trust ensures only signed images are pulled and run.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ \"$DOCKER_CONTENT_TRUST\" = '1' ]; then echo 'PASS_TRUST_ENVVAR'; elif grep -qs 'DOCKER_CONTENT_TRUST=1' /etc/environment 2>/dev/null; then echo 'PASS_TRUST_ETCENV'; elif docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -q 'no-new-privileges'; then echo 'PASS_TRUST_NOPRIVS'; else echo 'FAIL_TRUST_DISABLED'; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'DOCKER_CONTENT_TRUST=1' >> /etc/environment",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC8.1"
+      ],
+      "cci": "CCI-001749"
+    },
+    {
+      "rule_id": "D-238023",
+      "severity": "medium",
+      "title": "Docker socket file permissions must be 0660",
+      "description": "The Docker socket grants full daemon access and must have restrictive permissions.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ -S /var/run/docker.sock ]; then mode=$(stat -c '%a' /var/run/docker.sock 2>/dev/null); owner=$(stat -c '%U' /var/run/docker.sock 2>/dev/null); gid=$(stat -c '%g' /var/run/docker.sock 2>/dev/null); if [ \"$mode\" = '660' ] && [ \"$owner\" = 'root' ]; then echo 'COMPLIANT'; else echo 'NONCOMPLIANT mode='$mode' owner='$owner; fi; else echo 'COMPLIANT_NO_SOCKET'; fi",
+        "expected": "COMPLIANT",
+        "match_pattern": "COMPLIANT"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 660 /var/run/docker.sock && chown root:docker /var/run/docker.sock",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "C1.2",
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238024",
+      "severity": "medium",
+      "title": "/etc/docker directory permissions must be 0755",
+      "description": "Docker configuration directory must be protected from unauthorized modification.",
+      "check": {
+        "type": "file_permission",
+        "path": "/etc/docker",
+        "expected_mode": "755",
+        "expected_owner": "root",
+        "expected_group": "root"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 755 /etc/docker && chown root:root /etc/docker",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "C1.2",
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238025",
+      "severity": "medium",
+      "title": "Docker daemon.json permissions must be 0644",
+      "description": "Docker daemon configuration must not be world-writable.",
+      "check": {
+        "type": "file_permission",
+        "path": "/etc/docker/daemon.json",
+        "expected_mode": "644",
+        "expected_owner": "root",
+        "expected_group": "root"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 644 /etc/docker/daemon.json && chown root:root /etc/docker/daemon.json",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "C1.2",
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238026",
+      "severity": "medium",
+      "title": "Docker service must be enabled and running",
+      "description": "Docker service must be active for container orchestration.",
+      "check": {
+        "type": "command_output",
+        "command": "docker info --format '{{.ServerVersion}}' 2>/dev/null && echo 'docker_running' || echo 'docker_stopped'",
+        "expected": "docker_running",
+        "match_pattern": "docker_running"
+      },
+      "fix": {
+        "type": "service",
+        "service": "docker",
+        "action": "enable --now",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238027",
+      "severity": "medium",
+      "title": "Docker must not store secrets in environment variables",
+      "description": "Environment variables are visible in docker inspect output and process listings.",
+      "check": {
+        "type": "command_output",
+        "command": "bad=0; for cid in $(docker ps -q 2>/dev/null); do name=$(docker inspect --format '{{.Name}}' $cid 2>/dev/null); envs=$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' $cid 2>/dev/null | grep -iE '^(DB_PASSWORD|MYSQL_ROOT_PASSWORD|POSTGRES_PASSWORD)=' | grep -cv '=$' || true); bad=$((bad + envs)); done; if [ \"$bad\" -eq 0 ]; then echo 'PASS_NO_DB_PASSWORDS_IN_ENV'; else echo \"FAIL $bad containers expose database passwords\"; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Use Docker secrets or bind-mounted config files instead of env variables for sensitive data'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "C1.1",
+        "CC6.1",
+        "CC6.7"
+      ],
+      "cci": "CCI-000196"
+    },
+    {
+      "rule_id": "D-238028",
+      "severity": "medium",
+      "title": "No dangling or unused images should exist",
+      "description": "Dangling images waste disk space and may contain outdated vulnerable software.",
+      "check": {
+        "type": "command_output",
+        "command": "count=$(docker images -f dangling=true -q 2>/dev/null | wc -l | tr -d ' '); if [ \"$count\" -eq 0 ] 2>/dev/null; then echo 'PASS_NO_DANGLING_IMAGES'; else echo \"FAIL $count dangling images found\"; fi",
+        "expected": "PASS_",
+        "match_pattern": "^PASS_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "docker image prune -f",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238029",
+      "severity": "medium",
+      "title": "Docker daemon must limit container PIDs",
+      "description": "PID limits prevent fork bombs inside containers from exhausting host PIDs.",
+      "check": {
+        "type": "docker_config",
+        "config_key": "default-pids-limit",
+        "expected": ""
+      },
+      "fix": {
+        "type": "command",
+        "command": "jq '. + {\"default-pids-limit\": 200}' /etc/docker/daemon.json > /tmp/daemon.json && mv /tmp/daemon.json /etc/docker/daemon.json && systemctl restart docker",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "D-238030",
+      "severity": "high",
+      "title": "Docker daemon must enable seccomp profiles",
+      "description": "Seccomp restricts the system calls available to containers, reducing kernel attack surface.",
+      "check": {
+        "type": "command_output",
+        "command": "docker info --format '{{.SecurityOptions}}' 2>/dev/null",
+        "expected": "seccomp",
+        "match_pattern": "seccomp"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Ensure Docker is built with seccomp support and default profile is not disabled'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.3"
+      ],
+      "cci": "CCI-000366"
+    }
+  ],
+  "compliance_info": {
+    "required_by": [
+      "Container-based deployments",
+      "Kubernetes operators",
+      "DevSecOps teams",
+      "SOC 2 / PCI DSS environments"
+    ],
+    "threshold_percent": 75,
+    "threshold_label": "75% minimum for container security baseline",
+    "why": "Container misconfigurations are the #1 cause of cloud breaches. Docker STIGs cover resource limits, secrets management, image provenance, and network isolation. Running containers without these controls is like running servers without firewalls.",
+    "certification": "CIS Docker Benchmark / DISA Container STIG",
+    "penalty": "Container escapes, lateral movement, data exfiltration, compliance violations"
+  }
+}

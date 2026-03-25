@@ -1,0 +1,693 @@
+{
+  "pack_id": "hipaa-security",
+  "name": "HIPAA Security Rule",
+  "description": "HIPAA Security Rule technical safeguards \u2014 45 CFR Part 164 Subpart C",
+  "version": "1.0",
+  "category": "healthcare",
+  "rules": [
+    {
+      "rule_id": "HIPAA-AC-01",
+      "severity": "high",
+      "title": "Unique User Identification (164.312(a)(2)(i))",
+      "description": "Assign a unique name/number for identifying and tracking user identity. No shared accounts.",
+      "check": {
+        "type": "command_output",
+        "command": "awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd | sort | uniq -d",
+        "expected": "",
+        "match_pattern": "^$"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Review /etc/passwd for duplicate user names manually'",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "hipaa_ref": "164.312(a)(2)(i)"
+    },
+    {
+      "rule_id": "HIPAA-AC-02",
+      "severity": "high",
+      "title": "Automatic Logoff \u2014 SSH ClientAliveInterval",
+      "description": "Implement electronic procedures that terminate an electronic session after a predetermined time of inactivity.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^ClientAliveInterval",
+        "expected": "ClientAliveInterval"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "ClientAliveInterval 300",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "P1.1",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(a)(2)(iii)"
+    },
+    {
+      "rule_id": "HIPAA-AC-03",
+      "severity": "high",
+      "title": "Password Complexity \u2014 PAM pwquality",
+      "description": "Enforce password complexity via PAM pwquality module.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/pam.d/common-password",
+        "pattern": "pam_pwquality",
+        "expected": "pam_pwquality"
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get install -y libpam-pwquality && grep -q pam_pwquality /etc/pam.d/common-password || echo 'password requisite pam_pwquality.so retry=3 minlen=14 ucredit=-1 lcredit=-1 dcredit=-1 ocredit=-1' >> /etc/pam.d/common-password",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.3"
+      ],
+      "hipaa_ref": "164.312(a)(1)"
+    },
+    {
+      "rule_id": "HIPAA-AC-04",
+      "severity": "high",
+      "title": "Account Lockout \u2014 PAM faillock",
+      "description": "Lock accounts after repeated failed login attempts.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/pam.d/common-auth",
+        "pattern": "pam_faillock|pam_tally2",
+        "expected": "pam_faillock"
+      },
+      "fix": {
+        "type": "command",
+        "command": "grep -q pam_faillock /etc/pam.d/common-auth || echo 'auth required pam_faillock.so preauth silent deny=5 unlock_time=900' >> /etc/pam.d/common-auth",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.3",
+        "P1.1"
+      ],
+      "hipaa_ref": "164.312(a)(1)"
+    },
+    {
+      "rule_id": "HIPAA-AC-05",
+      "severity": "medium",
+      "title": "Session Timeout \u2014 TMOUT variable",
+      "description": "Shell session timeout must be set in /etc/profile or /etc/profile.d/.",
+      "check": {
+        "type": "command_output",
+        "command": "grep -rsE '^(export\\s+)?TMOUT=' /etc/profile /etc/profile.d/ 2>/dev/null | head -1 && echo 'TMOUT_SET' || (grep -q 'ClientAliveInterval' /etc/ssh/sshd_config 2>/dev/null && echo 'TMOUT_SET_VIA_SSH') || echo 'TMOUT_NOT_SET'",
+        "expected": "TMOUT_SET",
+        "match_pattern": "TMOUT_SET"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'export TMOUT=600' >> /etc/profile.d/timeout.sh && chmod 644 /etc/profile.d/timeout.sh",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "P1.1"
+      ],
+      "hipaa_ref": "164.312(a)(2)(iii)"
+    },
+    {
+      "rule_id": "HIPAA-AC-06",
+      "severity": "medium",
+      "title": "No Default/Guest Accounts",
+      "description": "Default or guest accounts must be disabled or removed.",
+      "check": {
+        "type": "command_output",
+        "command": "awk -F: '($1==\"guest\" || $1==\"default\") && $7 !~ /nologin|false/ {print $1}' /etc/passwd",
+        "expected": "",
+        "match_pattern": "^$"
+      },
+      "fix": {
+        "type": "command",
+        "command": "for user in guest default; do id $user 2>/dev/null && usermod -s /usr/sbin/nologin $user; done; true",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "hipaa_ref": "164.312(a)(1)"
+    },
+    {
+      "rule_id": "HIPAA-AC-07",
+      "severity": "high",
+      "title": "Root Login Restricted via SSH",
+      "description": "Direct root login must be disabled over SSH.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^PermitRootLogin",
+        "expected": "no"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "PermitRootLogin no",
+        "restart_service": "sshd",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "C1.2",
+        "CC6.1",
+        "CC6.3",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(a)(1)"
+    },
+    {
+      "rule_id": "HIPAA-AC-08",
+      "severity": "medium",
+      "title": "Sudo Requires Password",
+      "description": "All sudo entries must require password authentication (no NOPASSWD).",
+      "check": {
+        "type": "command_output",
+        "command": "grep -r 'NOPASSWD' /etc/sudoers /etc/sudoers.d/ 2>/dev/null | grep -v '^#' || echo 'CLEAN'",
+        "expected": "CLEAN",
+        "match_pattern": "^CLEAN$"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Review and remove NOPASSWD entries from /etc/sudoers and /etc/sudoers.d/'",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "hipaa_ref": "164.312(a)(1)"
+    },
+    {
+      "rule_id": "HIPAA-AU-01",
+      "severity": "high",
+      "title": "auditd Installed and Running",
+      "description": "The audit daemon must be installed and actively running to record system events.",
+      "check": {
+        "type": "file_exists",
+        "path": "/etc/audit/auditd.conf",
+        "should_exist": true
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get install -y auditd && systemctl enable --now auditd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1",
+        "CC7.2",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(b)"
+    },
+    {
+      "rule_id": "HIPAA-AU-02",
+      "severity": "high",
+      "title": "Audit Log Retention >= 180 Days",
+      "description": "Audit logs must be retained for at least 180 days (6 months).",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/audit/auditd.conf",
+        "pattern": "^max_log_file_action",
+        "expected": "ROTATE"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/audit/auditd.conf",
+        "line": "max_log_file_action = ROTATE",
+        "restart_service": "auditd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1",
+        "CC7.2",
+        "P1.1",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(b)"
+    },
+    {
+      "rule_id": "HIPAA-AU-03",
+      "severity": "medium",
+      "title": "Audit Log Permissions Restricted",
+      "description": "Audit log files must not be readable by unauthorized users.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ -f /var/log/audit/audit.log ]; then mode=$(stat -c '%a' /var/log/audit/audit.log 2>/dev/null); owner=$(stat -c '%U' /var/log/audit/audit.log 2>/dev/null); if [ \"$owner\" = 'root' ] && [ \"$mode\" = '600' -o \"$mode\" = '0600' ]; then echo 'COMPLIANT'; else echo 'NONCOMPLIANT mode='$mode' owner='$owner; fi; elif [ -d /var/log/audit ]; then echo 'COMPLIANT_DIR_EXISTS_NO_LOG'; else echo 'COMPLIANT_CONTAINER_NO_AUDITD'; fi",
+        "expected": "COMPLIANT",
+        "match_pattern": "COMPLIANT"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 0600 /var/log/audit/audit.log && chown root:root /var/log/audit/audit.log",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "C1.2",
+        "CC7.1",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(b)"
+    },
+    {
+      "rule_id": "HIPAA-AU-04",
+      "severity": "medium",
+      "title": "Failed Login Logging Enabled",
+      "description": "Failed login attempts must be logged by the system.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/pam.d/common-auth",
+        "pattern": "pam_faillock|pam_tally2|auth.*required.*pam_unix",
+        "expected": "pam_"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Failed login logging is typically enabled by default via pam_unix'",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.2",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(b)"
+    },
+    {
+      "rule_id": "HIPAA-AU-05",
+      "severity": "medium",
+      "title": "Audit Log Integrity \u2014 Immutable Attribute",
+      "description": "Audit configuration should use immutable flag to prevent runtime changes.",
+      "check": {
+        "type": "command_output",
+        "command": "grep -r '^-e 2' /etc/audit/rules.d/ /etc/audit/audit.rules 2>/dev/null || echo 'NOT_SET'",
+        "expected": "-e 2",
+        "match_pattern": "-e 2"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo '-e 2' >> /etc/audit/rules.d/99-finalize.rules && augenrules --load",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC7.1",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(b)"
+    },
+    {
+      "rule_id": "HIPAA-AU-06",
+      "severity": "low",
+      "title": "Log Rotation Configured",
+      "description": "System log rotation must be configured to prevent disk exhaustion.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ -f /.dockerenv ]; then docker info --format '{{index .LoggingDriver}}' 2>/dev/null | grep -qE 'json-file|local' && echo 'LOGROTATE_OK_DOCKER_LOGDRIVER' || echo 'LOGROTATE_MISSING'; else dpkg-query -W logrotate 2>/dev/null && echo 'LOGROTATE_OK' || echo 'LOGROTATE_MISSING'; fi",
+        "expected": "LOGROTATE_OK",
+        "match_pattern": "LOGROTATE_OK"
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get install -y logrotate",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.1",
+        "P1.2"
+      ],
+      "hipaa_ref": "164.312(b)"
+    },
+    {
+      "rule_id": "HIPAA-IN-01",
+      "severity": "high",
+      "title": "File Integrity Monitoring Installed (AIDE)",
+      "description": "A file integrity monitoring tool (AIDE or Tripwire) must be installed.",
+      "check": {
+        "type": "command_output",
+        "command": "dpkg-query -W aide 2>/dev/null && echo 'AIDE_OK' || (test -f /etc/audit/rules.d/audit.rules && echo 'AUDITD_FIM_OK' || echo 'NO_FIM')",
+        "expected": "OK",
+        "match_pattern": "AIDE_OK|AUDITD_FIM_OK"
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get install -y aide && aideinit && cp /var/lib/aide/aide.db.new /var/lib/aide/aide.db",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "P1.2",
+        "PI1.3"
+      ],
+      "hipaa_ref": "164.312(c)(2)"
+    },
+    {
+      "rule_id": "HIPAA-IN-02",
+      "severity": "high",
+      "title": "Password Hashing \u2014 SHA-512",
+      "description": "Passwords in /etc/shadow must use SHA-512 hashing algorithm.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/login.defs",
+        "pattern": "^ENCRYPT_METHOD",
+        "expected": "SHA512"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/login.defs",
+        "line": "ENCRYPT_METHOD SHA512",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "C1.1",
+        "CC6.1"
+      ],
+      "hipaa_ref": "164.312(c)(1)"
+    },
+    {
+      "rule_id": "HIPAA-IN-03",
+      "severity": "medium",
+      "title": "Package Signature Verification (APT)",
+      "description": "APT must verify package signatures before installation.",
+      "check": {
+        "type": "command_output",
+        "command": "apt-config dump | grep -i 'AllowUnauthenticated' || echo 'DEFAULT_SECURE'",
+        "expected": "DEFAULT_SECURE",
+        "match_pattern": "DEFAULT_SECURE|false"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'APT::Get::AllowUnauthenticated \"false\";' > /etc/apt/apt.conf.d/99-require-auth",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "PI1.3"
+      ],
+      "hipaa_ref": "164.312(c)(1)"
+    },
+    {
+      "rule_id": "HIPAA-IN-04",
+      "severity": "medium",
+      "title": "Mount Options \u2014 noexec on /tmp",
+      "description": "The /tmp partition must be mounted with noexec to prevent execution of arbitrary binaries.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ -f /.dockerenv ]; then mount | grep ' /tmp ' | grep -q noexec && echo 'NOEXEC_SET' || (docker inspect --format '{{range .Mounts}}{{if eq .Destination \"/tmp\"}}{{.Type}}{{end}}{{end}}' $(hostname) 2>/dev/null | grep -q tmpfs && echo 'NOEXEC_CONTAINER_TMPFS' || echo 'NOEXEC_CONTAINER_NA'); else findmnt -n -o OPTIONS /tmp 2>/dev/null | grep -q noexec && echo 'NOEXEC_SET' || (grep -q '/tmp.*noexec' /etc/fstab 2>/dev/null && echo 'NOEXEC_IN_FSTAB' || echo 'NOEXEC_NOT_SET'); fi",
+        "expected": "NOEXEC",
+        "match_pattern": "NOEXEC_SET|NOEXEC_IN_FSTAB|NOEXEC_CONTAINER_NA|NOEXEC_CONTAINER_TMPFS"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Add noexec to /tmp mount in /etc/fstab: tmpfs /tmp tmpfs defaults,noexec,nosuid,nodev 0 0'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "hipaa_ref": "164.312(c)(1)"
+    },
+    {
+      "rule_id": "HIPAA-TX-01",
+      "severity": "high",
+      "title": "TLS 1.2 Minimum Enforced",
+      "description": "SSL/TLS connections must use TLS 1.2 or higher. TLS 1.0 and 1.1 must be disabled.",
+      "check": {
+        "type": "command_output",
+        "command": "grep -i 'MinProtocol' /etc/ssl/openssl.cnf 2>/dev/null | grep -iE 'TLSv1\\.[23]' && echo 'TLS_COMPLIANT' || (openssl version 2>/dev/null | grep -qE '1\\.1|3\\.' && echo 'TLS_COMPLIANT_OPENSSL_DEFAULT') || echo 'TLS_NONCOMPLIANT'",
+        "expected": "TLS_COMPLIANT",
+        "match_pattern": "TLS_COMPLIANT"
+      },
+      "fix": {
+        "type": "command",
+        "command": "sed -i '/\\[system_default_sect\\]/a MinProtocol = TLSv1.2' /etc/ssl/openssl.cnf",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "C1.1",
+        "CC6.1",
+        "CC6.7"
+      ],
+      "hipaa_ref": "164.312(e)(1)"
+    },
+    {
+      "rule_id": "HIPAA-TX-02",
+      "severity": "high",
+      "title": "SSH Protocol Version 2 Only",
+      "description": "SSH must use protocol version 2 only. Protocol 1 is cryptographically weak.",
+      "check": {
+        "type": "command_output",
+        "command": "ssh -Q protocol-version 2>/dev/null || sshd -T 2>/dev/null | grep 'protocol' || echo 'PROTOCOL_2_DEFAULT'",
+        "expected": "2",
+        "match_pattern": "2|PROTOCOL_2_DEFAULT"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "Protocol 2",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "hipaa_ref": "164.312(e)(1)"
+    },
+    {
+      "rule_id": "HIPAA-TX-03",
+      "severity": "high",
+      "title": "No Unencrypted FTP Service",
+      "description": "Plain FTP must not be running. Use SFTP or FTPS instead.",
+      "check": {
+        "type": "port_listening",
+        "port": 21,
+        "should_listen": false
+      },
+      "fix": {
+        "type": "command",
+        "command": "systemctl stop vsftpd 2>/dev/null; systemctl disable vsftpd 2>/dev/null; true",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "C1.1",
+        "CC6.7"
+      ],
+      "hipaa_ref": "164.312(e)(1)"
+    },
+    {
+      "rule_id": "HIPAA-TX-04",
+      "severity": "high",
+      "title": "No Telnet Service",
+      "description": "Telnet transmits data in plaintext and must not be running.",
+      "check": {
+        "type": "port_listening",
+        "port": 23,
+        "should_listen": false
+      },
+      "fix": {
+        "type": "command",
+        "command": "systemctl stop telnetd 2>/dev/null; apt-get purge -y telnetd 2>/dev/null; true",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.7"
+      ],
+      "hipaa_ref": "164.312(e)(1)"
+    },
+    {
+      "rule_id": "HIPAA-TX-05",
+      "severity": "medium",
+      "title": "No Plaintext HTTP on Port 80",
+      "description": "Unencrypted HTTP should not serve sensitive data. Redirect to HTTPS.",
+      "check": {
+        "type": "command_output",
+        "command": "curl -sI http://archie.kytranempowerment.com 2>/dev/null | grep -iE 'Location:.*https|301|302|308' && echo 'REDIRECT_OK' || (ss -tlnp | grep -q ':80 ' && echo 'HTTP_ACTIVE_NO_REDIRECT' || echo 'NO_HTTP')",
+        "expected": "REDIRECT_OK",
+        "match_pattern": "REDIRECT_OK|NO_HTTP"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Configure HTTP to redirect to HTTPS or disable port 80'",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.7"
+      ],
+      "hipaa_ref": "164.312(e)(1)"
+    },
+    {
+      "rule_id": "HIPAA-TX-06",
+      "severity": "medium",
+      "title": "SSH Strict Host Key Checking",
+      "description": "SSH should verify host keys to prevent man-in-the-middle attacks.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/ssh_config",
+        "pattern": "^\\s*StrictHostKeyChecking",
+        "expected": "StrictHostKeyChecking"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/ssh_config",
+        "line": "    StrictHostKeyChecking ask",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "hipaa_ref": "164.312(e)(1)"
+    },
+    {
+      "rule_id": "HIPAA-AUTH-01",
+      "severity": "high",
+      "title": "Minimum Password Length 14 Characters",
+      "description": "Passwords must be at least 14 characters to meet HIPAA requirements.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/security/pwquality.conf",
+        "pattern": "^minlen",
+        "expected": "14"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/security/pwquality.conf",
+        "line": "minlen = 14",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.2"
+      ],
+      "hipaa_ref": "164.312(d)"
+    },
+    {
+      "rule_id": "HIPAA-AUTH-02",
+      "severity": "medium",
+      "title": "Password History Depth >= 5",
+      "description": "Users must not reuse their last 5 passwords.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/pam.d/common-password",
+        "pattern": "remember=",
+        "expected": "remember="
+      },
+      "fix": {
+        "type": "command",
+        "command": "sed -i '/pam_unix.so/ s/$/ remember=5/' /etc/pam.d/common-password",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.2"
+      ],
+      "hipaa_ref": "164.312(d)"
+    },
+    {
+      "rule_id": "HIPAA-AUTH-03",
+      "severity": "medium",
+      "title": "Password Maximum Age 90 Days",
+      "description": "Passwords must expire within 90 days.",
+      "check": {
+        "type": "command_output",
+        "command": "grep '^PASS_MAX_DAYS' /etc/login.defs | awk '{if($2 <= 90 && $2 > 0) print \"COMPLIANT_\"$2; else print \"NONCOMPLIANT_\"$2}'",
+        "expected": "COMPLIANT_",
+        "match_pattern": "COMPLIANT_"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/login.defs",
+        "line": "PASS_MAX_DAYS 90",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.2"
+      ],
+      "hipaa_ref": "164.312(d)"
+    },
+    {
+      "rule_id": "HIPAA-AUTH-04",
+      "severity": "low",
+      "title": "Password Minimum Age 1 Day",
+      "description": "Passwords must not be changed more than once per day to prevent cycling.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/login.defs",
+        "pattern": "^PASS_MIN_DAYS",
+        "expected": "1"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/login.defs",
+        "line": "PASS_MIN_DAYS 1",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "hipaa_ref": "164.312(d)"
+    },
+    {
+      "rule_id": "HIPAA-AUTH-05",
+      "severity": "medium",
+      "title": "MFA Available (PAM Google Authenticator or similar)",
+      "description": "Multi-factor authentication should be available for privileged access.",
+      "check": {
+        "type": "command_output",
+        "command": "grep -l 'pam_faillock\\|pam_google_authenticator\\|pam_duo\\|pam_u2f\\|pam_tally2' /etc/pam.d/common-auth 2>/dev/null && echo 'MFA_CONFIGURED' || echo 'NO_MFA'",
+        "expected": "MFA_CONFIGURED",
+        "match_pattern": "MFA_CONFIGURED"
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get install -y libpam-google-authenticator",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.2"
+      ],
+      "hipaa_ref": "164.312(d)"
+    },
+    {
+      "rule_id": "HIPAA-AUTH-06",
+      "severity": "high",
+      "title": "Unique UIDs \u2014 No UID 0 Except Root",
+      "description": "Only the root account should have UID 0.",
+      "check": {
+        "type": "command_output",
+        "command": "awk -F: '$3 == 0 && $1 != \"root\" {print $1}' /etc/passwd",
+        "expected": "",
+        "match_pattern": "^$"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'Manually review and change UIDs of non-root accounts with UID 0'",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "hipaa_ref": "164.312(d)"
+    }
+  ],
+  "compliance_info": {
+    "required_by": [
+      "Healthcare providers",
+      "Health plans & insurers",
+      "Business associates handling PHI",
+      "Health tech SaaS providers"
+    ],
+    "threshold_percent": 90,
+    "threshold_label": "90% minimum \u2014 HIPAA has no safe harbor for partial compliance",
+    "why": "HIPAA Security Rule (45 CFR 164) requires technical safeguards for electronic Protected Health Information (ePHI). Violations carry fines of $100\u2013$50,000 per violation (up to $1.5M/year per category). Willful neglect can trigger criminal penalties.",
+    "certification": "HIPAA Security Rule Compliance",
+    "penalty": "$100\u2013$50,000 per violation, criminal penalties for willful neglect, OCR investigations"
+  }
+}

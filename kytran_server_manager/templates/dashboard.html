@@ -93,6 +93,10 @@
             <i data-lucide="shield" style="width: 16px; height: 16px;"></i>
             Firewall
         </button>
+        <button class="tab-btn" data-tab="compliance">
+            <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+            Compliance
+        </button>
     </div>
 
     <!-- Tab: Dashboard -->
@@ -1402,6 +1406,119 @@
         <div id="firewall-no-rules" style="display: none; text-align: center; padding: 30px; color: var(--archie-text-muted);">
             <i data-lucide="shield-off" style="width: 48px; height: 48px; opacity: 0.5;"></i>
             <p style="margin-top: 10px;"><span data-i18n="system_operations.no_firewall_rules_configured">No firewall rules configured.</span></p>
+        </div>
+    </div>
+
+    <!-- Tab: Compliance -->
+    <div id="tab-compliance" class="tab-content">
+        <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i>
+                Compliance Scanner
+            </span>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="loadComplianceScores()" style="font-size: 0.8rem; padding: 4px 12px;">
+                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
+                </button>
+                <button class="btn btn-primary" onclick="runComplianceScan()" id="complianceScanBtn" style="font-size: 0.8rem; padding: 4px 12px;">
+                    <i data-lucide="scan" style="width: 14px; height: 14px;"></i> Run Scan
+                </button>
+            </div>
+        </div>
+
+        <!-- Score Overview -->
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 20px;">
+            <div class="stat-card" id="compliance-overall-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">
+                        <i data-lucide="gauge" style="width: 20px; height: 20px;"></i>
+                        Overall Score
+                    </div>
+                </div>
+                <div class="stat-value" id="compliance-overall-score" style="font-size: 2rem;">--</div>
+                <div class="stat-label" id="compliance-overall-label">No scans yet</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header"><div class="stat-card-title">Passed</div></div>
+                <div class="stat-value" id="compliance-passed" style="font-size: 1.5rem; color: var(--archie-green);">--</div>
+                <div class="stat-label" id="compliance-passed-label">checks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header"><div class="stat-card-title">Failed</div></div>
+                <div class="stat-value" id="compliance-failed" style="font-size: 1.5rem; color: var(--archie-red);">--</div>
+                <div class="stat-label" id="compliance-failed-label">checks</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-header"><div class="stat-card-title">Errors</div></div>
+                <div class="stat-value" id="compliance-errors" style="font-size: 1.5rem; color: var(--archie-yellow);">--</div>
+                <div class="stat-label" id="compliance-errors-label">checks</div>
+            </div>
+        </div>
+
+        <!-- Pack Scores -->
+        <div class="section-title" style="font-size: 0.95rem; margin-top: 16px;">
+            <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+            Rule Pack Scores
+        </div>
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;" id="compliance-pack-scores">
+            <div style="color: var(--archie-text-muted); padding: 20px; text-align: center;">Run a scan to see pack scores</div>
+        </div>
+
+        <!-- SOC 2 Framework -->
+        <div class="section-title" style="font-size: 0.95rem; margin-top: 16px; display: flex; align-items: center; justify-content: space-between;">
+            <span><i data-lucide="file-check" style="width: 16px; height: 16px;"></i> SOC 2 Trust Service Criteria</span>
+            <button class="btn btn-secondary" onclick="collectEvidence()" style="font-size: 0.75rem; padding: 3px 10px;">
+                <i data-lucide="archive" style="width: 12px; height: 12px;"></i> Collect Evidence
+            </button>
+        </div>
+        <div id="compliance-soc2-container" style="margin-bottom: 20px;">
+            <div style="color: var(--archie-text-muted); padding: 20px; text-align: center;">Run a scan to see SOC 2 scores</div>
+        </div>
+
+        <!-- Findings -->
+        <div class="section-title" style="font-size: 0.95rem; margin-top: 16px;">
+            <i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i>
+            Findings
+        </div>
+        <div style="margin-bottom: 8px;">
+            <select id="compliance-filter-severity" onchange="filterComplianceFindings()" class="form-input" style="width: auto; display: inline-block; font-size: 0.8rem; padding: 4px 8px;">
+                <option value="">All Severities</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
+            <select id="compliance-filter-status" onchange="filterComplianceFindings()" class="form-input" style="width: auto; display: inline-block; font-size: 0.8rem; padding: 4px 8px;">
+                <option value="">All Statuses</option>
+                <option value="fail">Failed</option>
+                <option value="pass">Passed</option>
+                <option value="error">Error</option>
+            </select>
+        </div>
+        <div class="table-responsive">
+            <table class="data-table" id="compliance-findings-table">
+                <thead>
+                    <tr>
+                        <th>Rule ID</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                        <th>Pack</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="compliance-findings-body">
+                    <tr><td colspan="5" style="text-align: center; color: var(--archie-text-muted); padding: 30px;">Run a scan to see findings</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Scan History Chart -->
+        <div class="section-title" style="font-size: 0.95rem; margin-top: 24px;">
+            <i data-lucide="bar-chart-3" style="width: 16px; height: 16px;"></i>
+            Scan History
+        </div>
+        <div style="background: var(--archie-bg-secondary); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+            <canvas id="complianceHistoryChart" height="200"></canvas>
         </div>
     </div>
 

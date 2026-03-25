@@ -75,6 +75,46 @@ def init_db(path):
         secret TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_rule_packs (
+        pack_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        rules TEXT NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_scans (
+        scan_id TEXT PRIMARY KEY,
+        triggered_by TEXT DEFAULT 'manual',
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        pack_ids TEXT,
+        total_rules INTEGER,
+        passed INTEGER,
+        failed INTEGER,
+        errors INTEGER,
+        score REAL
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_scan_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT NOT NULL,
+        pack_id TEXT NOT NULL,
+        rule_id TEXT NOT NULL,
+        severity TEXT,
+        status TEXT NOT NULL,
+        actual_value TEXT,
+        expected_value TEXT,
+        details TEXT,
+        soc2_controls TEXT,
+        scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_evidence (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        control_id TEXT NOT NULL,
+        artifact_type TEXT NOT NULL,
+        artifact_name TEXT,
+        artifact_data TEXT,
+        collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        scan_id TEXT
+    )""")
     conn.commit()
     conn.close()
 

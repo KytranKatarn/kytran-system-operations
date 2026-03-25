@@ -13,6 +13,7 @@ def register_all_routes(app, admin_required_decorator):
     from .network_routes import register_network_routes
     from .firewall_routes import register_firewall_routes
     from .health_routes import register_health_routes
+    from .compliance_routes import register_compliance_routes
 
     register_core_routes(bp, admin_required_decorator)
     register_process_routes(bp, admin_required_decorator)
@@ -22,5 +23,6 @@ def register_all_routes(app, admin_required_decorator):
     register_network_routes(bp, admin_required_decorator)
     register_firewall_routes(bp, admin_required_decorator)
     register_health_routes(bp, admin_required_decorator)
+    register_compliance_routes(bp, admin_required_decorator)
 
     app.register_blueprint(bp)

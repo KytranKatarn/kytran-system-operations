@@ -8956,3 +8956,338 @@ async function deleteFirewallRule() {
         showToast('error', 'Error deleting rule: ' + e.message);
     }
 }
+
+
+// ============================================================================
+// Compliance Tab
+// ============================================================================
+
+let complianceHistoryChart = null;
+let complianceLatestScanId = null;
+let complianceAllResults = [];
+
+/**
+ * Sanitize a string for safe insertion into HTML.
+ * All values are escaped via textContent to prevent XSS.
+ */
+function escapeHtmlCompliance(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = String(str);
+    return div.innerHTML;
+}
+
+/**
+ * Build a stat-card element safely using DOM APIs (no innerHTML with user data).
+ */
+function _buildPackCard(name, score, passed, total) {
+    const card = document.createElement('div');
+    card.className = 'stat-card';
+
+    const header = document.createElement('div');
+    header.className = 'stat-card-header';
+    const title = document.createElement('div');
+    title.className = 'stat-card-title';
+    title.style.fontSize = '0.8rem';
+    title.textContent = name;
+    header.appendChild(title);
+    card.appendChild(header);
+
+    const color = score >= 90 ? 'var(--archie-green)' : score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
+    const val = document.createElement('div');
+    val.className = 'stat-value';
+    val.style.cssText = 'font-size:1.5rem; color:' + color;
+    val.textContent = score + '%';
+    card.appendChild(val);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'stat-label';
+    lbl.textContent = passed + '/' + total + ' passed';
+    card.appendChild(lbl);
+
+    return card;
+}
+
+async function runComplianceScan() {
+    const btn = document.getElementById('complianceScanBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Scanning...'; }
+    showToast('info', 'Compliance scan started... this may take 10-30 seconds.');
+
+    try {
+        const resp = await fetch('/dashboard/api/compliance/scan', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('success', 'Scan complete: ' + data.score + '% (' + data.passed + '/' + data.total + ' passed)');
+            loadComplianceScores();
+            loadScanHistory();
+        } else {
+            showToast('error', data.error || 'Scan failed');
+        }
+    } catch (e) {
+        showToast('error', 'Scan error: ' + e.message);
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Run Scan'; }
+    }
+}
+
+async function loadComplianceScores() {
+    try {
+        const resp = await fetch('/dashboard/api/compliance/scores');
+        const data = await resp.json();
+        if (!data.success || !data.data) return;
+
+        const d = data.data;
+        complianceLatestScanId = d.scan_id || d.latest_scan_id;
+
+        // Overall score
+        const scoreEl = document.getElementById('compliance-overall-score');
+        const labelEl = document.getElementById('compliance-overall-label');
+        if (scoreEl) {
+            scoreEl.textContent = d.score != null ? d.score.toFixed(1) + '%' : '--';
+            scoreEl.style.color = d.score >= 90 ? 'var(--archie-green)' : d.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
+        }
+        if (labelEl) labelEl.textContent = (d.passed || 0) + '/' + (d.total_rules || 0) + ' passed' + (d.last_scan ? ' | Last: ' + new Date(d.last_scan).toLocaleString() : '');
+
+        // Counts
+        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val != null ? val : '--'; };
+        setVal('compliance-passed', d.passed);
+        setVal('compliance-failed', d.failed);
+        setVal('compliance-errors', d.errors);
+
+        // Pack scores — built with safe DOM APIs
+        const packContainer = document.getElementById('compliance-pack-scores');
+        if (packContainer && d.pack_scores) {
+            packContainer.replaceChildren();
+            for (const [packId, pack] of Object.entries(d.pack_scores)) {
+                packContainer.appendChild(_buildPackCard(pack.name, pack.score, pack.passed, pack.total));
+            }
+        }
+
+        // SOC 2 scores
+        renderSoc2Scores(d.soc2);
+
+        // Load findings
+        if (complianceLatestScanId) loadComplianceResults(complianceLatestScanId);
+
+    } catch (e) {
+        console.error('Failed to load compliance scores:', e);
+    }
+}
+
+function renderSoc2Scores(soc2) {
+    const container = document.getElementById('compliance-soc2-container');
+    if (!container || !soc2) return;
+
+    const criteriaColors = {
+        'Security': '#ef4444', 'Availability': '#22d3ee', 'Processing Integrity': '#fbbf24',
+        'Confidentiality': '#8b5cf6', 'Privacy': '#f472b6'
+    };
+
+    // Build SOC2 display safely using DOM APIs
+    container.replaceChildren();
+
+    // Overall SOC2 score header
+    const headerDiv = document.createElement('div');
+    headerDiv.style.cssText = 'display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap;';
+    const overallScore = document.createElement('div');
+    overallScore.style.cssText = 'font-size:1.8rem; font-weight:700;';
+    overallScore.style.color = soc2.score >= 90 ? 'var(--archie-green)' : soc2.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
+    overallScore.textContent = soc2.score != null ? soc2.score.toFixed(1) + '%' : '--';
+    headerDiv.appendChild(overallScore);
+    const overallLabel = document.createElement('div');
+    overallLabel.style.cssText = 'color:var(--archie-text-muted); font-size:0.85rem;';
+    overallLabel.textContent = 'SOC 2 Overall';
+    headerDiv.appendChild(overallLabel);
+    container.appendChild(headerDiv);
+
+    // Criteria grid
+    const grid = document.createElement('div');
+    grid.className = 'stats-grid';
+    grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
+    for (const [name, info] of Object.entries(soc2.criteria || {})) {
+        const color = criteriaColors[name] || '#888';
+        const card = document.createElement('div');
+        card.className = 'stat-card';
+        card.style.borderLeft = '3px solid ' + color;
+
+        const ch = document.createElement('div');
+        ch.className = 'stat-card-header';
+        const ct = document.createElement('div');
+        ct.className = 'stat-card-title';
+        ct.style.fontSize = '0.8rem';
+        ct.textContent = name;
+        ch.appendChild(ct);
+        card.appendChild(ch);
+
+        const scoreColor = info.score >= 90 ? 'var(--archie-green)' : info.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
+        const sv = document.createElement('div');
+        sv.className = 'stat-value';
+        sv.style.cssText = 'font-size:1.3rem; color:' + (info.score != null ? scoreColor : 'var(--archie-text-muted)');
+        sv.textContent = info.score != null ? info.score.toFixed(1) + '%' : 'N/A';
+        card.appendChild(sv);
+
+        const sl = document.createElement('div');
+        sl.className = 'stat-label';
+        sl.textContent = info.passed + '/' + info.total + ' controls';
+        card.appendChild(sl);
+
+        grid.appendChild(card);
+    }
+    container.appendChild(grid);
+}
+
+async function loadComplianceResults(scanId) {
+    try {
+        const resp = await fetch('/dashboard/api/compliance/scans/' + encodeURIComponent(scanId));
+        const data = await resp.json();
+        if (!data.success) return;
+
+        complianceAllResults = data.results || [];
+        filterComplianceFindings();
+    } catch (e) {
+        console.error('Failed to load compliance results:', e);
+    }
+}
+
+function filterComplianceFindings() {
+    const severity = document.getElementById('compliance-filter-severity')?.value || '';
+    const status = document.getElementById('compliance-filter-status')?.value || '';
+
+    let filtered = complianceAllResults;
+    if (severity) filtered = filtered.filter(r => r.severity === severity);
+    if (status) filtered = filtered.filter(r => r.status === status);
+
+    const tbody = document.getElementById('compliance-findings-body');
+    if (!tbody) return;
+
+    // Clear existing rows safely
+    tbody.replaceChildren();
+
+    if (filtered.length === 0) {
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 5;
+        td.style.cssText = 'text-align:center; color:var(--archie-text-muted); padding:20px;';
+        td.textContent = 'No findings match the selected filters';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        return;
+    }
+
+    const severityColors = { critical: '#ef4444', high: '#f97316', medium: '#fbbf24', low: '#22d3ee' };
+    const statusIcons = { pass: '\u2713', fail: '\u2717', error: '!' };
+
+    filtered.slice(0, 200).forEach(r => {
+        const tr = document.createElement('tr');
+
+        const tdRule = document.createElement('td');
+        tdRule.className = 'mono';
+        tdRule.style.fontSize = '0.8rem';
+        tdRule.textContent = r.rule_id;
+        tr.appendChild(tdRule);
+
+        const tdSev = document.createElement('td');
+        const sevSpan = document.createElement('span');
+        sevSpan.style.cssText = 'text-transform:uppercase; font-size:0.75rem; font-weight:600; color:' + (severityColors[r.severity] || '#888');
+        sevSpan.textContent = r.severity;
+        tdSev.appendChild(sevSpan);
+        tr.appendChild(tdSev);
+
+        const tdStatus = document.createElement('td');
+        const statSpan = document.createElement('span');
+        statSpan.style.fontWeight = '600';
+        statSpan.style.color = r.status === 'pass' ? 'var(--archie-green)' : r.status === 'fail' ? 'var(--archie-red)' : 'var(--archie-yellow)';
+        statSpan.textContent = (statusIcons[r.status] || '?') + ' ' + r.status.toUpperCase();
+        tdStatus.appendChild(statSpan);
+        tr.appendChild(tdStatus);
+
+        const tdPack = document.createElement('td');
+        tdPack.style.fontSize = '0.8rem';
+        tdPack.textContent = r.pack_id;
+        tr.appendChild(tdPack);
+
+        const detail = r.status === 'pass' ? (r.actual_value || 'OK') : (r.details || r.actual_value || '');
+        const tdDetail = document.createElement('td');
+        tdDetail.style.cssText = 'font-size:0.8rem; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+        tdDetail.title = detail;
+        tdDetail.textContent = detail.substring(0, 100);
+        tr.appendChild(tdDetail);
+
+        tbody.appendChild(tr);
+    });
+}
+
+async function loadScanHistory() {
+    try {
+        const resp = await fetch('/dashboard/api/compliance/scans?limit=20');
+        const data = await resp.json();
+        if (!data.success || !data.scans || data.scans.length === 0) return;
+
+        const scans = data.scans.reverse();
+        const labels = scans.map(s => s.completed_at ? new Date(s.completed_at).toLocaleDateString() : '...');
+        const scores = scans.map(s => s.score || 0);
+
+        const ctx = document.getElementById('complianceHistoryChart');
+        if (!ctx) return;
+
+        if (complianceHistoryChart) complianceHistoryChart.destroy();
+
+        complianceHistoryChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Compliance Score %',
+                    data: scores,
+                    borderColor: '#22d3ee',
+                    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: scores.map(s => s >= 90 ? '#10b981' : s >= 70 ? '#fbbf24' : '#ef4444'),
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { min: 0, max: 100, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#888', maxRotation: 45 }, grid: { display: false } }
+                }
+            }
+        });
+    } catch (e) {
+        console.error('Failed to load scan history:', e);
+    }
+}
+
+async function collectEvidence() {
+    showToast('info', 'Collecting SOC 2 evidence artifacts...');
+    try {
+        const resp = await fetch('/dashboard/api/compliance/evidence/collect', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ scan_id: complianceLatestScanId })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            showToast('success', 'Collected ' + data.collected + ' evidence artifacts');
+        } else {
+            showToast('error', data.error || 'Evidence collection failed');
+        }
+    } catch (e) {
+        showToast('error', 'Evidence error: ' + e.message);
+    }
+}
+
+// Auto-load compliance data when tab is activated
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.tab-btn[data-tab="compliance"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            loadComplianceScores();
+            loadScanHistory();
+        });
+    });
+});
