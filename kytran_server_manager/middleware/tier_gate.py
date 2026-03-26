@@ -15,7 +15,7 @@ def require_tier(minimum_tier):
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            from services.subscription_service import get_user_tier, tier_at_least
+            from ..services.subscription_service import get_user_tier, tier_at_least
 
             user_id = (
                 getattr(current_user, "id", None)

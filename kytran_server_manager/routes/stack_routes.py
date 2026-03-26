@@ -1,4 +1,3 @@
-# TODO: Phase 5.5 — Convert PostgreSQL SQL (%s, NOW(), INTERVAL, RETURNING) to SQLite syntax
 """Stack Management Routes — Docker Compose stack CRUD and actions"""
 
 import os
@@ -426,8 +425,7 @@ def register_stack_routes(bp, admin_required_decorator):
             cur.execute(
                 """
                 INSERT INTO docker_stacks (name, display_name, description, color, compose_directory, is_system)
-                VALUES (%s, %s, %s, %s, %s, FALSE)
-                RETURNING id, name, display_name, description, color, compose_directory, is_system, created_at, updated_at
+                VALUES (?, ?, ?, ?, ?, FALSE), name, display_name, description, color, compose_directory, is_system, created_at, updated_at
             """,
                 (name, display_name, description, color, stack_dir),
             )
@@ -516,7 +514,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 SELECT id, name, display_name, description, color, compose_directory,
                        is_system, created_at, updated_at
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -616,7 +614,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 """
                 SELECT id, name, display_name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -659,7 +657,7 @@ def register_stack_routes(bp, admin_required_decorator):
                     pass  # Best effort stop
 
             # Delete from database
-            cur.execute("DELETE FROM docker_stacks WHERE name = %s", (stack_name,))
+            cur.execute("DELETE FROM docker_stacks WHERE name = ?", (stack_name,))
             conn.commit()
 
             # Optionally remove files
@@ -745,7 +743,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 """
                 SELECT id, name, display_name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -849,7 +847,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -948,7 +946,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -1040,7 +1038,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -1113,7 +1111,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -1206,7 +1204,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = %s
+                WHERE name = ?
             """,
                 (stack_name,),
             )
@@ -1282,7 +1280,7 @@ def register_stack_routes(bp, admin_required_decorator):
                     """
                     SELECT id, name, display_name, color, compose_directory
                     FROM docker_stacks
-                    WHERE name = ANY(%s)
+                    WHERE name = (?)
                     ORDER BY display_name ASC
                     """,
                     (filter_names,),

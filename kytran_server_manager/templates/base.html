@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}{% endblock %}</title>
+    <title>{% block title %}{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/system-operations-theme-vars.css') }}">
     {% if sysops_theme and sysops_theme.custom_css %}
@@ -14,13 +14,20 @@
 </head>
 <body>
     <nav class="ksm-nav">
-        <div class="ksm-nav-brand">
+        <a href="/dashboard" class="ksm-nav-brand" style="text-decoration: none; color: inherit;">
+            {% if sysops_theme and sysops_theme.logo %}
+            <img src="{{ sysops_theme.logo }}" alt="Logo" style="height: 28px; width: auto;">
+            {% else %}
             <i class="fas fa-server"></i>
-            <span>{{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}</span>
-        </div>
+            {% endif %}
+            <span>{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}</span>
+        </a>
         <div class="ksm-nav-links">
             {% if current_user.is_authenticated %}
-            <span class="ksm-nav-user"><i class="fas fa-user"></i> {{ current_user.username }}</span>
+            <a href="/settings" class="ksm-nav-user" style="text-decoration: none; cursor: pointer;">
+                <i class="fas fa-user-circle" style="font-size: 1.3rem;"></i>
+                <span>{{ current_user.username }}</span>
+            </a>
             <a href="{{ url_for('logout') }}" class="ksm-nav-link">Logout</a>
             {% endif %}
         </div>

@@ -661,10 +661,16 @@ class SystemService:
                 info["available"] = True
                 info["model"] = parts[0].strip()
                 info["vram_mb"] = int(float(parts[1].strip())) if len(parts) > 1 else 0
+                info["vram_total_mb"] = info["vram_mb"]
                 info["vram_used_mb"] = int(float(parts[2].strip())) if len(parts) > 2 else 0
                 info["usage_percent"] = float(parts[3].strip()) if len(parts) > 3 else 0.0
                 info["temperature"] = int(float(parts[4].strip())) if len(parts) > 4 else None
                 info["driver"] = parts[5].strip() if len(parts) > 5 else None
+                info["has_detailed_stats"] = True
+                if info["vram_mb"] > 0:
+                    info["vram_percent"] = round(info["vram_used_mb"] / info["vram_mb"] * 100, 1)
+                else:
+                    info["vram_percent"] = 0.0
                 return info
         except Exception:
             pass

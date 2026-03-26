@@ -4,20 +4,20 @@
   "logo": "/static/img/kytran-logo.svg",
   "frame_style": "modern",
   "colors": {
-    "accent": "#2563eb",
-    "accent_bright": "#3b82f6",
-    "accent_rgb": "37, 99, 235",
+    "accent": "#f97316",
+    "accent_bright": "#fb923c",
+    "accent_rgb": "249, 115, 22",
     "danger": "#ef4444",
     "success": "#22c55e",
-    "warning": "#f59e0b",
-    "bg_void": "#0f172a",
-    "bg_primary": "#1e293b",
-    "bg_secondary": "#334155",
-    "bg_tertiary": "#475569",
-    "text_primary": "#f8fafc",
-    "text_secondary": "#cbd5e1",
-    "text_muted": "#94a3b8",
-    "border_default": "#334155"
+    "warning": "#eab308",
+    "bg_void": "#0c0a09",
+    "bg_primary": "#1c1917",
+    "bg_secondary": "#292524",
+    "bg_tertiary": "#44403c",
+    "text_primary": "#fafaf9",
+    "text_secondary": "#a8a29e",
+    "text_muted": "#78716c",
+    "border_default": "#44403c"
   },
   "fonts": {
     "heading": "Inter",
@@ -25,7 +25,7 @@
     "mono": "JetBrains Mono"
   },
   "layout": {
-    "border_radius": "8px",
+    "border_radius": "6px",
     "nav_position": "top",
     "sidebar_width": "240px"
   },

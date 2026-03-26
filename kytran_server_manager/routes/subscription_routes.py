@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 
 
 def register_subscription_routes(bp, admin_required):
-    from services.subscription_service import (
+    from ..services.subscription_service import (
         TIER_LEVELS,
         get_allowed_packs,
         get_allowed_themes,

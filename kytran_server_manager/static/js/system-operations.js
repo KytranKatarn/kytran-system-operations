@@ -3,6 +3,31 @@ if (typeof Chart === 'undefined') {
     console.error('Chart.js failed to load from primary CDN');
 }
 
+// Standalone shim: ArchieTime (platform uses archie-time.js for timezone formatting)
+if (typeof ArchieTime === 'undefined') {
+    var ArchieTime = {
+        format: function(date, opts) {
+            if (!date) return '--';
+            try {
+                const d = new Date(date);
+                if (isNaN(d.getTime())) return String(date);
+                return d.toLocaleString();
+            } catch(e) { return String(date); }
+        },
+        formatShort: function(date) {
+            if (!date) return '--';
+            try {
+                const d = new Date(date);
+                return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+            } catch(e) { return String(date); }
+        },
+        formatDate: function(date) {
+            if (!date) return '--';
+            try { return new Date(date).toLocaleDateString(); } catch(e) { return String(date); }
+        }
+    };
+}
+
 // State
 let autoRefreshEnabled = true;
 let refreshInterval = null;
@@ -137,7 +162,7 @@ let preflightPendingOperation = null;
 
 async function runPreflightCheck(device, mountpoint, operation, onProceed) {
     try {
-        const res = await fetch('/tools/system-operations/api/storage/preflight', {
+        const res = await fetch('/dashboard/api/storage/preflight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ device, mountpoint, operation })
@@ -793,7 +818,7 @@ async function loadHistoricalData() {
 
     // Load CPU history
     try {
-        const cpuRes = await fetch('/tools/system-operations/api/history?type=cpu&hours=' + hours);
+        const cpuRes = await fetch('/dashboard/api/history?type=cpu&hours=' + hours);
         if (cpuRes.ok) {
             const cpuJson = await cpuRes.json();
             if (cpuJson.success && cpuJson.data && cpuJson.data.values && cpuJson.data.values.length > 0) {
@@ -814,7 +839,7 @@ async function loadHistoricalData() {
 
     // Load Memory history
     try {
-        const memRes = await fetch('/tools/system-operations/api/history?type=memory&hours=' + hours);
+        const memRes = await fetch('/dashboard/api/history?type=memory&hours=' + hours);
         if (memRes.ok) {
             const memJson = await memRes.json();
             if (memJson.success && memJson.data && memJson.data.values && memJson.data.values.length > 0) {
@@ -836,8 +861,8 @@ async function loadHistoricalData() {
     // Load GPU history — BOTH VRAM and Compute lines per GPU
     try {
         const [vramRes, computeRes] = await Promise.all([
-            fetch('/tools/system-operations/api/history/multi?type=gpu_vram&hours=' + hours),
-            fetch('/tools/system-operations/api/history/multi?type=gpu&hours=' + hours)
+            fetch('/dashboard/api/history/multi?type=gpu_vram&hours=' + hours),
+            fetch('/dashboard/api/history/multi?type=gpu&hours=' + hours)
         ]);
         const vramJson = vramRes.ok ? await vramRes.json() : null;
         const computeJson = computeRes.ok ? await computeRes.json() : null;
@@ -916,7 +941,7 @@ async function loadHistoricalData() {
 async function loadHostData() {
     // Load host system data (LVM, RAID, Disks, Services) from host monitor file
     try {
-        const res = await fetch('/tools/system-operations/api/host-data');
+        const res = await fetch('/dashboard/api/host-data');
         const json = await res.json();
         if (json.success && json.data) {
             renderHostLVM(json.data.lvm);
@@ -980,7 +1005,7 @@ async function loadHostData() {
 
 async function loadOverview() {
     try {
-        const res = await fetch('/tools/system-operations/api/overview');
+        const res = await fetch('/dashboard/api/overview');
         const json = await res.json();
         if (json.success) updateDashboard(json.data);
     } catch (e) {
@@ -990,7 +1015,7 @@ async function loadOverview() {
 
 async function loadDockerMounts() {
     try {
-        const res = await fetch('/tools/system-operations/api/storage/docker-mounts');
+        const res = await fetch('/dashboard/api/storage/docker-mounts');
         const json = await res.json();
         if (json.success && json.data?.path_mappings) {
             dockerMounts = json.data.path_mappings;
@@ -1472,25 +1497,25 @@ function updateDashboard(data) {
 
 async function loadDisks() {
     try {
-        const res = await fetch('/tools/system-operations/api/disks');
+        const res = await fetch('/dashboard/api/disks');
         const json = await res.json();
-        if (json.success) {
+        if (json.success && json.data) {
             // Only render container data if host monitor hasn't provided better data
             if (!hostStorageLoaded) {
-                renderPartitions(json.data.partitions || []);
-                renderRaid(json.data.raid);
-                renderLVM(json.data.lvm);
+                if (json.data.partitions) renderPartitions(json.data.partitions);
+                if (json.data.raid) renderRaid(json.data.raid);
+                if (json.data.lvm) renderLVM(json.data.lvm);
             }
         }
     } catch (e) {
-        console.error('Disks error:', e);
+        // Disk rendering is non-critical — don't spam console
     }
 }
 
 async function loadProcesses() {
     try {
         const sort = document.getElementById('process-sort').value;
-        const res = await fetch(`/tools/system-operations/api/processes?sort=${sort}&limit=100`);
+        const res = await fetch(`/dashboard/api/processes?sort=${sort}&limit=100`);
         const json = await res.json();
         if (json.success) {
             allProcesses = json.data || [];
@@ -1515,7 +1540,7 @@ async function loadProcesses() {
 async function loadServices() {
     try {
         const filter = document.getElementById('service-filter').value;
-        const res = await fetch(`/tools/system-operations/api/services?filter=${filter}`);
+        const res = await fetch(`/dashboard/api/services?filter=${filter}`);
         const json = await res.json();
         if (json.success) renderServices(json.data || []);
     } catch (e) {
@@ -1534,7 +1559,7 @@ async function loadHardwareData() {
 
     // Fetch fresh data
     try {
-        const res = await fetch('/tools/system-operations/api/hardware');
+        const res = await fetch('/dashboard/api/hardware');
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -2198,7 +2223,7 @@ function loadCachedMemoryHardware() {
 
 async function loadMemoryHardware() {
     try {
-        const res = await fetch('/tools/system-operations/api/memory-hardware');
+        const res = await fetch('/dashboard/api/memory-hardware');
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -2321,7 +2346,7 @@ async function loadDashboardMemoryHardware() {
 
     if (dashboardMemHwLoaded) return;  // Only fetch once
     try {
-        const res = await fetch('/tools/system-operations/api/memory-hardware');
+        const res = await fetch('/dashboard/api/memory-hardware');
         const json = await res.json();
         if (json.success && json.data) {
             renderDashboardMemoryHardware(json.data);
@@ -2338,7 +2363,7 @@ async function loadDashboardMemoryHardware() {
 
 async function loadHealthAlerts() {
     try {
-        const res = await fetch('/tools/system-operations/api/health/alerts');
+        const res = await fetch('/dashboard/api/health/alerts');
         const data = await res.json();
         if (data.success) {
             renderHealthAlerts(data.alerts || [], data.counts || {});
@@ -2446,7 +2471,7 @@ function renderHealthAlerts(alerts, counts) {
 
 async function acknowledgeAlert(alertId) {
     try {
-        const res = await fetch('/tools/system-operations/api/health/alerts/' + alertId + '/acknowledge', {
+        const res = await fetch('/dashboard/api/health/alerts/' + alertId + '/acknowledge', {
             method: 'POST'
         });
         const data = await res.json();
@@ -2463,7 +2488,7 @@ async function acknowledgeAlert(alertId) {
 
 async function resolveAlert(alertId) {
     try {
-        const res = await fetch('/tools/system-operations/api/health/alerts/' + alertId + '/resolve', {
+        const res = await fetch('/dashboard/api/health/alerts/' + alertId + '/resolve', {
             method: 'POST'
         });
         const data = await res.json();
@@ -2498,8 +2523,8 @@ async function loadDocker() {
     try {
         // Fetch stacks and health data in parallel
         const [stacksRes, healthRes] = await Promise.all([
-            fetch('/tools/system-operations/api/stacks'),
-            fetch('/tools/system-operations/api/docker/health')
+            fetch('/dashboard/api/stacks'),
+            fetch('/dashboard/api/docker/health')
         ]);
         const stacksJson = await stacksRes.json();
         const healthJson = await healthRes.json();
@@ -2552,7 +2577,7 @@ async function loadDocker() {
 
 async function loadNetwork() {
     try {
-        const res = await fetch('/tools/system-operations/api/network');
+        const res = await fetch('/dashboard/api/network');
         const json = await res.json();
         if (json.success) renderNetwork(json.data || {});
         // Reset lazy-load flags and re-fetch active sub-tab
@@ -2593,7 +2618,7 @@ async function loadStorageData(forceRefresh = false) {
     try {
         const cacheBuster = forceRefresh || skipStorageCache ? '?t=' + Date.now() : '';
         console.log('loadStorageData: fetching with forceRefresh=' + forceRefresh + ', cacheBuster=' + cacheBuster);
-        const res = await fetch('/tools/system-operations/api/storage/drives' + cacheBuster);
+        const res = await fetch('/dashboard/api/storage/drives' + cacheBuster);
         const json = await res.json();
         console.log('loadStorageData: response success=' + json.success);
         if (json.success && json.data) {
@@ -3723,7 +3748,7 @@ async function browsePartition(mountpoint) {
     showToast('info', 'Opening file browser for ' + mountpoint + '...');
 
     try {
-        const res = await fetch('/tools/system-operations/api/storage/browse?path=' + encodeURIComponent(mountpoint));
+        const res = await fetch('/dashboard/api/storage/browse?path=' + encodeURIComponent(mountpoint));
         const json = await res.json();
         if (json.success) {
             // For now, show a summary toast. A full file browser modal could be added later.
@@ -3741,7 +3766,7 @@ async function browsePartition(mountpoint) {
 
 async function registerManagedMount(device, mountPoint, filesystem, capacityGb, driveModel) {
     try {
-        const res = await fetch('/tools/system-operations/api/storage/mounts', {
+        const res = await fetch('/dashboard/api/storage/mounts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -3791,7 +3816,7 @@ async function submitReauth() {
     }
 
     try {
-        const res = await fetch('/tools/system-operations/api/auth/verify', {
+        const res = await fetch('/dashboard/api/auth/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: password })
@@ -4674,7 +4699,7 @@ async function dockerComposeAction(action) {
     showConfirmModal('Docker Compose', actionMessages[action] || `Execute ${action}?`, async () => {
         showToast('success', `Executing docker-compose ${action}...`);
         try {
-            const res = await fetch('/tools/system-operations/api/docker/compose', {
+            const res = await fetch('/dashboard/api/docker/compose', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, confirm: true })
@@ -4694,7 +4719,7 @@ async function dockerComposeAction(action) {
 
 // View container logs
 function viewDockerLogs(containerId, containerName) {
-    window.open(`/tools/system-operations/api/docker/${containerId}/logs?tail=100`, '_blank');
+    window.open(`/dashboard/api/docker/${containerId}/logs?tail=100`, '_blank');
 }
 
 function renderNetwork(data) {
@@ -5040,7 +5065,7 @@ async function loadPortMap() {
 
     // Fetch fresh data
     try {
-        const res = await fetch('/tools/system-operations/api/network/port-map');
+        const res = await fetch('/dashboard/api/network/port-map');
         const json = await res.json();
         if (json.success) {
             window.cachedPortMapData = json;
@@ -5291,8 +5316,8 @@ function renderPortMap(data) {
 async function loadTopology() {
     try {
         const [netRes, portRes] = await Promise.all([
-            fetch('/tools/system-operations/api/network'),
-            fetch('/tools/system-operations/api/network/port-map')
+            fetch('/dashboard/api/network'),
+            fetch('/dashboard/api/network/port-map')
         ]);
         const netJson = await netRes.json();
         const portJson = await portRes.json();
@@ -5435,7 +5460,7 @@ async function loadBandwidthData() {
 
     // Fetch fresh data
     try {
-        const res = await fetch('/tools/system-operations/api/network/bandwidth');
+        const res = await fetch('/dashboard/api/network/bandwidth');
         const json = await res.json();
         if (json.success) {
             window.cachedBandwidthData = json;
@@ -5741,7 +5766,7 @@ function drawSparkline(ctx, data, width, height, color) {
 // Action Functions
 function killProcess(pid, name) {
     showConfirmModal('Kill Process', `Kill process "${name}" (PID: ${pid})?`, async () => {
-        const res = await fetch(`/tools/system-operations/api/process/${pid}/kill`, {
+        const res = await fetch(`/dashboard/api/process/${pid}/kill`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confirm: true, signal: 'SIGTERM' })
@@ -5795,7 +5820,7 @@ function restartDockerContainer(containerName) {
 
 function serviceAction(name, action) {
     showConfirmModal(`${action.charAt(0).toUpperCase() + action.slice(1)} Service`, `${action} service "${name}"?`, async () => {
-        const res = await fetch(`/tools/system-operations/api/service/${name}/action`, {
+        const res = await fetch(`/dashboard/api/service/${name}/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confirm: true, action })
@@ -5808,7 +5833,7 @@ function serviceAction(name, action) {
 
 function dockerAction(id, action) {
     showConfirmModal(`${action.charAt(0).toUpperCase() + action.slice(1)} Container`, `${action} container "${id.substring(0, 12)}"?`, async () => {
-        const res = await fetch(`/tools/system-operations/api/docker/${id}/action`, {
+        const res = await fetch(`/dashboard/api/docker/${id}/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confirm: true, action })
@@ -6380,7 +6405,7 @@ async function submitHostCommand(commandType, params, options) {
     var startTime = Date.now();
 
     try {
-        var submitRes = await fetch('/tools/system-operations/api/host-command/submit', {
+        var submitRes = await fetch('/dashboard/api/host-command/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ command_type: commandType, params: params, confirm: true })
@@ -6438,7 +6463,7 @@ async function submitHostCommand(commandType, params, options) {
             }
 
             try {
-                var resultRes = await fetch('/tools/system-operations/api/host-command/' + commandId + '/result');
+                var resultRes = await fetch('/dashboard/api/host-command/' + commandId + '/result');
                 if (resultRes.status === 200) {
                     var resultJson = await resultRes.json();
                     var cmdResult = (resultJson.data && resultJson.data.result) ? resultJson.data.result : {};
@@ -6867,7 +6892,7 @@ async function unmountPartitionsAndPrepareLvm(disk, mountedParts) {
         updateLoadingProgress(`Unmounting ${deviceToUnmount}...`);
 
         try {
-            const res = await fetch('/tools/system-operations/api/host-command/submit', {
+            const res = await fetch('/dashboard/api/host-command/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -6898,7 +6923,7 @@ async function unmountPartitionsAndPrepareLvm(disk, mountedParts) {
 
             while (attempts < 30 && !completed) {
                 await new Promise(r => setTimeout(r, 1000));
-                const resultRes = await fetch(`/tools/system-operations/api/host-command/${cmdId}/result`);
+                const resultRes = await fetch(`/dashboard/api/host-command/${cmdId}/result`);
 
                 if (resultRes.status === 200) {
                     const resultJson = await resultRes.json();
@@ -7279,7 +7304,7 @@ function executeCreatePartition() {
 
 async function checkHostCommandQueue() {
     try {
-        var res = await fetch('/tools/system-operations/api/host-command/status');
+        var res = await fetch('/dashboard/api/host-command/status');
         var json = await res.json();
         var el = document.getElementById('host-queue-status');
         if (!el) return;
@@ -7568,7 +7593,7 @@ async function viewComposeFile() {
     lucide.createIcons();
 
     try {
-        const res = await fetch('/tools/system-operations/api/stack/compose');
+        const res = await fetch('/dashboard/api/stack/compose');
         const json = await res.json();
 
         if (json.success) {
@@ -7639,8 +7664,8 @@ async function saveComposeFile() {
     try {
         // Use stack endpoint if in stack context
         const url = currentStackName
-            ? `/tools/system-operations/api/stacks/${currentStackName}/compose`
-            : '/tools/system-operations/api/stack/compose';
+            ? `/dashboard/api/stacks/${currentStackName}/compose`
+            : '/dashboard/api/stack/compose';
         const body = currentStackName
             ? { content }
             : { content, file: currentEditingFile };
@@ -7679,8 +7704,8 @@ function applyComposeChanges() {
             try {
                 // Save file - use stack endpoint if in stack context
                 const saveUrl = currentStackName
-                    ? `/tools/system-operations/api/stacks/${currentStackName}/compose`
-                    : '/tools/system-operations/api/stack/compose';
+                    ? `/dashboard/api/stacks/${currentStackName}/compose`
+                    : '/dashboard/api/stack/compose';
                 const saveBody = currentStackName
                     ? { content }
                     : { content, file: currentEditingFile };
@@ -7709,8 +7734,8 @@ function applyComposeChanges() {
 
                 // Then restart - use stack endpoint if in stack context
                 const restartUrl = currentStackName
-                    ? `/tools/system-operations/api/stacks/${currentStackName}/action`
-                    : '/tools/system-operations/api/docker/compose';
+                    ? `/dashboard/api/stacks/${currentStackName}/action`
+                    : '/dashboard/api/docker/compose';
                 const restartBody = currentStackName
                     ? { action: 'up', confirm: true }
                     : { action: 'up', confirm: true };
@@ -7779,7 +7804,7 @@ async function viewEnvFile(filename) {
     lucide.createIcons();
 
     try {
-        const res = await fetch(`/tools/system-operations/api/stack/env?file=${encodeURIComponent(filename)}`);
+        const res = await fetch(`/dashboard/api/stack/env?file=${encodeURIComponent(filename)}`);
         const json = await res.json();
 
         if (json.success) {
@@ -7869,7 +7894,7 @@ function showStackSubtab(tabName) {
 // NOTE: All data comes from authenticated admin-only API endpoints, not user input.
 async function loadStackDetail(stackName) {
     try {
-        const res = await fetch(`/tools/system-operations/api/stacks/${stackName}`);
+        const res = await fetch(`/dashboard/api/stacks/${stackName}`);
         const json = await res.json();
         if (!json.success) {
             showToast('error', json.error || 'Failed to load stack');
@@ -7984,7 +8009,7 @@ function renderStackContainers(containers) {
 async function loadStackCompose() {
     if (!currentStackName) return;
     try {
-        const res = await fetch(`/tools/system-operations/api/stacks/${currentStackName}/compose`);
+        const res = await fetch(`/dashboard/api/stacks/${currentStackName}/compose`);
         const json = await res.json();
         if (json.success) {
             document.getElementById('detail-compose-path').textContent = json.compose_path || '-';
@@ -8027,7 +8052,7 @@ async function loadStackEnv() {
     const container = document.getElementById('detail-env-files');
     container.innerHTML = '<div class="loading-placeholder">Loading environment files...</div>';
     try {
-        const res = await fetch(`/tools/system-operations/api/stacks/${currentStackName}/env`);
+        const res = await fetch(`/dashboard/api/stacks/${currentStackName}/env`);
         const json = await res.json();
         if (json.success) {
             const envFiles = json.data || [];
@@ -8057,7 +8082,7 @@ async function loadStackLogs() {
     const tail = document.getElementById('stack-log-tail').value;
     output.textContent = 'Loading logs...';
     try {
-        let url = `/tools/system-operations/api/stacks/${currentStackName}/logs?tail=${tail}`;
+        let url = `/dashboard/api/stacks/${currentStackName}/logs?tail=${tail}`;
         if (service) url += `&service=${encodeURIComponent(service)}`;
         const res = await fetch(url);
         const text = await res.text();
@@ -8090,7 +8115,7 @@ async function viewStackCompose() {
     lucide.createIcons();
 
     try {
-        const res = await fetch(`/tools/system-operations/api/stacks/${currentStackName}/compose`);
+        const res = await fetch(`/dashboard/api/stacks/${currentStackName}/compose`);
         const json = await res.json();
         if (json.success) {
             originalComposeContent = json.content;
@@ -8133,7 +8158,7 @@ async function viewStackEnvFile(stackName, filename) {
     lucide.createIcons();
 
     try {
-        const res = await fetch(`/tools/system-operations/api/stacks/${stackName}/env`);
+        const res = await fetch(`/dashboard/api/stacks/${stackName}/env`);
         const json = await res.json();
         if (json.success) {
             // Find the specific env file
@@ -8189,7 +8214,7 @@ function stackAction(action) {
 async function executeStackAction(stackName, action) {
     showToast('success', `Executing ${action} on ${stackName}...`);
     try {
-        const res = await fetch(`/tools/system-operations/api/stacks/${stackName}/action`, {
+        const res = await fetch(`/dashboard/api/stacks/${stackName}/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, confirm: true })
@@ -8218,7 +8243,7 @@ async function executeStackAction(stackName, action) {
 function deleteStack(stackName) {
     showConfirmModal('Delete Stack', `Are you sure you want to delete stack "${stackName}"? This will stop all containers and remove the stack from management.`, async () => {
         try {
-            const res = await fetch(`/tools/system-operations/api/stacks/${stackName}`, {
+            const res = await fetch(`/dashboard/api/stacks/${stackName}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ confirm: true })
@@ -8366,7 +8391,7 @@ async function createStack() {
     const env_content = document.getElementById('wizard-env').value;
 
     try {
-        const res = await fetch('/tools/system-operations/api/stacks', {
+        const res = await fetch('/dashboard/api/stacks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -8426,8 +8451,8 @@ async function loadFirewallData(retryCount = 0) {
         const fetchTimeout = setTimeout(() => controller.abort(), 35000); // 35s client timeout
 
         const [statusRes, rulesRes] = await Promise.all([
-            fetch('/tools/system-operations/api/firewall/status', { signal: controller.signal }),
-            fetch('/tools/system-operations/api/firewall/rules', { signal: controller.signal })
+            fetch('/dashboard/api/firewall/status', { signal: controller.signal }),
+            fetch('/dashboard/api/firewall/rules', { signal: controller.signal })
         ]);
 
         clearTimeout(fetchTimeout);
@@ -8670,7 +8695,7 @@ async function enableFirewall(retryCount = 0) {
             showToast('info', 'Enabling firewall...');
         }
 
-        const res = await fetch('/tools/system-operations/api/firewall/enable', {
+        const res = await fetch('/dashboard/api/firewall/enable', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -8738,7 +8763,7 @@ async function disableFirewall(retryCount = 0) {
             showToast('info', 'Disabling firewall...');
         }
 
-        const res = await fetch('/tools/system-operations/api/firewall/disable', {
+        const res = await fetch('/dashboard/api/firewall/disable', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -8824,7 +8849,7 @@ async function addFirewallRule() {
 
     try {
         const endpoint = action === 'allow' ? '/api/firewall/allow' : '/api/firewall/deny';
-        const res = await fetch('/tools/system-operations' + endpoint, {
+        const res = await fetch('/dashboard' + endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ port, protocol })
@@ -8884,7 +8909,7 @@ async function updateFirewallRule() {
     showToast('info', 'Updating firewall rule...');
 
     try {
-        const res = await fetch('/tools/system-operations/api/firewall/update', {
+        const res = await fetch('/dashboard/api/firewall/update', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -8931,7 +8956,7 @@ async function deleteFirewallRule() {
     showToast('info', 'Deleting firewall rule #' + ruleNumber + '...');
 
     try {
-        const res = await fetch('/tools/system-operations/api/firewall/delete', {
+        const res = await fetch('/dashboard/api/firewall/delete', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rule_number: ruleNumber })

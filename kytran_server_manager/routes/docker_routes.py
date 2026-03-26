@@ -1,4 +1,3 @@
-# TODO: Phase 5.5 — Convert PostgreSQL SQL (%s, NOW(), INTERVAL, RETURNING) to SQLite syntax
 """Docker Management Routes"""
 
 import json as json_lib
@@ -39,10 +38,7 @@ def register_docker_routes(bp, admin_required_decorator):
         try:
             host_data, host_age = load_host_monitor_data()
             if not host_data:
-                return (
-                    jsonify({"success": False, "error": "Host monitor data not available"}),
-                    503,
-                )
+                return jsonify({"success": True, "data": [], "stacks": {}, "source": "unavailable"})
 
             docker_health = host_data.get("docker_health", [])
 
@@ -104,7 +100,7 @@ def register_docker_routes(bp, admin_required_decorator):
             conn = get_db()
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, name, is_system FROM docker_stacks WHERE name = %s",
+                "SELECT id, name, is_system FROM docker_stacks WHERE name = ?",
                 (stack_name,),
             )
             stack = cur.fetchone()
@@ -155,7 +151,7 @@ def register_docker_routes(bp, admin_required_decorator):
                     )
 
             cur.execute(
-                "UPDATE docker_stacks SET web_ui_ports = %s WHERE name = %s",
+                "UPDATE docker_stacks SET web_ui_ports = ? WHERE name = ?",
                 (json_lib.dumps(web_ui_ports), stack_name),
             )
             conn.commit()

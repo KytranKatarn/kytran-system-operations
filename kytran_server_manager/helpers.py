@@ -1,5 +1,5 @@
 """
-Kytran Server Manager — Shared helpers and constants
+Kytran System Operations — Shared helpers and constants
 =====================================================
 Standalone version adapted from System Operations helpers.
 Uses SQLite instead of PostgreSQL.

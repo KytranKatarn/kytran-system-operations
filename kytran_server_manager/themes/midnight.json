@@ -1,0 +1,33 @@
+{
+  "product_name": "Kytran System Operations",
+  "product_short": "KSO",
+  "logo": "/static/img/kytran-logo.svg",
+  "frame_style": "modern",
+  "colors": {
+    "accent": "#8b5cf6",
+    "accent_bright": "#a78bfa",
+    "accent_rgb": "139, 92, 246",
+    "danger": "#f87171",
+    "success": "#34d399",
+    "warning": "#fbbf24",
+    "bg_void": "#09090b",
+    "bg_primary": "#18181b",
+    "bg_secondary": "#27272a",
+    "bg_tertiary": "#3f3f46",
+    "text_primary": "#fafafa",
+    "text_secondary": "#a1a1aa",
+    "text_muted": "#71717a",
+    "border_default": "#3f3f46"
+  },
+  "fonts": {
+    "heading": "Inter",
+    "body": "Inter",
+    "mono": "JetBrains Mono"
+  },
+  "layout": {
+    "border_radius": "12px",
+    "nav_position": "top",
+    "sidebar_width": "240px"
+  },
+  "custom_css": null
+}

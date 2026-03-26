@@ -1,5 +1,5 @@
 """
-Kytran Server Manager — Theme System
+Kytran System Operations — Theme System
 Config-driven theming: load theme.json, merge with defaults, generate CSS vars.
 """
 
@@ -10,8 +10,8 @@ THEMES_DIR = os.path.join(os.path.dirname(__file__), "themes")
 DEFAULT_THEME = "kytran"
 
 _DEFAULT_CONFIG = {
-    "product_name": "Kytran Server Manager",
-    "product_short": "KSM",
+    "product_name": "Kytran System Operations",
+    "product_short": "KSO",
     "logo": "/static/img/kytran-logo.svg",
     "favicon": "/static/img/favicon.ico",
     "frame_style": "modern",

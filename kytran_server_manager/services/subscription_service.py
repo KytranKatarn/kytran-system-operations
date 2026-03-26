@@ -2,7 +2,7 @@
 
 from flask import current_app
 
-from db import get_db
+from ..db import get_db
 
 # ---------------------------------------------------------------------------
 # Tier hierarchy

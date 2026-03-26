@@ -1,4 +1,3 @@
-# TODO: Phase 5.5 — Convert PostgreSQL SQL (%s, NOW(), INTERVAL, RETURNING) to SQLite syntax
 """Storage Management Routes"""
 
 import os
@@ -476,7 +475,7 @@ def register_storage_routes(bp, admin_required_decorator):
             cur.execute(
                 """
                 INSERT INTO storage_mounts (device, mount_point, filesystem, label, capacity_gb, drive_model, is_managed)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (device) DO UPDATE SET
                     mount_point = EXCLUDED.mount_point,
                     filesystem = EXCLUDED.filesystem,
@@ -484,8 +483,7 @@ def register_storage_routes(bp, admin_required_decorator):
                     capacity_gb = EXCLUDED.capacity_gb,
                     drive_model = EXCLUDED.drive_model,
                     is_managed = EXCLUDED.is_managed,
-                    updated_at = NOW()
-                RETURNING id, device, mount_point, label
+                    updated_at = datetime('now'), device, mount_point, label
             """,
                 (
                     device,
