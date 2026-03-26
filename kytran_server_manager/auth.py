@@ -201,6 +201,16 @@ def register_auth_routes(app):
                 "message": "Sign in with Kytran requires ARCHIE hub connection. Use local login.",
             }), 501
 
+        # SSO requires pro tier (only check if already logged in)
+        if current_user and current_user.is_authenticated:
+            from .services.subscription_service import get_user_tier, tier_at_least
+            tier = get_user_tier(current_user.id)
+            if not tier_at_least(tier, "pro"):
+                return render_template("upgrade_required.html",
+                    required_tier="pro", current_tier=tier,
+                    feature="Sign in with Kytran (SSO)",
+                    tier_prices={"pro": 29, "business": 49, "enterprise": 99}), 403
+
         hub_url = app.config["ARCHIE_HUB_URL"].rstrip("/")
         client_id = app.config.get("ARCHIE_CLIENT_ID", "kytran-sysops")
         callback_url = request.url_root.rstrip("/") + "/auth/sso/callback"

@@ -1,6 +1,8 @@
 """Public SVG compliance badge endpoints — no auth required."""
 from flask import Response
+from flask_login import current_user
 from ..db import get_db
+from ..services.subscription_service import get_user_tier, tier_at_least
 
 
 def _score_to_grade(score):
@@ -120,6 +122,18 @@ def register_badge_routes(bp, admin_required):
             return Response(svg, mimetype="image/svg+xml")
 
         label = PACK_LABELS[pack_id]
+
+        # Gate non-overall badges by subscription tier
+        if pack_id != "overall":
+            if not current_user or not current_user.is_authenticated:
+                svg = _render_badge_svg(label, "N/A", "#999")
+                return Response(svg, mimetype="image/svg+xml",
+                                headers={"Cache-Control": "no-cache, max-age=300"})
+            tier = get_user_tier(current_user.id)
+            if not tier_at_least(tier, "pro"):
+                svg = _render_badge_svg(label, "UPGRADE TO PRO", "#6366f1")
+                return Response(svg, mimetype="image/svg+xml",
+                                headers={"Cache-Control": "no-cache, max-age=300"})
 
         try:
             if pack_id == "overall":
