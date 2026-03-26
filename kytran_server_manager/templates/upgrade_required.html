@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Upgrade Required — {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
+
+{% block styles %}
+<style>
+    .upgrade-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+    .upgrade-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+    .upgrade-header i {
+        font-size: 3rem;
+        color: #f59e0b;
+        margin-bottom: 1rem;
+    }
+    .upgrade-header h1 {
+        font-size: 1.8rem;
+        color: #e2e8f0;
+        margin: 0.5rem 0;
+    }
+    .upgrade-header .feature-name {
+        color: #8b5cf6;
+        font-weight: 600;
+    }
+    .upgrade-header .tier-compare {
+        margin-top: 1rem;
+        font-size: 0.95rem;
+        color: #94a3b8;
+    }
+    .upgrade-header .tier-compare .current {
+        color: #64748b;
+        background: rgba(100, 116, 139, 0.15);
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+    }
+    .upgrade-header .tier-compare .required {
+        color: #f59e0b;
+        background: rgba(245, 158, 11, 0.15);
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+    }
+    .upgrade-header .tier-compare .arrow {
+        margin: 0 0.5rem;
+        color: #475569;
+    }
+
+    /* Tier comparison table */
+    .tier-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-bottom: 2rem;
+        background: rgba(15, 15, 25, 0.6);
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .tier-table thead th {
+        background: rgba(139, 92, 246, 0.1);
+        color: #c4b5fd;
+        padding: 0.75rem 1rem;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid rgba(139, 92, 246, 0.2);
+        text-align: center;
+    }
+    .tier-table thead th:first-child {
+        text-align: left;
+    }
+    .tier-table thead th.highlight {
+        background: rgba(245, 158, 11, 0.15);
+        color: #f59e0b;
+    }
+    .tier-table tbody td {
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid rgba(139, 92, 246, 0.08);
+        color: #94a3b8;
+        font-size: 0.9rem;
+        text-align: center;
+    }
+    .tier-table tbody td:first-child {
+        text-align: left;
+        color: #cbd5e1;
+    }
+    .tier-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    .tier-table tbody tr:hover {
+        background: rgba(139, 92, 246, 0.05);
+    }
+    .tier-table .check {
+        color: #22c55e;
+    }
+    .tier-table .dash {
+        color: #334155;
+    }
+    .tier-table .price-row td {
+        font-weight: 600;
+        color: #8b5cf6;
+        font-size: 1rem;
+        border-bottom: 1px solid rgba(139, 92, 246, 0.15);
+    }
+    .tier-table .price-row td.highlight {
+        color: #f59e0b;
+    }
+
+    /* Actions */
+    .upgrade-actions {
+        text-align: center;
+        margin-top: 2rem;
+    }
+    .btn-upgrade {
+        display: inline-block;
+        padding: 0.75rem 2.5rem;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #0a0a0f;
+        font-weight: 700;
+        font-size: 1rem;
+        border: none;
+        border-radius: 6px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 0.02em;
+    }
+    .btn-upgrade:hover {
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+    }
+    .btn-back {
+        display: inline-block;
+        margin-top: 1rem;
+        color: #64748b;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.2s;
+    }
+    .btn-back:hover {
+        color: #94a3b8;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="upgrade-container">
+    <div class="upgrade-header">
+        <i class="fas fa-lock"></i>
+        <h1>Upgrade Required</h1>
+        <p>The feature <span class="feature-name">{{ feature }}</span> requires a higher subscription tier.</p>
+        <div class="tier-compare">
+            <span class="current">{{ current_tier }}</span>
+            <span class="arrow"><i class="fas fa-arrow-right"></i></span>
+            <span class="required">{{ required_tier }}</span>
+        </div>
+    </div>
+
+    <table class="tier-table">
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th{% if current_tier == 'free' %} class="highlight"{% endif %}>Free</th>
+                <th{% if required_tier == 'pro' %} class="highlight"{% endif %}>Pro</th>
+                <th{% if required_tier == 'business' %} class="highlight"{% endif %}>Business</th>
+                <th{% if required_tier == 'enterprise' %} class="highlight"{% endif %}>Enterprise</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="price-row">
+                <td>Price</td>
+                <td>Free</td>
+                <td{% if required_tier == 'pro' %} class="highlight"{% endif %}>${{ tier_prices.get('pro', 29) }}/mo</td>
+                <td{% if required_tier == 'business' %} class="highlight"{% endif %}>${{ tier_prices.get('business', 49) }}/mo</td>
+                <td{% if required_tier == 'enterprise' %} class="highlight"{% endif %}>${{ tier_prices.get('enterprise', 99) }}/mo</td>
+            </tr>
+            <tr>
+                <td>System Dashboard</td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+            </tr>
+            <tr>
+                <td>Compliance Packs</td>
+                <td>1 (CIS)</td>
+                <td>3</td>
+                <td>All 5</td>
+                <td>All + Custom</td>
+            </tr>
+            <tr>
+                <td>Compliance Badges</td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+            </tr>
+            <tr>
+                <td>SSO Integration</td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+            </tr>
+            <tr>
+                <td>Auto-Remediation</td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+            </tr>
+            <tr>
+                <td>PDF Reports</td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+            </tr>
+            <tr>
+                <td>Themes</td>
+                <td>2</td>
+                <td>3</td>
+                <td>All</td>
+                <td>All</td>
+            </tr>
+            <tr>
+                <td>Custom Packs</td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+            </tr>
+            <tr>
+                <td>SLA Guarantee</td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-minus dash"></i></td>
+                <td><i class="fas fa-check check"></i></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="upgrade-actions">
+        <a href="/settings#subscription" class="btn-upgrade">
+            <i class="fas fa-arrow-up"></i> Upgrade to {{ required_tier|title }}
+        </a>
+        <br>
+        <a href="javascript:history.back()" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Go Back
+        </a>
+    </div>
+</div>
+{% endblock %}
