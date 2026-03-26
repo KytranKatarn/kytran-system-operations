@@ -252,13 +252,40 @@
     </table>
 
     <div class="upgrade-actions">
-        <a href="/settings#subscription" class="btn-upgrade">
+        <button id="upgradeBtn" onclick="startCheckout('{{ required_tier }}')" class="btn-upgrade">
             <i class="fas fa-arrow-up"></i> Upgrade to {{ required_tier|title }}
-        </a>
+        </button>
         <br>
         <a href="javascript:history.back()" class="btn-back">
             <i class="fas fa-arrow-left"></i> Go Back
         </a>
     </div>
 </div>
+
+<script>
+async function startCheckout(tier) {
+    const btn = document.getElementById('upgradeBtn');
+    try {
+        btn.disabled = true;
+        btn.textContent = 'Redirecting...';
+
+        const res = await fetch('/dashboard/api/billing/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tier: tier })
+        });
+        const data = await res.json();
+
+        if (data.checkout_url) {
+            window.location.href = data.checkout_url;
+        } else {
+            throw new Error(data.error || 'Failed to start checkout');
+        }
+    } catch (err) {
+        alert('Checkout error: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = 'Upgrade to ' + tier.charAt(0).toUpperCase() + tier.slice(1);
+    }
+}
+</script>
 {% endblock %}
