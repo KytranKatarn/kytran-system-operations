@@ -17,20 +17,30 @@ _thread = None
 
 def _scanner_loop(app):
     """Main loop: wait for startup, then scan on interval."""
-    interval = app.config.get("COMPLIANCE_SCAN_INTERVAL", 21600)
 
     # Let the app fully start before first scan
-    logger.info("Compliance scheduler: waiting 60s before first scan (interval=%ds)", interval)
+    logger.info("Compliance scheduler: waiting 60s before first scan")
     if _shutdown_event.wait(timeout=60):
         logger.info("Compliance scheduler: shutdown requested during startup delay")
         return
 
     while not _shutdown_event.is_set():
-        logger.info("Compliance scheduler: starting scheduled scan")
+        # Resolve tier-based settings inside app context
+        with app.app_context():
+            from .subscription_service import get_user_tier, get_scan_interval, get_allowed_packs
+
+            tier = get_user_tier()  # Uses admin override or defaults to "free"
+            interval = get_scan_interval(tier)
+            allowed_packs = get_allowed_packs(tier)
+
+        logger.info(
+            "Compliance scheduler: starting scheduled scan (tier=%s, interval=%ds, packs=%s)",
+            tier, interval, allowed_packs,
+        )
         scan_result = None
         try:
             from .compliance_service import run_scan
-            scan_result = run_scan(triggered_by="scheduled")
+            scan_result = run_scan(pack_ids=allowed_packs, triggered_by="scheduled")
             logger.info("Compliance scheduler: scan complete — %s", scan_result)
         except Exception as exc:
             logger.error("Compliance scheduler: scan failed — %s", exc)
@@ -68,8 +78,7 @@ def start_scheduler(app):
         daemon=True,
     )
     _thread.start()
-    logger.info("Compliance scheduler: started (interval=%ds)",
-                app.config.get("COMPLIANCE_SCAN_INTERVAL", 21600))
+    logger.info("Compliance scheduler: started (tier-based interval, resolves each cycle)")
 
 
 def stop_scheduler():
