@@ -170,6 +170,23 @@ def init_db(path):
         created_at TEXT DEFAULT (datetime('now')),
         updated_at TEXT DEFAULT (datetime('now'))
     )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_evidence (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT,
+        rule_id TEXT,
+        pack_id TEXT,
+        evidence_type TEXT NOT NULL CHECK(evidence_type IN (
+            'command_output', 'file_content', 'config_snapshot',
+            'service_status', 'log_excerpt',
+            'firewall_config', 'access_control_config', 'audit_log_export',
+            'ssl_cert_status', 'service_inventory'
+        )),
+        content TEXT NOT NULL,
+        soc2_mapping TEXT,
+        collected_at TEXT DEFAULT (datetime('now'))
+    )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_evidence_scan ON compliance_evidence(scan_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_evidence_soc2 ON compliance_evidence(soc2_mapping)")
     # Migrations — add columns that may be missing from older DBs
     try:
         conn.execute("ALTER TABLE docker_stacks ADD COLUMN color TEXT DEFAULT '#2563eb'")

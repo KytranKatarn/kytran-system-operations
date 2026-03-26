@@ -223,6 +223,51 @@ def run_scan(pack_ids=None, triggered_by="manual"):
             except Exception as exc:
                 logger.error("Failed to store result for %s: %s", rule_id, exc)
 
+            # Store per-rule evidence for SOC 2 audit trail
+            try:
+                check_def = rule.get("check", {})
+                check_type = check_def.get("type", "")
+                evidence_type_map = {
+                    "command_output": "command_output",
+                    "file_content": "file_content",
+                    "file_contains": "file_content",
+                    "sysctl_value": "config_snapshot",
+                    "docker_config": "config_snapshot",
+                    "service_status": "service_status",
+                    "systemd_service": "service_status",
+                }
+                evidence_type = evidence_type_map.get(check_type, "command_output")
+                # Build evidence content from the check result
+                evidence_content = json.dumps({
+                    "rule_id": rule_id,
+                    "check_type": check_type,
+                    "status": status,
+                    "actual": result.get("actual", "")[:10000],
+                    "expected": result.get("expected", "")[:10000],
+                    "details": result.get("details", ""),
+                    "command": check_def.get("command", ""),
+                    "path": check_def.get("path", ""),
+                })[:10000]
+                soc2 = rule.get("soc2_mapping", [])
+                with _db_cursor(commit=True) as (conn, cur):
+                    cur.execute(
+                        """
+                        INSERT INTO compliance_evidence
+                            (scan_id, rule_id, pack_id, evidence_type, content, soc2_mapping)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            scan_id,
+                            rule_id,
+                            pack_id,
+                            evidence_type,
+                            evidence_content,
+                            json.dumps(soc2) if soc2 else None,
+                        ),
+                    )
+            except Exception as exc:
+                logger.warning("Failed to store evidence for %s: %s", rule_id, exc)
+
         pack_scores[pack_id] = {
             "name": pack["name"],
             "passed": pack_pass,
@@ -1523,23 +1568,28 @@ def collect_evidence(scan_id=None):
     except Exception as e:
         logger.warning("Evidence: service inventory failed: %s", e)
 
-    # Store evidence in DB
+    # Store evidence in DB (unified compliance_evidence table)
     stored = 0
     for e in evidence:
         try:
+            content = json.dumps({
+                "artifact_name": e["artifact_name"],
+                "artifact_data": e["artifact_data"],
+            })[:10000]
             with _db_cursor(commit=True) as (conn, cur):
                 cur.execute(
                     """
                     INSERT INTO compliance_evidence
-                        (control_id, artifact_type, artifact_name, artifact_data, scan_id)
-                    VALUES (?, ?, ?, ?, ?)
+                        (scan_id, rule_id, pack_id, evidence_type, content, soc2_mapping)
+                    VALUES (?, ?, ?, ?, ?, ?)
                     """,
                     (
-                        e["control_id"],
-                        e["artifact_type"],
-                        e["artifact_name"],
-                        json.dumps(e["artifact_data"]),
                         scan_id,
+                        None,
+                        None,
+                        e["artifact_type"],
+                        content,
+                        json.dumps([e["control_id"]]),
                     ),
                 )
                 stored += 1
