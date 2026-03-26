@@ -116,6 +116,58 @@ def fetch_ai_analysis() -> dict | None:
         return None
 
 
+def create_checkout_session(price_id: str, success_url: str, cancel_url: str, user_id=None) -> str | None:
+    """Create a Stripe Checkout session via the ARCHIE hub.
+
+    Args:
+        price_id: Stripe price ID for the selected plan.
+        success_url: URL to redirect to after successful payment.
+        cancel_url: URL to redirect to if the user cancels.
+        user_id: Optional user identifier to associate with the session.
+
+    Returns:
+        Checkout URL string on success, None on failure.
+    """
+    if not is_hub_configured():
+        logger.warning("Hub not configured — cannot create checkout session")
+        return None
+
+    hub_url = current_app.config["ARCHIE_HUB_URL"].rstrip("/")
+    endpoint = f"{hub_url}/api/billing/checkout"
+
+    payload = {
+        "price_id": price_id,
+        "success_url": success_url,
+        "cancel_url": cancel_url,
+    }
+    if user_id is not None:
+        payload["user_id"] = user_id
+
+    try:
+        resp = requests.post(
+            endpoint, json=payload, headers=_auth_header(), timeout=_REQUEST_TIMEOUT
+        )
+        if resp.ok:
+            data = resp.json()
+            url = data.get("checkout_url") or data.get("url")
+            logger.info("Checkout session created via hub (price=%s)", price_id)
+            return url
+        else:
+            logger.warning(
+                "Hub rejected checkout request: %s %s", resp.status_code, resp.text[:200]
+            )
+            return None
+    except requests.ConnectionError:
+        logger.debug("Hub unreachable at %s — checkout session failed", hub_url)
+        return None
+    except requests.Timeout:
+        logger.debug("Hub request timed out — checkout session failed")
+        return None
+    except Exception:
+        logger.exception("Unexpected error creating checkout session via hub")
+        return None
+
+
 def exchange_code_for_token(code: str, redirect_uri: str) -> dict | None:
     """Exchange an OAuth authorization code for a JWT token.
 
