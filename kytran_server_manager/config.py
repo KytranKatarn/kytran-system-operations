@@ -27,5 +27,8 @@ class Config:
     # Compliance scanning schedule
     COMPLIANCE_SCAN_INTERVAL = int(os.environ.get("KSM_COMPLIANCE_SCAN_INTERVAL", "21600"))  # 6 hours in seconds
 
+    # Subscription tier override (set to "enterprise" for internal ARCHIE instance)
+    TIER_OVERRIDE = os.environ.get("KSM_TIER_OVERRIDE", "")
+
     # Version
     VERSION = os.environ.get("KSM_VERSION", "1.0.0")

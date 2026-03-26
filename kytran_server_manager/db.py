@@ -50,6 +50,7 @@ def init_db(path):
         display_name TEXT,
         compose_directory TEXT NOT NULL,
         description TEXT,
+        color TEXT DEFAULT '#2563eb',
         is_system INTEGER DEFAULT 0,
         auto_start INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -75,6 +76,105 @@ def init_db(path):
         secret TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS settings (
+        key TEXT PRIMARY KEY,
+        value TEXT
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_rule_packs (
+        pack_id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        version TEXT DEFAULT '1.0',
+        source TEXT DEFAULT 'DISA',
+        total_rules INTEGER DEFAULT 0,
+        rules TEXT DEFAULT '[]',
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_scans (
+        scan_id TEXT PRIMARY KEY,
+        triggered_by TEXT DEFAULT 'manual',
+        started_at TIMESTAMP,
+        completed_at TIMESTAMP,
+        pack_ids TEXT DEFAULT '[]',
+        total_rules INTEGER DEFAULT 0,
+        passed INTEGER DEFAULT 0,
+        failed INTEGER DEFAULT 0,
+        errors INTEGER DEFAULT 0,
+        score REAL DEFAULT 0.0
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_scan_results (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT NOT NULL,
+        pack_id TEXT NOT NULL,
+        rule_id TEXT NOT NULL,
+        severity TEXT,
+        status TEXT,
+        actual_value TEXT,
+        expected_value TEXT,
+        details TEXT,
+        soc2_controls TEXT DEFAULT '[]'
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS compliance_fixes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        scan_id TEXT NOT NULL,
+        rule_id TEXT NOT NULL,
+        user_id INTEGER,
+        fix_type TEXT,
+        command_executed TEXT,
+        success INTEGER DEFAULT 0,
+        error_message TEXT,
+        applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS stack_health_alerts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stack_name TEXT,
+        container_name TEXT,
+        alert_type TEXT NOT NULL,
+        severity TEXT DEFAULT 'warning',
+        message TEXT NOT NULL,
+        details TEXT,
+        acknowledged INTEGER DEFAULT 0,
+        acknowledged_by TEXT,
+        acknowledged_at TIMESTAMP,
+        resolved INTEGER DEFAULT 0,
+        resolved_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS stack_health_config (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        stack_name TEXT,
+        metric TEXT NOT NULL,
+        threshold REAL,
+        severity TEXT DEFAULT 'warning',
+        enabled INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS health_alert_webhooks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        url TEXT NOT NULL,
+        events TEXT DEFAULT '[]',
+        enabled INTEGER DEFAULT 1,
+        secret TEXT,
+        last_status TEXT,
+        last_error TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )""")
+    conn.execute("""CREATE TABLE IF NOT EXISTS subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL UNIQUE REFERENCES users(id),
+        tier TEXT NOT NULL DEFAULT 'free' CHECK(tier IN ('free', 'pro', 'business', 'enterprise')),
+        status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'cancelled', 'past_due', 'trialing')),
+        stripe_customer_id TEXT,
+        stripe_subscription_id TEXT,
+        current_period_end TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        updated_at TEXT DEFAULT (datetime('now'))
+    )""")
+    # Migrations — add columns that may be missing from older DBs
+    try:
+        conn.execute("ALTER TABLE docker_stacks ADD COLUMN color TEXT DEFAULT '#2563eb'")
+    except Exception:
+        pass  # Column already exists
     conn.commit()
     conn.close()
 
