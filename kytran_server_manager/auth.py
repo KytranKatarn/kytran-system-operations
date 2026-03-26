@@ -80,7 +80,7 @@ def register_auth_routes(app):
     """Register login/logout/setup routes."""
 
     @app.route("/")
-    def index():
+    def splash():
         if current_user.is_authenticated:
             return redirect(url_for("sysops.index"))
         sso_enabled = is_hub_configured()
