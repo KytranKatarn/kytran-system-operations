@@ -2630,6 +2630,30 @@ async function loadComplianceSummary() {
                 packsEl.appendChild(badge);
             }
         }
+        /* Report + PDF links (business tier) */
+        if (data.scan_id) {
+            var bar = document.getElementById('complianceSummaryBar');
+            if (bar) {
+                var oldLinks = bar.querySelectorAll('.compliance-report-link');
+                oldLinks.forEach(function(el) { el.remove(); });
+
+                var reportLink = document.createElement('a');
+                reportLink.href = '/dashboard/compliance/report/' + data.scan_id;
+                reportLink.target = '_blank';
+                reportLink.textContent = 'Report';
+                reportLink.className = 'compliance-report-link';
+                reportLink.style.cssText = 'margin-left:8px;color:#8b5cf6;font-size:11px;text-decoration:none;border:1px solid rgba(139,92,246,0.3);padding:2px 8px;border-radius:4px;';
+
+                var pdfLink = document.createElement('a');
+                pdfLink.href = '/dashboard/api/compliance/report/' + data.scan_id + '/pdf';
+                pdfLink.textContent = 'PDF';
+                pdfLink.className = 'compliance-report-link';
+                pdfLink.style.cssText = 'margin-left:4px;color:#f59e0b;font-size:11px;text-decoration:none;border:1px solid rgba(245,158,11,0.3);padding:2px 8px;border-radius:4px;';
+
+                bar.appendChild(reportLink);
+                bar.appendChild(pdfLink);
+            }
+        }
         if (typeof lucide !== 'undefined') lucide.createIcons();
     } catch (e) {
         console.error('Compliance summary load failed:', e);

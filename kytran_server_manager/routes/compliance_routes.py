@@ -4,9 +4,10 @@ Compliance API Routes
 REST endpoints for compliance scanning, results, and remediation.
 """
 
+import io
 import logging
 
-from flask import jsonify, request, Response
+from flask import jsonify, request, Response, send_file
 from flask_login import login_required, current_user
 
 from ..services import compliance_service
@@ -232,3 +233,58 @@ def register_compliance_routes(bp, admin_required_decorator):
         except Exception as exc:
             logger.error("Pack reload failed: %s", exc)
             return jsonify({"error": str(exc)}), 500
+
+    # ------------------------------------------------------------------
+    # Report routes (business tier)
+    # ------------------------------------------------------------------
+
+    @bp.route("/compliance/report/<int:scan_id>")
+    @login_required
+    @require_tier("business")
+    def compliance_report_view(scan_id):
+        """Render an HTML compliance report for the given scan."""
+        from ..services.report_service import render_html_report
+
+        try:
+            html = render_html_report(scan_id)
+            if html is None:
+                return jsonify({"error": "Scan not found"}), 404
+            return Response(html, mimetype="text/html")
+        except Exception as exc:
+            logger.error("Report render failed: %s", exc)
+            return jsonify({"error": str(exc)}), 500
+
+    @bp.route("/api/compliance/report/<int:scan_id>/pdf")
+    @login_required
+    @require_tier("business")
+    def compliance_report_pdf(scan_id):
+        """Generate and download a PDF compliance report."""
+        from ..services.report_service import generate_pdf_report
+
+        try:
+            pdf_bytes, filename = generate_pdf_report(scan_id)
+            if pdf_bytes is None:
+                return jsonify({"error": "Scan not found or PDF generation unavailable"}), 500
+            return send_file(
+                io.BytesIO(pdf_bytes),
+                mimetype="application/pdf",
+                as_attachment=True,
+                download_name=filename,
+            )
+        except Exception as exc:
+            logger.error("PDF report failed: %s", exc)
+            return jsonify({"error": str(exc)}), 500
+
+    @bp.route("/api/compliance/reports")
+    @login_required
+    @require_tier("business")
+    def compliance_report_list():
+        """List all saved PDF reports."""
+        from ..services.report_service import list_reports
+
+        try:
+            reports = list_reports()
+            return jsonify({"success": True, "reports": reports})
+        except Exception as exc:
+            logger.error("Report list failed: %s", exc)
+            return jsonify({"success": False, "error": str(exc)}), 500
