@@ -108,15 +108,37 @@ def register_auth_routes(app):
     @app.route("/settings")
     @login_required
     def settings():
+        from .services.subscription_service import get_user_tier, get_allowed_themes, TIER_LEVELS
+
         current_theme = os.environ.get("SYSOPS_THEME", "kytran")
-        return render_template("settings.html", current_theme=current_theme)
+        tier = get_user_tier(current_user.id)
+        max_themes = get_allowed_themes(tier)
+        all_themes = list(VALID_THEMES)  # ordered list
+        allowed_themes = all_themes[:max_themes]
+
+        return render_template(
+            "settings.html",
+            current_theme=current_theme,
+            tier=tier,
+            allowed_themes=allowed_themes,
+            all_themes=all_themes,
+        )
 
     @app.route("/settings/theme", methods=["POST"])
     @login_required
     def set_theme():
+        from .services.subscription_service import get_user_tier, get_allowed_themes
+
         theme = request.json.get("theme", "kytran")
         if theme not in VALID_THEMES:
             return jsonify({"success": False, "error": "Invalid theme"}), 400
+
+        # Tier-gate: check if the user's subscription allows this theme
+        tier = get_user_tier(current_user.id)
+        max_themes = get_allowed_themes(tier)
+        allowed_themes = list(VALID_THEMES)[:max_themes]
+        if theme not in allowed_themes:
+            return jsonify({"success": False, "error": "Theme requires a higher subscription tier"}), 403
 
         # Update the theme and regenerate CSS
         os.environ["SYSOPS_THEME"] = theme
