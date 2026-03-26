@@ -78,6 +78,14 @@ def verify_password(username, password):
 
 def register_auth_routes(app):
     """Register login/logout/setup routes."""
+
+    @app.route("/")
+    def index():
+        if current_user.is_authenticated:
+            return redirect(url_for("sysops.index"))
+        sso_enabled = is_hub_configured()
+        return render_template("splash.html", sso_enabled=sso_enabled)
+
     @app.route("/login", methods=["GET", "POST"])
     def login():
         if request.method == "POST":
