@@ -77,6 +77,45 @@ def report_compliance(scan_result: dict) -> bool:
         return False
 
 
+def fetch_ai_analysis() -> dict | None:
+    """Fetch AI-powered compliance analysis from the ARCHIE hub.
+
+    Returns:
+        Analysis dict on success, None on failure or if hub is unreachable.
+    """
+    if not is_hub_configured():
+        logger.debug("Hub not configured — skipping AI analysis fetch")
+        return None
+
+    hub_url = current_app.config["ARCHIE_HUB_URL"].rstrip("/")
+    endpoint = f"{hub_url}/api/standalone/compliance-analysis"
+
+    try:
+        resp = requests.get(
+            endpoint,
+            params={"scan_target": "Kytran System Operations"},
+            headers=_auth_header(),
+            timeout=_REQUEST_TIMEOUT,
+        )
+        if resp.ok:
+            logger.info("AI compliance analysis fetched from hub")
+            return resp.json()
+        else:
+            logger.warning(
+                "Hub rejected AI analysis request: %s %s", resp.status_code, resp.text[:200]
+            )
+            return None
+    except requests.ConnectionError:
+        logger.debug("Hub unreachable at %s — AI analysis fetch skipped", hub_url)
+        return None
+    except requests.Timeout:
+        logger.debug("Hub request timed out — AI analysis fetch skipped")
+        return None
+    except Exception:
+        logger.exception("Unexpected error fetching AI analysis from hub")
+        return None
+
+
 def exchange_code_for_token(code: str, redirect_uri: str) -> dict | None:
     """Exchange an OAuth authorization code for a JWT token.
 
