@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Report — {{ server_info.hostname|default('Unknown Host') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* ── Reset ── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        /* ── Variables ── */
+        :root {
+            --bg: #0a0a0f;
+            --surface: #12121a;
+            --surface-2: #1a1a2e;
+            --border: #2a2a3e;
+            --text: #e0e0e8;
+            --text-dim: #8888a0;
+            --accent: #8b5cf6;
+            --accent-dim: #6d40d4;
+            --green: #22c55e;
+            --green-dim: rgba(34,197,94,0.15);
+            --blue: #3b82f6;
+            --blue-dim: rgba(59,130,246,0.15);
+            --yellow: #eab308;
+            --yellow-dim: rgba(234,179,8,0.15);
+            --red: #ef4444;
+            --red-dim: rgba(239,68,68,0.15);
+            --orange: #f97316;
+            --font-heading: 'Orbitron', sans-serif;
+            --font-mono: 'IBM Plex Mono', monospace;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 2rem;
+        }
+
+        .report-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* ── Section styling ── */
+        .report-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            font-family: var(--font-heading);
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--accent-dim);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* ── Cover / Header ── */
+        .cover {
+            text-align: center;
+            padding: 3rem 2rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            margin-bottom: 3rem;
+        }
+
+        .cover-org {
+            font-family: var(--font-heading);
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 0.25rem;
+        }
+
+        .cover-title {
+            font-family: var(--font-heading);
+            font-size: 1.75rem;
+            font-weight: 900;
+            color: var(--text);
+            margin-bottom: 1.5rem;
+        }
+
+        .cover-meta {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+        }
+
+        .cover-meta span { white-space: nowrap; }
+        .cover-meta strong { color: var(--text); }
+
+        /* ── Score Badge ── */
+        .score-badge {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 4px solid;
+            position: relative;
+        }
+
+        .score-badge.grade-a-plus, .score-badge.grade-a { border-color: var(--green); background: var(--green-dim); }
+        .score-badge.grade-b { border-color: var(--blue); background: var(--blue-dim); }
+        .score-badge.grade-c { border-color: var(--yellow); background: var(--yellow-dim); }
+        .score-badge.grade-d, .score-badge.grade-f { border-color: var(--red); background: var(--red-dim); }
+
+        .score-badge .score-pct {
+            font-family: var(--font-heading);
+            font-size: 2.25rem;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .score-badge.grade-a-plus .score-pct, .score-badge.grade-a .score-pct { color: var(--green); }
+        .score-badge.grade-b .score-pct { color: var(--blue); }
+        .score-badge.grade-c .score-pct { color: var(--yellow); }
+        .score-badge.grade-d .score-pct, .score-badge.grade-f .score-pct { color: var(--red); }
+
+        .score-badge .score-grade {
+            font-family: var(--font-heading);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+        }
+
+        .score-badge.grade-a-plus .score-grade, .score-badge.grade-a .score-grade { color: var(--green); }
+        .score-badge.grade-b .score-grade { color: var(--blue); }
+        .score-badge.grade-c .score-grade { color: var(--yellow); }
+        .score-badge.grade-d .score-grade, .score-badge.grade-f .score-grade { color: var(--red); }
+
+        /* ── Executive Summary ── */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        .summary-card .card-value {
+            font-family: var(--font-heading);
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .summary-card .card-label {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-top: 0.25rem;
+        }
+
+        .summary-card.pass .card-value { color: var(--green); }
+        .summary-card.fail .card-value { color: var(--red); }
+        .summary-card.error .card-value { color: var(--orange); }
+        .summary-card.total .card-value { color: var(--accent); }
+
+        .summary-text {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+
+        /* ── Tables ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        thead th {
+            font-family: var(--font-heading);
+            font-size: 0.7rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-dim);
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        tbody td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+
+        tbody tr:hover { background: var(--surface); }
+
+        .score-cell {
+            font-family: var(--font-heading);
+            font-weight: 700;
+        }
+
+        .score-cell.high { color: var(--green); }
+        .score-cell.mid { color: var(--blue); }
+        .score-cell.low { color: var(--yellow); }
+        .score-cell.crit { color: var(--red); }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.55rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-pass { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+        .badge-fail { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+        .badge-error { background: var(--yellow-dim); color: var(--orange); border: 1px solid var(--orange); }
+        .badge-high { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+        .badge-medium { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow); }
+        .badge-low { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
+        .badge-info { background: rgba(139,92,246,0.15); color: var(--accent); border: 1px solid var(--accent); }
+
+        /* ── TSC Section ── */
+        .tsc-block {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .tsc-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .tsc-code {
+            font-family: var(--font-heading);
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .tsc-name {
+            color: var(--text);
+            font-size: 0.85rem;
+        }
+
+        .tsc-count {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        details {
+            margin-top: 0.5rem;
+        }
+
+        details summary {
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--accent);
+            padding: 0.25rem 0;
+        }
+
+        details summary:hover { text-decoration: underline; }
+
+        .evidence-item {
+            background: var(--surface-2);
+            border-left: 3px solid var(--accent-dim);
+            padding: 0.5rem 0.75rem;
+            margin: 0.5rem 0;
+            font-size: 0.8rem;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .evidence-item .ev-label {
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+        }
+
+        /* ── Findings ── */
+        .finding-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .finding-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.5rem;
+        }
+
+        .finding-rule {
+            font-family: var(--font-heading);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .finding-pack {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+        }
+
+        .finding-desc {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 0.5rem;
+        }
+
+        .finding-evidence {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            background: var(--surface-2);
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+
+        /* ── Remediation Table ── */
+        .fix-cmd {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: var(--surface-2);
+            padding: 0.3rem 0.5rem;
+            border-radius: 3px;
+            color: var(--green);
+            word-break: break-all;
+        }
+
+        /* ── Severity Group ── */
+        .severity-group-title {
+            font-family: var(--font-heading);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 1.5rem 0 0.75rem;
+            padding-bottom: 0.3rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .severity-group-title.sev-high { color: var(--red); }
+        .severity-group-title.sev-medium { color: var(--yellow); }
+        .severity-group-title.sev-low { color: var(--blue); }
+        .severity-group-title.sev-info { color: var(--accent); }
+
+        /* ── Footer ── */
+        .report-footer {
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            body { padding: 1rem; }
+            .cover { padding: 2rem 1rem; }
+            .cover-title { font-size: 1.25rem; }
+            .cover-meta { flex-direction: column; gap: 0.5rem; }
+            .score-badge { width: 120px; height: 120px; }
+            .score-badge .score-pct { font-size: 1.75rem; }
+            table { font-size: 0.75rem; }
+            thead th, tbody td { padding: 0.4rem 0.5rem; }
+        }
+
+        /* ════════════════════════════════════════
+           PRINT STYLES — Clean, professional PDF
+           ════════════════════════════════════════ */
+        @media print {
+            :root {
+                --bg: #ffffff;
+                --surface: #f8f8fa;
+                --surface-2: #f0f0f5;
+                --border: #cccccc;
+                --text: #111111;
+                --text-dim: #555555;
+            }
+
+            body {
+                background: #fff;
+                color: #111;
+                font-size: 11px;
+                padding: 0;
+                line-height: 1.5;
+            }
+
+            .report-container { max-width: 100%; }
+
+            .cover {
+                border: 2px solid #333;
+                background: #fff;
+                padding: 2rem;
+            }
+
+            .cover-org { color: #333; }
+            .cover-title { color: #111; }
+
+            .score-badge {
+                border-width: 3px;
+                width: 120px;
+                height: 120px;
+                background: #fff !important;
+            }
+
+            .score-badge .score-pct { font-size: 1.75rem; }
+
+            .section-title {
+                color: #333;
+                border-bottom-color: #999;
+            }
+
+            table { border: 1px solid #ccc; }
+            thead th {
+                background: #eee;
+                color: #333;
+                border-bottom: 2px solid #999;
+            }
+            tbody td { border-bottom: 1px solid #ddd; }
+            tbody tr:hover { background: transparent; }
+
+            .badge {
+                border-width: 1px;
+                font-weight: 700;
+            }
+
+            .badge-pass { background: #e6f9ed; color: #166534; border-color: #166534; }
+            .badge-fail { background: #fde8e8; color: #991b1b; border-color: #991b1b; }
+            .badge-high { background: #fde8e8; color: #991b1b; border-color: #991b1b; }
+            .badge-medium { background: #fef9e7; color: #854d0e; border-color: #854d0e; }
+            .badge-low { background: #e8f0fe; color: #1e40af; border-color: #1e40af; }
+
+            .tsc-block {
+                background: #f8f8fa;
+                border: 1px solid #ccc;
+            }
+
+            .tsc-code { color: #333; }
+
+            .finding-card {
+                background: #f8f8fa;
+                border: 1px solid #ccc;
+            }
+
+            .evidence-item {
+                background: #f0f0f5;
+                border-left-color: #999;
+            }
+
+            details[open] > summary { display: none; }
+            details { open: true; }
+            details > *:not(summary) { display: block !important; }
+
+            .fix-cmd {
+                background: #f0f0f5;
+                color: #111;
+            }
+
+            /* Page breaks */
+            .print-break { page-break-before: always; }
+
+            .finding-card { page-break-inside: avoid; }
+            .tsc-block { page-break-inside: avoid; }
+
+            .report-footer { border-top-color: #ccc; }
+        }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+
+        {# ── Macros ── #}
+        {% macro grade(score) -%}
+            {%- if score >= 95 -%}A+
+            {%- elif score >= 90 -%}A
+            {%- elif score >= 80 -%}B
+            {%- elif score >= 70 -%}C
+            {%- elif score >= 60 -%}D
+            {%- else -%}F
+            {%- endif -%}
+        {%- endmacro %}
+
+        {% macro grade_class(score) -%}
+            {%- if score >= 95 -%}grade-a-plus
+            {%- elif score >= 90 -%}grade-a
+            {%- elif score >= 80 -%}grade-b
+            {%- elif score >= 70 -%}grade-c
+            {%- elif score >= 60 -%}grade-d
+            {%- else -%}grade-f
+            {%- endif -%}
+        {%- endmacro %}
+
+        {% macro score_class(score) -%}
+            {%- if score >= 90 -%}high
+            {%- elif score >= 80 -%}mid
+            {%- elif score >= 70 -%}low
+            {%- else -%}crit
+            {%- endif -%}
+        {%- endmacro %}
+
+        {# ── TSC Name Lookup ── #}
+        {% set tsc_names = {
+            'CC1.1': 'COSO Principle 1 — Integrity and Ethical Values',
+            'CC1.2': 'COSO Principle 2 — Board Independence',
+            'CC1.3': 'COSO Principle 3 — Management Oversight',
+            'CC1.4': 'COSO Principle 4 — Competence Commitment',
+            'CC1.5': 'COSO Principle 5 — Accountability',
+            'CC2.1': 'Information for Internal Controls',
+            'CC2.2': 'Internal Communication',
+            'CC2.3': 'External Communication',
+            'CC3.1': 'Risk Identification',
+            'CC3.2': 'Risk Assessment — Fraud',
+            'CC3.3': 'Risk Assessment — Change',
+            'CC3.4': 'Risk Response',
+            'CC4.1': 'Monitoring Activities',
+            'CC4.2': 'Deficiency Communication',
+            'CC5.1': 'Control Activity Design',
+            'CC5.2': 'Technology General Controls',
+            'CC5.3': 'Policy-Based Controls',
+            'CC6.1': 'Logical Access Controls',
+            'CC6.2': 'Access Authentication',
+            'CC6.3': 'Access Authorization',
+            'CC6.6': 'Threat Management',
+            'CC6.7': 'Transmission Security',
+            'CC6.8': 'Vulnerability Management',
+            'CC7.1': 'Intrusion Detection',
+            'CC7.2': 'Anomaly Monitoring',
+            'CC7.3': 'Incident Response Evaluation',
+            'CC7.4': 'Incident Containment',
+            'CC7.5': 'Incident Recovery',
+            'CC8.1': 'Change Management',
+            'CC9.1': 'Risk Mitigation',
+            'CC9.2': 'Vendor Risk Management',
+            'A1.1': 'Availability — Capacity Planning',
+            'A1.2': 'Availability — Environmental Protection',
+            'A1.3': 'Availability — Recovery Operations',
+            'C1.1': 'Confidentiality — Identification',
+            'C1.2': 'Confidentiality — Disposal',
+            'PI1.1': 'Processing Integrity — Accuracy',
+            'PI1.2': 'Processing Integrity — Completeness',
+            'P1.0': 'Privacy — Notice',
+            'P1.1': 'Privacy — Choice and Consent',
+            'P6.1': 'Privacy — Quality',
+            'HIPAA-164.308': 'Administrative Safeguards',
+            'HIPAA-164.310': 'Physical Safeguards',
+            'HIPAA-164.312': 'Technical Safeguards',
+            'HIPAA-164.314': 'Organizational Requirements',
+            'HIPAA-164.316': 'Policies and Documentation'
+        } %}
+
+        {# ── Compute totals ── #}
+        {% set ns = namespace(total=0, passed=0, failed=0, errors=0) %}
+        {% for f in findings|default([]) %}
+            {% set ns.total = ns.total + 1 %}
+            {% if f.status|default('') == 'pass' %}
+                {% set ns.passed = ns.passed + 1 %}
+            {% elif f.status|default('') == 'fail' %}
+                {% set ns.failed = ns.failed + 1 %}
+            {% elif f.status|default('') == 'error' %}
+                {% set ns.errors = ns.errors + 1 %}
+            {% endif %}
+        {% endfor %}
+
+        {% set overall = scan.overall_score|default(0)|float|round(1) %}
+
+        {# ════════════════════════════════════════════
+           SECTION 1: Cover / Header
+           ════════════════════════════════════════════ #}
+        <div class="cover report-section">
+            <div class="cover-org">Kytran System Operations</div>
+            <div class="cover-title">Compliance Report</div>
+            <div class="cover-meta">
+                <span>Host: <strong>{{ server_info.hostname|default('N/A') }}</strong></span>
+                <span>OS: <strong>{{ server_info.os|default('N/A') }}</strong></span>
+                <span>Scan ID: <strong>{{ scan.id|default('N/A') }}</strong></span>
+                <span>Date: <strong>{{ scan.scanned_at|default(server_info.generated_at|default('N/A')) }}</strong></span>
+            </div>
+            <div class="score-badge {{ grade_class(overall) }}">
+                <span class="score-pct">{{ overall }}%</span>
+                <span class="score-grade">{{ grade(overall) }}</span>
+            </div>
+        </div>
+
+        {# ════════════════════════════════════════════
+           SECTION 2: Executive Summary
+           ════════════════════════════════════════════ #}
+        <div class="report-section">
+            <div class="section-title">Executive Summary</div>
+            <div class="summary-grid">
+                <div class="summary-card total">
+                    <div class="card-value">{{ overall }}%</div>
+                    <div class="card-label">Overall Score</div>
+                </div>
+                <div class="summary-card total">
+                    <div class="card-value">{{ ns.total }}</div>
+                    <div class="card-label">Total Rules</div>
+                </div>
+                <div class="summary-card pass">
+                    <div class="card-value">{{ ns.passed }}</div>
+                    <div class="card-label">Passed</div>
+                </div>
+                <div class="summary-card fail">
+                    <div class="card-value">{{ ns.failed }}</div>
+                    <div class="card-label">Failed</div>
+                </div>
+                {% if ns.errors > 0 %}
+                <div class="summary-card error">
+                    <div class="card-value">{{ ns.errors }}</div>
+                    <div class="card-label">Errors</div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="summary-text">
+                <p>
+                    This report presents the results of an automated compliance scan performed on
+                    <strong>{{ server_info.hostname|default('the target host') }}</strong>.
+                    Of <strong>{{ ns.total }}</strong> rules evaluated,
+                    <strong>{{ ns.passed }}</strong> passed and
+                    <strong>{{ ns.failed }}</strong> failed, yielding an overall score of
+                    <strong>{{ overall }}%</strong> (Grade: {{ grade(overall) }}).
+                    {% if ns.failed == 0 %}
+                        All evaluated controls are currently in compliance.
+                    {% elif ns.failed <= 3 %}
+                        A small number of controls require remediation. Review the findings below for details.
+                    {% else %}
+                        Multiple controls require attention. Prioritize high-severity findings listed in this report.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {# ════════════════════════════════════════════
+           SECTION 3: Framework Scores
+           ════════════════════════════════════════════ #}
+        <div class="report-section print-break">
+            <div class="section-title">Framework Scores</div>
+            {% if pack_scores %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Framework Pack</th>
+                        <th>Total</th>
+                        <th>Passed</th>
+                        <th>Failed</th>
+                        <th>Score</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pack_id, scores in pack_scores.items()|sort %}
+                    {% set pscore = scores.score|default(0)|float|round(1) %}
+                    <tr>
+                        <td><strong>{{ pack_id }}</strong></td>
+                        <td>{{ scores.total|default(0) }}</td>
+                        <td style="color: var(--green);">{{ scores.passed|default(0) }}</td>
+                        <td style="color: var(--red);">{{ scores.failed|default(0) }}</td>
+                        <td class="score-cell {{ score_class(pscore) }}">{{ pscore }}%</td>
+                        <td class="score-cell {{ score_class(pscore) }}">{{ grade(pscore) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="summary-text">No framework pack scores available.</p>
+            {% endif %}
+        </div>
+
+        {# ════════════════════════════════════════════
+           SECTION 4: SOC 2 Trust Service Criteria
+           ════════════════════════════════════════════ #}
+        <div class="report-section print-break">
+            <div class="section-title">SOC 2 Trust Service Criteria</div>
+            {% if evidence_by_tsc %}
+                {% for tsc_code, evidence_list in evidence_by_tsc.items()|sort %}
+                <div class="tsc-block">
+                    <div class="tsc-header">
+                        <div>
+                            <span class="tsc-code">{{ tsc_code }}</span>
+                            <span class="tsc-name">— {{ tsc_names.get(tsc_code, 'Trust Service Criterion') }}</span>
+                        </div>
+                        <div class="tsc-count">{{ evidence_list|length }} evidence artifact{{ 's' if evidence_list|length != 1 }}</div>
+                    </div>
+
+                    {# Assessment: count pass/fail for related rules #}
+                    {% set tsc_ns = namespace(tsc_pass=0, tsc_fail=0) %}
+                    {% for ev in evidence_list %}
+                        {% if ev.status|default('') == 'pass' %}
+                            {% set tsc_ns.tsc_pass = tsc_ns.tsc_pass + 1 %}
+                        {% elif ev.status|default('') == 'fail' %}
+                            {% set tsc_ns.tsc_fail = tsc_ns.tsc_fail + 1 %}
+                        {% endif %}
+                    {% endfor %}
+                    {% if tsc_ns.tsc_pass > 0 or tsc_ns.tsc_fail > 0 %}
+                    <div style="font-size: 0.8rem; margin-bottom: 0.5rem;">
+                        Assessment:
+                        {% if tsc_ns.tsc_pass > 0 %}<span class="badge badge-pass">{{ tsc_ns.tsc_pass }} passed</span>{% endif %}
+                        {% if tsc_ns.tsc_fail > 0 %}<span class="badge badge-fail">{{ tsc_ns.tsc_fail }} failed</span>{% endif %}
+                    </div>
+                    {% endif %}
+
+                    <details>
+                        <summary>View {{ evidence_list|length }} evidence record{{ 's' if evidence_list|length != 1 }}</summary>
+                        {% for ev in evidence_list %}
+                        <div class="evidence-item">
+                            <div class="ev-label">{{ ev.rule_id|default('Rule') }} — {{ ev.type|default('evidence') }}</div>
+                            <div>{{ ev.description|default(ev.evidence|default('No description available'))|truncate(300) }}</div>
+                            {% if ev.collected_at|default('') %}
+                            <div class="ev-label" style="margin-top: 0.25rem;">Collected: {{ ev.collected_at }}</div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </details>
+                </div>
+                {% endfor %}
+            {% else %}
+            <p class="summary-text">No Trust Service Criteria evidence collected for this scan.</p>
+            {% endif %}
+        </div>
+
+        {# ════════════════════════════════════════════
+           SECTION 5: Detailed Findings
+           ════════════════════════════════════════════ #}
+        <div class="report-section print-break">
+            <div class="section-title">Detailed Findings</div>
+            {% if findings %}
+                {# Group by severity #}
+                {% set severity_order = ['high', 'medium', 'low', 'info'] %}
+                {% for sev in severity_order %}
+                    {% set sev_findings = findings|selectattr('severity', 'equalto', sev)|list %}
+                    {% if sev_findings|length > 0 %}
+                    <div class="severity-group-title sev-{{ sev }}">
+                        {{ sev|upper }} Severity ({{ sev_findings|length }})
+                    </div>
+                    {% for f in sev_findings %}
+                    <div class="finding-card">
+                        <div class="finding-header">
+                            <span class="finding-rule">{{ f.rule_id|default('N/A') }}</span>
+                            <span class="badge badge-{{ f.severity|default('info') }}">{{ f.severity|default('info') }}</span>
+                            <span class="badge badge-{{ f.status|default('error') }}">{{ f.status|default('unknown') }}</span>
+                            <span class="finding-pack">{{ f.pack_id|default('') }}</span>
+                        </div>
+                        <div class="finding-desc">{{ f.title|default(f.description|default('No description')) }}</div>
+                        {% if f.evidence|default('') %}
+                        <div class="finding-evidence" title="{{ f.evidence }}">{{ f.evidence[:200] }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% endif %}
+                {% endfor %}
+            {% else %}
+            <p class="summary-text">No findings to display.</p>
+            {% endif %}
+        </div>
+
+        {# ════════════════════════════════════════════
+           SECTION 6: Remediation Summary
+           ════════════════════════════════════════════ #}
+        <div class="report-section print-break">
+            <div class="section-title">Remediation Summary</div>
+            {% set failed_findings = findings|default([])|selectattr('status', 'equalto', 'fail')|list %}
+            {% if failed_findings|length > 0 %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rule</th>
+                        <th>Severity</th>
+                        <th>Description</th>
+                        <th>Fix Command</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in failed_findings %}
+                    <tr>
+                        <td><strong>{{ f.rule_id|default('N/A') }}</strong></td>
+                        <td><span class="badge badge-{{ f.severity|default('info') }}">{{ f.severity|default('info') }}</span></td>
+                        <td>{{ f.title|default(f.description|default('No description')) }}</td>
+                        <td>
+                            {% if f.fix_command|default('') %}
+                            <code class="fix-cmd">{{ f.fix_command }}</code>
+                            {% else %}
+                            <span style="color: var(--text-dim);">Manual review required</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="summary-text">No failed rules — no remediation actions required.</p>
+            {% endif %}
+        </div>
+
+        {# ── Footer ── #}
+        <div class="report-footer">
+            Generated by Kytran Server Manager on {{ server_info.generated_at|default('N/A') }}<br>
+            Report covers scan #{{ scan.id|default('N/A') }} &mdash; {{ server_info.hostname|default('N/A') }}
+        </div>
+
+    </div>
+</body>
+</html>
