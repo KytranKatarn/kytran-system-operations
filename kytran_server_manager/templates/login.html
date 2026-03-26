@@ -122,9 +122,15 @@
                     </form>
                 </div>
                 <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid rgba(var(--frame-rgb),0.2);">
+                    {% if sso_enabled %}
+                    <a href="{{ url_for('sso_login') }}" class="ksm-btn ksm-btn-primary" style="display:inline-block;text-decoration:none;width:auto;padding:10px 24px;background:#8b5cf6;margin-top:0;">
+                        <i class="fas fa-shield-alt"></i> Sign in with Kytran
+                    </a>
+                    {% else %}
                     <p style="color:#666;font-size:12px;">
                         Sign in with Kytran &mdash; Coming Soon
                     </p>
+                    {% endif %}
                 </div>
             </div><!-- /lcars-body -->
             <!-- Footer Bar -->

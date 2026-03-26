@@ -1,11 +1,15 @@
 """Authentication for standalone deployment."""
+import logging
 import os
 import bcrypt
-from flask import request, redirect, render_template, flash, jsonify
+from flask import request, redirect, render_template, flash, jsonify, url_for
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
 from werkzeug.utils import secure_filename
 from .db import get_db
+from .services.hub_client import is_hub_configured, exchange_code_for_token
+
+logger = logging.getLogger(__name__)
 
 VALID_THEMES = ("kytran", "lcars", "midnight", "arctic", "ember")
 ALLOWED_LOGO_EXTENSIONS = {"png", "jpg", "jpeg", "svg", "webp"}
@@ -82,7 +86,8 @@ def register_auth_routes(app):
                 login_user(user)
                 return redirect(request.args.get("next", "/"))
             flash("Invalid credentials", "error")
-        return render_template("login.html")
+        sso_enabled = is_hub_configured()
+        return render_template("login.html", sso_enabled=sso_enabled)
 
     @app.route("/logout")
     @login_required
@@ -187,24 +192,103 @@ def register_auth_routes(app):
 
         return jsonify({"success": True, "logo_url": logo_url})
 
-    @app.route("/auth/sso", methods=["GET", "POST"])
+    @app.route("/auth/sso", methods=["GET"])
     def sso_login():
-        """SSO endpoint stub -- ready for Tier 2 'Sign in with Kytran' OAuth flow."""
-        return jsonify({
-            "error": "SSO not yet configured",
-            "message": "Sign in with Kytran will be available in a future update. Use local login.",
-            "tier": 2,
-            "docs": "See standalone-extraction.md Tier 2 requirements",
-        }), 501
+        """Redirect to ARCHIE OAuth authorize endpoint."""
+        if not is_hub_configured():
+            return jsonify({
+                "error": "SSO not yet configured",
+                "message": "Sign in with Kytran requires ARCHIE hub connection. Use local login.",
+            }), 501
+
+        hub_url = app.config["ARCHIE_HUB_URL"].rstrip("/")
+        client_id = app.config.get("ARCHIE_CLIENT_ID", "kytran-sysops")
+        callback_url = request.url_root.rstrip("/") + "/auth/sso/callback"
+
+        authorize_url = (
+            f"{hub_url}/oauth/authorize"
+            f"?client_id={client_id}"
+            f"&redirect_uri={callback_url}"
+            f"&response_type=code"
+        )
+        return redirect(authorize_url)
+
+    @app.route("/auth/sso/callback", methods=["GET"])
+    def sso_callback():
+        """Handle OAuth callback from ARCHIE hub."""
+        code = request.args.get("code")
+        error = request.args.get("error")
+
+        if error:
+            logger.warning("SSO callback received error: %s", error)
+            flash("SSO authentication was denied or failed.", "error")
+            return redirect(url_for("login"))
+
+        if not code:
+            flash("SSO callback missing authorization code.", "error")
+            return redirect(url_for("login"))
+
+        callback_url = request.url_root.rstrip("/") + "/auth/sso/callback"
+
+        try:
+            token_data = exchange_code_for_token(code, callback_url)
+        except Exception:
+            logger.exception("SSO token exchange failed")
+            flash("SSO authentication failed. Please try again.", "error")
+            return redirect(url_for("login"))
+
+        if not token_data:
+            flash("SSO authentication failed. Could not obtain token.", "error")
+            return redirect(url_for("login"))
+
+        # Extract user info from token response
+        username = token_data.get("username") or token_data.get("user", {}).get("username")
+        if not username:
+            flash("SSO response missing user information.", "error")
+            return redirect(url_for("login"))
+
+        # Find or create local user for this SSO identity
+        db = get_db()
+        row = db.execute(
+            "SELECT id, username, role FROM users WHERE username = ?", (username,)
+        ).fetchone()
+
+        if row:
+            user = User(row["id"], row["username"], row["role"])
+        else:
+            # Ensure sso_provider column exists
+            try:
+                db.execute(
+                    "ALTER TABLE users ADD COLUMN sso_provider TEXT DEFAULT NULL"
+                )
+                db.commit()
+            except Exception:
+                pass  # Column already exists
+
+            # Create new user from SSO (empty password_hash — authenticates via ARCHIE)
+            db.execute(
+                "INSERT INTO users (username, password_hash, role, sso_provider) VALUES (?, '', 'user', 'archie')",
+                (username,),
+            )
+            db.commit()
+            new_row = db.execute(
+                "SELECT id, username, role FROM users WHERE username = ?", (username,)
+            ).fetchone()
+            user = User(new_row["id"], new_row["username"], new_row["role"])
+
+        db.close()
+        login_user(user)
+        logger.info("SSO login successful for user: %s", username)
+        return redirect("/")
 
     @app.route("/auth/sso/status", methods=["GET"])
     def sso_status():
         """Check SSO configuration status."""
+        enabled = is_hub_configured()
         return jsonify({
-            "sso_enabled": False,
+            "sso_enabled": enabled,
             "provider": "kytran",
-            "auth_url": None,
-            "message": "SSO pending Tier 2 implementation",
+            "auth_url": "/auth/sso" if enabled else None,
         })
 
     login_manager.login_view = "login"
