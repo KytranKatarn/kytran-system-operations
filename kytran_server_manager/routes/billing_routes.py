@@ -168,4 +168,5 @@ def _lcars_page(title: str, message: str, accent: str = "#00e5ff") -> str:
     <p>{message}</p>
   </div>
 </body>
-</html>""", 200, {{"Content-Type": "text/html"}}
+</html>"""
+    return html, 200, {"Content-Type": "text/html"}
