@@ -132,12 +132,22 @@ def get_scan_report_data(scan_id):
             "generated_at": datetime.now(timezone.utc).isoformat(),
         }
 
+        # Fetch AI analysis from hub (if connected)
+        ai_analysis = None
+        try:
+            from .hub_client import is_hub_configured, fetch_ai_analysis
+            if is_hub_configured():
+                ai_analysis = fetch_ai_analysis()
+        except Exception:
+            pass
+
         return {
             "scan": scan,
             "pack_scores": pack_scores,
             "findings": findings,
             "evidence": evidence,
             "server": server,
+            "ai_analysis": ai_analysis,
         }
     finally:
         conn.close()
