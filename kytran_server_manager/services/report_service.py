@@ -26,7 +26,7 @@ _SEVERITY_ORDER = {"high": 0, "medium": 1, "low": 2}
 def _reports_dir():
     """Return (and create) the reports output directory."""
     data_dir = current_app.config.get(
-        "DATA_DIR", "/var/lib/kytran-server-manager"
+        "DATA_DIR", "/var/lib/kytran-system-operations"
     )
     path = os.path.join(data_dir, "reports")
     os.makedirs(path, exist_ok=True)
@@ -133,11 +133,13 @@ def get_scan_report_data(scan_id):
         }
 
         # Fetch AI analysis from hub (if connected)
+        # fetch_ai_analysis() already unwraps the hub envelope and returns
+        # {executive_summary, remediation_plan, trend_analysis, ...} or None
         ai_analysis = None
         try:
             from .hub_client import is_hub_configured, fetch_ai_analysis
             if is_hub_configured():
-                ai_analysis = fetch_ai_analysis()
+                ai_analysis = fetch_ai_analysis(scan_target="Kytran System Operations")
         except Exception:
             pass
 

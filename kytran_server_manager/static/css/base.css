@@ -235,8 +235,81 @@ body {
         display: none;
     }
 
+    .ksm-nav {
+        padding: 0 10px;
+        height: 48px;
+    }
+
+    .ksm-nav-brand {
+        font-size: 0.9rem;
+        gap: 6px;
+    }
+
+    .ksm-nav-links {
+        gap: 8px;
+    }
+
+    .ksm-nav-link {
+        padding: 4px 8px;
+        font-size: 0.78rem;
+    }
+
     .ksm-auth-card {
         padding: 24px 20px;
         border-radius: 12px;
+    }
+
+    .ksm-main {
+        padding: 10px 8px;
+    }
+}
+
+/* Galaxy Fold inner screen (~280px) */
+@media (max-width: 320px) {
+    .ksm-nav {
+        padding: 0 6px;
+        height: 44px;
+    }
+
+    .ksm-nav-brand {
+        font-size: 0.8rem;
+        gap: 4px;
+    }
+
+    .ksm-nav-brand i {
+        font-size: 1rem;
+    }
+
+    .ksm-nav-links {
+        gap: 4px;
+    }
+
+    .ksm-nav-link {
+        padding: 4px 6px;
+        font-size: 0.72rem;
+    }
+
+    .ksm-main {
+        padding: 6px 4px;
+    }
+
+    .ksm-auth-card {
+        padding: 16px 12px;
+        border-radius: 8px;
+    }
+
+    .ksm-auth-card h1 {
+        font-size: 1.1rem;
+    }
+
+    .ksm-form-group input {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+
+    .ksm-btn {
+        padding: 10px 16px;
+        font-size: 0.85rem;
+        min-height: 44px;
     }
 }

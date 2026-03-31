@@ -2,6 +2,7 @@
 
 import os
 import json as json_lib
+import sqlite3
 from datetime import datetime
 
 from flask import jsonify, request, Response
@@ -448,7 +449,7 @@ def register_stack_routes(bp, admin_required_decorator):
 
             return jsonify({"success": True, "data": stack}), 201
 
-        except psycopg2.IntegrityError:
+        except sqlite3.IntegrityError:
             if conn:
                 conn.rollback()
             if cur:

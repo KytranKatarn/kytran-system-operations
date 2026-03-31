@@ -2,15 +2,18 @@
   "pack_id": "cis-ubuntu-22.04",
   "name": "CIS Ubuntu 22.04 Benchmark",
   "description": "Center for Internet Security Benchmark for Ubuntu 22.04 LTS \u2014 enterprise-grade hardening rules",
-  "version": "1.0",
+  "version": "1.1",
   "category": "os",
   "source": "CIS",
+  "container_context_notes": "Rules marked container_not_applicable=true are skipped when running inside a Docker container. These rules apply to the host OS and must be verified/remediated on the host directly, not from within a container.",
   "rules": [
     {
       "rule_id": "CIS-1.1.1",
       "severity": "low",
       "title": "Ensure mounting of cramfs is disabled",
       "description": "The cramfs filesystem type is a compressed read-only Linux filesystem. Removing support reduces the local attack surface.",
+      "container_not_applicable": true,
+      "container_reason": "Kernel module configuration requires host-level access. This check must be performed and remediated on the host OS, not from within a container.",
       "check": {
         "type": "command_output",
         "command": "modprobe -n -v cramfs 2>/dev/null || echo 'not found'",
@@ -32,6 +35,8 @@
       "severity": "low",
       "title": "Ensure mounting of squashfs is disabled",
       "description": "The squashfs filesystem type is a compressed read-only Linux filesystem. Disabling reduces the local attack surface.",
+      "container_not_applicable": true,
+      "container_reason": "Kernel module configuration requires host-level access. This check must be performed and remediated on the host OS, not from within a container.",
       "check": {
         "type": "command_output",
         "command": "modprobe -n -v squashfs 2>/dev/null; cat /etc/modprobe.d/squashfs.conf 2>/dev/null || echo 'not configured'",
@@ -52,6 +57,8 @@
       "severity": "low",
       "title": "Ensure mounting of udf is disabled",
       "description": "The udf filesystem type is the Universal Disk Format used for DVDs/Blu-ray. Disabling reduces the local attack surface.",
+      "container_not_applicable": true,
+      "container_reason": "Kernel module configuration requires host-level access. This check must be performed and remediated on the host OS, not from within a container.",
       "check": {
         "type": "command_output",
         "command": "modprobe -n -v udf 2>/dev/null || echo 'not found'",
@@ -73,6 +80,8 @@
       "severity": "medium",
       "title": "Ensure /tmp is a separate partition",
       "description": "The /tmp directory should be on a separate partition to prevent resource exhaustion attacks against the root filesystem.",
+      "container_not_applicable": true,
+      "container_reason": "Filesystem partition layout is determined by the host OS. This check must be verified on the host, not from within a container where /tmp is a container-level tmpfs.",
       "check": {
         "type": "command_output",
         "command": "findmnt -n /tmp 2>/dev/null || echo 'not mounted'",
@@ -95,6 +104,8 @@
       "severity": "medium",
       "title": "Ensure noexec option set on /tmp",
       "description": "The noexec mount option prevents execution of binaries on /tmp, mitigating temp-based attacks.",
+      "container_not_applicable": true,
+      "container_reason": "Mount options for /tmp are set by the container runtime or host. Cannot be verified or changed from within a container.",
       "check": {
         "type": "command_output",
         "command": "findmnt -n /tmp 2>/dev/null | grep -c noexec || echo '0'",
@@ -116,6 +127,8 @@
       "severity": "medium",
       "title": "Ensure nosuid option set on /tmp",
       "description": "The nosuid mount option prevents setuid programs from running on /tmp.",
+      "container_not_applicable": true,
+      "container_reason": "Mount options for /tmp are set by the container runtime or host. Cannot be verified or changed from within a container.",
       "check": {
         "type": "command_output",
         "command": "findmnt -n /tmp 2>/dev/null | grep -c nosuid || echo '0'",
@@ -137,6 +150,8 @@
       "severity": "medium",
       "title": "Ensure nodev option set on /tmp",
       "description": "The nodev mount option prevents device files from being created on /tmp.",
+      "container_not_applicable": true,
+      "container_reason": "Mount options for /tmp are set by the container runtime or host. Cannot be verified or changed from within a container.",
       "check": {
         "type": "command_output",
         "command": "findmnt -n /tmp 2>/dev/null | grep -c nodev || echo '0'",
@@ -158,6 +173,16 @@
       "severity": "low",
       "title": "Ensure separate /var partition exists",
       "description": "The /var directory should be on a separate partition to prevent resource exhaustion from logs/temp data.",
+      "container_not_applicable": true,
+      "container_reason": "Filesystem partition layout is determined by the host OS. Cannot be verified or changed from within a container.",
+      "status": "accepted_risk",
+      "accepted_risk_reason": "Single-server deployment \u2014 separate /var partition not feasible without OS reinstall. Mitigated by disk space monitoring via agent loop (Job #57) and Docker volume limits. Risk accepted per operational review 2026-03-29.",
+      "accepted_risk_mitigations": [
+        "Agent loop Job #57 monitors disk usage and alerts on threshold breach",
+        "Docker container storage limits prevent runaway log growth from containers",
+        "Log rotation configured via logrotate for /var/log",
+        "Manual review scheduled quarterly"
+      ],
       "check": {
         "type": "command_output",
         "command": "findmnt -n /var 2>/dev/null || echo 'not mounted'",
@@ -180,6 +205,8 @@
       "severity": "medium",
       "title": "Ensure IP forwarding is disabled",
       "description": "IP forwarding should be disabled unless the system is a router. CIS checks both IPv4 and IPv6. Note: ip_forward=1 is required on Docker hosts.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers and reflect the host kernel state. ip_forward=1 is intentionally required on this Docker host. This check must be assessed at the host level.",
       "check": {
         "type": "command_output",
         "command": "sysctl -n net.ipv4.ip_forward",
@@ -204,6 +231,8 @@
       "severity": "medium",
       "title": "Ensure packet redirect sending is disabled",
       "description": "ICMP redirects should not be sent by a non-router system to prevent MITM attacks.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers. This check must be verified and remediated on the host OS.",
       "check": {
         "type": "sysctl_value",
         "param": "net.ipv4.conf.all.send_redirects",
@@ -226,6 +255,8 @@
       "severity": "medium",
       "title": "Ensure source routed packets are not accepted",
       "description": "Source routed packets allow the sender to specify the route, which can be used to bypass network security.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers. This check must be verified and remediated on the host OS.",
       "check": {
         "type": "sysctl_value",
         "param": "net.ipv4.conf.all.accept_source_route",
@@ -248,6 +279,8 @@
       "severity": "medium",
       "title": "Ensure ICMP redirects are not accepted",
       "description": "ICMP redirect messages can be used by an attacker to alter routing tables.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers. This check must be verified and remediated on the host OS.",
       "check": {
         "type": "sysctl_value",
         "param": "net.ipv4.conf.all.accept_redirects",
@@ -270,6 +303,8 @@
       "severity": "medium",
       "title": "Ensure secure ICMP redirects are not accepted",
       "description": "Secure ICMP redirects from known gateways should still be rejected to prevent route table manipulation.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers. This check must be verified and remediated on the host OS.",
       "check": {
         "type": "sysctl_value",
         "param": "net.ipv4.conf.all.secure_redirects",
@@ -292,6 +327,8 @@
       "severity": "medium",
       "title": "Ensure suspicious packets are logged (log_martians)",
       "description": "Logging martian packets helps detect spoofing and routing configuration issues.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers. This check must be verified and remediated on the host OS.",
       "check": {
         "type": "sysctl_value",
         "param": "net.ipv4.conf.all.log_martians",
@@ -314,6 +351,8 @@
       "severity": "medium",
       "title": "Ensure IPv6 router advertisements are not accepted",
       "description": "IPv6 router advertisements can be spoofed to redirect traffic. Disable unless using SLAAC.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers. This check must be verified and remediated on the host OS.",
       "check": {
         "type": "sysctl_value",
         "param": "net.ipv6.conf.all.accept_ra",
@@ -336,6 +375,8 @@
       "severity": "medium",
       "title": "Ensure IPv6 redirects are not accepted",
       "description": "IPv6 redirect messages can alter routing tables. Disable to prevent MITM attacks.",
+      "container_not_applicable": true,
+      "container_reason": "sysctl kernel parameters are read-only inside unprivileged containers. This check must be verified and remediated on the host OS.",
       "check": {
         "type": "sysctl_value",
         "param": "net.ipv6.conf.all.accept_redirects",
@@ -379,6 +420,8 @@
       "severity": "high",
       "title": "Ensure auditd service is enabled and running",
       "description": "The auditd service must be enabled to collect audit records.",
+      "container_not_applicable": true,
+      "container_reason": "systemd service management is not available inside containers. auditd service status must be checked and managed on the host OS directly.",
       "check": {
         "type": "command_output",
         "command": "systemctl is-enabled auditd 2>/dev/null || echo 'disabled'",
@@ -445,6 +488,8 @@
       "severity": "medium",
       "title": "Ensure rsyslog service is enabled",
       "description": "The rsyslog service must be enabled to collect system logs.",
+      "container_not_applicable": true,
+      "container_reason": "systemd service management is not available inside containers. rsyslog service status must be checked and managed on the host OS directly.",
       "check": {
         "type": "command_output",
         "command": "systemctl is-enabled rsyslog 2>/dev/null || echo 'disabled'",
@@ -490,6 +535,8 @@
       "severity": "medium",
       "title": "Ensure journald is configured to send logs to rsyslog",
       "description": "Data from journald should be forwarded to rsyslog for centralized log management.",
+      "container_not_applicable": true,
+      "container_reason": "systemd-journald is not available inside containers. journald configuration must be managed on the host OS directly.",
       "check": {
         "type": "file_content",
         "path": "/etc/systemd/journald.conf",
@@ -535,6 +582,8 @@
       "severity": "medium",
       "title": "Ensure cron daemon is enabled and running",
       "description": "The cron daemon is used for scheduled jobs and must be running for system maintenance tasks.",
+      "container_not_applicable": true,
+      "container_reason": "systemd service management is not available inside containers. cron service status must be checked and managed on the host OS directly. Container-based scheduling is handled by APScheduler in the app.",
       "check": {
         "type": "command_output",
         "command": "systemctl is-enabled cron 2>/dev/null || echo 'disabled'",
@@ -882,5 +931,20 @@
     "why": "CIS Benchmarks are the industry gold standard for system hardening. Most cyber insurance policies and SOC 2 audits reference CIS controls. Scoring below 80% often triggers audit findings or increased insurance premiums.",
     "certification": "CIS Level 1 Benchmark",
     "penalty": "SOC 2 audit findings, insurance premium increases, failed penetration tests"
-  }
+  },
+  "accepted_risks": [
+    {
+      "rule_id": "CIS-1.1.8",
+      "title": "Separate /var partition",
+      "reason": "Single-server deployment \u2014 separate /var partition not feasible without OS reinstall.",
+      "mitigations": [
+        "Disk space monitored by agent loop Job #57",
+        "Docker container storage limits in docker-compose.yml",
+        "Log rotation via logrotate",
+        "Quarterly manual review"
+      ],
+      "accepted_date": "2026-03-29",
+      "review_date": "2026-06-29"
+    }
+  ]
 }

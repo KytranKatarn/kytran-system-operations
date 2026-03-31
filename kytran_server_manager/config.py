@@ -4,11 +4,11 @@ import os
 
 class Config:
     SECRET_KEY = os.environ.get("KSM_SECRET_KEY", "change-me-in-production")
-    # Use /var/lib for system installs, ~/.kytran-server-manager for user installs
+    # Use /var/lib for system installs, ~/.kytran-system-operations for user installs
     _default_data = os.environ.get(
         "KSM_DATA_DIR",
-        "/var/lib/kytran-server-manager" if os.getuid() == 0
-        else os.path.join(os.path.expanduser("~"), ".kytran-server-manager")
+        "/var/lib/kytran-system-operations" if os.getuid() == 0
+        else os.path.join(os.path.expanduser("~"), ".kytran-system-operations")
     )
     DATA_DIR = _default_data
     DB_PATH = os.path.join(DATA_DIR, "data.db")

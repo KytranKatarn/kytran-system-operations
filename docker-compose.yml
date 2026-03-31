@@ -1,11 +1,11 @@
 version: "3.8"
 
 services:
-  kytran-server-manager:
+  kytran-system-operations:
     build: .
-    container_name: kytran-server-manager
+    container_name: kytran-system-operations
     ports:
-      - "8080:8080"
+      - "8085:8085"
     volumes:
       - ./data:/data
       - /var/run/docker.sock:/var/run/docker.sock

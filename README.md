@@ -1,6 +1,6 @@
 <div align="center">
 
-# Kytran Server Manager
+# Kytran System Operations
 
 **Self-hosted server management dashboard**
 
@@ -16,11 +16,11 @@ CPU • RAM • Disk • Docker • Network • Firewall — all in one beautifu
 
 ---
 
-## Why Kytran Server Manager?
+## Why Kytran System Operations?
 
-Most server management tools are either too complex (Webmin), too limited (Cockpit), or focused on just containers (Portainer). Kytran Server Manager gives you **everything in one place** with a clean, modern interface.
+Most server management tools are either too complex (Webmin), too limited (Cockpit), or focused on just containers (Portainer). Kytran System Operations gives you **everything in one place** with a clean, modern interface.
 
-| Feature | Kytran SM | Portainer | Cockpit | Webmin |
+| Feature | Kytran KSO | Portainer | Cockpit | Webmin |
 |---------|:---------:|:---------:|:-------:|:------:|
 | CPU/RAM/Disk monitoring | ✅ | ❌ | ✅ | ✅ |
 | Docker + Compose stacks | ✅ | ✅ | ✅ | ❌ |
@@ -57,11 +57,15 @@ Real-time process table sorted by CPU/memory. Kill processes directly. Systemd s
 Configurable alerts for CPU, memory, disk thresholds. Webhook integration for Slack, Discord, custom endpoints.
 
 ### 🎨 Themeable
-Ships with two themes:
-- **Kytran** (default) — Clean, modern, professional
-- **LCARS** — Sci-fi aesthetic inspired by Star Trek
+Ships with five themes:
+- **Kytran** (default) — Clean, modern, professional blue
+- **LCARS** — Sci-fi command center (premium — cyan on black)
+- **Midnight** — Purple-accented dark DevOps aesthetic
+- **Arctic** — Clean light theme for bright environments
+- **Ember** — Warm orange terminal aesthetic
 
-Create your own theme with a simple JSON config file.
+Theme access is tier-gated: Free gets 2, Pro gets 3, Business/Enterprise gets all 5.
+Select themes in Settings or set via environment variable. Create custom themes with a simple JSON config file.
 
 ## Screenshots
 
@@ -82,21 +86,21 @@ Create your own theme with a simple JSON config file.
 ### pip install
 
 ```bash
-pip install kytran-server-manager
-kytran-server-manager
+pip install kytran-system-operations
+kytran-system-operations
 ```
 
-Open http://localhost:8080 and create your admin account.
+Open http://localhost:8085 and create your admin account.
 
 ### Docker
 
 ```bash
 docker run -d \
-  --name kytran-server-manager \
-  -p 8080:8080 \
+  --name kytran-system-operations \
+  -p 8085:8085 \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v ksm-data:/data \
-  ghcr.io/kytrankatarn/kytran-server-manager
+  -v kso-data:/data \
+  ghcr.io/kytrankatarn/kytran-system-operations
 ```
 
 ### Docker Compose
@@ -104,13 +108,13 @@ docker run -d \
 ```yaml
 version: "3.8"
 services:
-  kytran-server-manager:
-    image: ghcr.io/kytrankatarn/kytran-server-manager
+  kytran-system-operations:
+    image: ghcr.io/kytrankatarn/kytran-system-operations
     ports:
-      - "8080:8080"
+      - "8085:8085"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ksm-data:/data
+      - kso-data:/data
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
     environment:
@@ -119,7 +123,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  ksm-data:
+  kso-data:
 ```
 
 ## Configuration
@@ -129,8 +133,8 @@ volumes:
 | `KSM_SECRET_KEY` | `change-me` | Flask secret key |
 | `KSM_PORT` | `8080` | Server port |
 | `KSM_HOST` | `0.0.0.0` | Bind address |
-| `KSM_THEME` | `kytran` | Theme name (`kytran` or `lcars`) |
-| `KSM_DATA_DIR` | `~/.kytran-server-manager` | Data directory (SQLite DB) |
+| `KSM_THEME` | `kytran` | Theme name (`kytran`, `lcars`, `midnight`, `arctic`, `ember`) |
+| `KSM_DATA_DIR` | `~/.kytran-system-operations` | Data directory (SQLite DB) |
 | `KSM_DEBUG` | `false` | Debug mode |
 
 ## Themes

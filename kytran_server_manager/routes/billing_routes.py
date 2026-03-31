@@ -118,7 +118,7 @@ def _lcars_page(title: str, message: str, accent: str = "#00e5ff") -> str:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} — Kytran Server Manager</title>
+<title>{title} — Kytran System Operations</title>
 <style>
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
   body {{

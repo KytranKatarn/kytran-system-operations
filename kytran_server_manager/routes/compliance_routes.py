@@ -288,3 +288,125 @@ def register_compliance_routes(bp, admin_required_decorator):
         except Exception as exc:
             logger.error("Report list failed: %s", exc)
             return jsonify({"success": False, "error": str(exc)}), 500
+
+    # ------------------------------------------------------------------
+    # S.H.I.E.L.D. AI analysis endpoints
+    # ------------------------------------------------------------------
+
+    @bp.route("/api/compliance/report/ai", methods=["POST"])
+    @login_required
+    @admin_required_decorator
+    def compliance_trigger_ai_analysis():
+        """Trigger S.H.I.E.L.D. AI analysis for the latest or a given scan.
+
+        Body (optional JSON):
+            scan_id: specific scan ID to analyse (defaults to latest)
+
+        Returns:
+            {success, triggered, message} — 'triggered' is False when hub is not
+            configured or the scan is not found.
+        """
+        from ..services.hub_client import is_hub_configured, trigger_ai_analysis
+        from ..services.compliance_service import get_latest_scores, get_scan_results
+
+        if not is_hub_configured():
+            return jsonify({
+                "success": False,
+                "triggered": False,
+                "message": "ARCHIE hub not configured — set KSM_ARCHIE_HUB_URL and KSM_ARCHIE_CLIENT_SECRET",
+            }), 503
+
+        data = request.get_json(silent=True) or {}
+        scan_id = data.get("scan_id")
+
+        # Resolve scan_id if not provided
+        if not scan_id:
+            try:
+                scores = get_latest_scores()
+                if scores:
+                    scan_id = scores.get("scan_id")
+            except Exception as exc:
+                logger.warning("Could not fetch latest scan: %s", exc)
+
+        if not scan_id:
+            return jsonify({
+                "success": False,
+                "triggered": False,
+                "message": "No scan found — run a compliance scan first",
+            }), 404
+
+        # Build scan payload for the hub
+        try:
+            scores = get_latest_scores()
+            results = get_scan_results(scan_id, status="fail")
+            failed_rules = [
+                {
+                    "rule_id": r.get("rule_id", ""),
+                    "severity": r.get("severity", ""),
+                    "description": r.get("description", ""),
+                }
+                for r in (results or [])
+            ]
+
+            pack_scores = {}
+            if scores:
+                for ps in scores.get("pack_scores", []):
+                    pack_scores[ps.get("pack_id", "unknown")] = ps.get("score", 0)
+
+            scan_payload = {
+                "scan_id": str(scan_id),
+                "score": scores.get("overall_score", 0) if scores else 0,
+                "overall_score": scores.get("overall_score", 0) if scores else 0,
+                "total_rules": scores.get("total_rules", 0) if scores else 0,
+                "passed": scores.get("passed", 0) if scores else 0,
+                "failed": scores.get("failed", 0) if scores else 0,
+                "pack_ids": list(pack_scores.keys()),
+                "pack_scores": pack_scores,
+                "failed_rules": failed_rules,
+            }
+
+            ok = trigger_ai_analysis(scan_payload)
+            if ok:
+                return jsonify({
+                    "success": True,
+                    "triggered": True,
+                    "scan_id": scan_id,
+                    "message": "S.H.I.E.L.D. analysis triggered — results available in 30-120 seconds",
+                })
+            else:
+                return jsonify({
+                    "success": False,
+                    "triggered": False,
+                    "message": "Hub rejected the request — check hub connectivity and credentials",
+                }), 502
+
+        except Exception as exc:
+            logger.error("AI analysis trigger failed: %s", exc)
+            return jsonify({"success": False, "triggered": False, "error": str(exc)}), 500
+
+    @bp.route("/api/compliance/report/ai", methods=["GET"])
+    @login_required
+    @admin_required_decorator
+    def compliance_fetch_ai_analysis():
+        """Fetch the latest S.H.I.E.L.D. AI analysis from the ARCHIE hub.
+
+        Returns:
+            {success, analysis} where analysis has executive_summary,
+            remediation_plan, trend_analysis, model_used, generated_at.
+            analysis is null when no analysis exists yet.
+        """
+        from ..services.hub_client import is_hub_configured, fetch_ai_analysis
+
+        if not is_hub_configured():
+            return jsonify({
+                "success": False,
+                "analysis": None,
+                "message": "ARCHIE hub not configured",
+            }), 503
+
+        try:
+            analysis = fetch_ai_analysis(scan_target="Kytran System Operations")
+            return jsonify({"success": True, "analysis": analysis})
+        except Exception as exc:
+            logger.error("AI analysis fetch failed: %s", exc)
+            return jsonify({"success": False, "analysis": None, "error": str(exc)}), 500

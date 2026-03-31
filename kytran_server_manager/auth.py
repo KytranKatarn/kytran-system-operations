@@ -8,6 +8,7 @@ from functools import wraps
 from werkzeug.utils import secure_filename
 from .db import get_db
 from .services.hub_client import is_hub_configured, exchange_code_for_token
+from .kytran_auth import KytranAuth
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ VALID_THEMES = ("kytran", "lcars", "midnight", "arctic", "ember")
 ALLOWED_LOGO_EXTENSIONS = {"png", "jpg", "jpeg", "svg", "webp"}
 
 login_manager = LoginManager()
+kytran_auth = KytranAuth()
 
 
 class User(UserMixin):
@@ -330,5 +332,52 @@ def register_auth_routes(app):
             "provider": "kytran",
             "auth_url": "/auth/sso" if enabled else None,
         })
+
+    # --- Kytran Auth SDK (Sign in with Kytran via OAuth) ---
+    kytran_auth.init_app(app)
+
+    @kytran_auth.on_login
+    def handle_kytran_login(userinfo):
+        """Create or update local user from Kytran SSO login."""
+        import secrets as secrets_mod
+        from werkzeug.security import generate_password_hash
+
+        db = get_db()
+        username = userinfo.get("username", "")
+
+        # Ensure sso_provider column exists
+        try:
+            db.execute("ALTER TABLE users ADD COLUMN sso_provider TEXT DEFAULT NULL")
+            db.commit()
+        except Exception:
+            pass  # Column already exists
+
+        row = db.execute(
+            "SELECT id, username, role FROM users WHERE username = ? AND sso_provider = 'kytran'",
+            (username,),
+        ).fetchone()
+
+        if row:
+            db.execute(
+                "UPDATE users SET role = ? WHERE id = ?",
+                (userinfo.get("role", "admin"), row["id"]),
+            )
+            db.commit()
+            user = User(row["id"], row["username"], userinfo.get("role", "admin"))
+        else:
+            db.execute(
+                "INSERT INTO users (username, password_hash, role, sso_provider) VALUES (?, ?, ?, 'kytran')",
+                (username, generate_password_hash(secrets_mod.token_urlsafe(32)), userinfo.get("role", "admin")),
+            )
+            db.commit()
+            new_row = db.execute(
+                "SELECT id, username, role FROM users WHERE username = ? AND sso_provider = 'kytran'",
+                (username,),
+            ).fetchone()
+            user = User(new_row["id"], new_row["username"], new_row["role"])
+
+        db.close()
+        login_user(user)
+        logger.info("Kytran SSO login successful for user: %s", username)
 
     login_manager.login_view = "login"

@@ -199,8 +199,9 @@
 .toast.persistent {
     position: relative;
     padding: 16px 40px 16px 20px;
-    min-width: 320px;
+    min-width: 0;
     max-width: 400px;
+    width: calc(100vw - 32px);
     animation: toastSlideIn 0.3s ease-out;
 }
 
@@ -484,7 +485,14 @@
     border: 1px solid var(--sysops-border-default);
     border-radius: 12px;
     padding: 20px;
-    height: 220px;
+    min-height: 180px;
+    height: auto;
+}
+
+.chart-card canvas {
+    width: 100% !important;
+    height: auto !important;
+    max-height: 200px;
 }
 
 .chart-card h3 {
@@ -2636,4 +2644,607 @@
     color: var(--sysops-accent);
     font-size: 0.85rem;
     font-family: var(--sysops-font-mono);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPREHENSIVE MOBILE RESPONSIVE — Galaxy Fold, Phones, Tablets
+   Added 2026-03-27 for Task #1394
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Small Desktop / Large Tablet (1024px) ─────────────────────────────── */
+@media (max-width: 1024px) {
+    .ksm-dashboard {
+        padding: 16px;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+    }
+
+    .docker-container-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    .stack-overview-grid {
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    }
+
+    .stack-services-grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+}
+
+/* ── Tablet (768px) ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .ksm-dashboard {
+        padding: 12px;
+    }
+
+    /* Header controls — stack vertically */
+    .header-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .header-controls > * {
+        justify-content: center;
+    }
+
+    /* Stat values scale down */
+    .stat-value {
+        font-size: 1.5rem;
+    }
+
+    .stat-card {
+        padding: 14px;
+    }
+
+    /* Docker stat cards — 2 columns */
+    .docker-overview-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .docker-stat-card {
+        padding: 14px;
+    }
+
+    .docker-stat-value {
+        font-size: 1.5rem;
+    }
+
+    /* Docker container cards — single column */
+    .docker-container-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Stack overview — single column */
+    .stack-overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Stack detail header — stack */
+    .stack-detail-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .stack-detail-title h2 {
+        font-size: 1.1rem;
+    }
+
+    /* Stack actions — wrap */
+    .stack-actions {
+        flex-wrap: wrap;
+    }
+
+    /* Compose modal — full width */
+    .wizard-dialog {
+        width: 95%;
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .compose-content {
+        max-height: 50vh;
+    }
+
+    .compose-modal-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .compose-modal-footer > div {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Health alerts — touch friendly */
+    .health-alert-item {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .health-alert-actions {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    /* Chart cards smaller */
+    .chart-card canvas {
+        max-height: 160px;
+    }
+
+    /* Loading content */
+    .loading-content {
+        max-width: 90vw;
+        padding: 24px;
+    }
+
+    /* Docker action buttons — wrap for touch */
+    .docker-actions-bar {
+        gap: 6px;
+    }
+
+    .docker-action-btn {
+        padding: 10px 12px;
+        font-size: 0.8rem;
+        min-height: 44px;
+    }
+
+    /* Stack subtabs — scrollable */
+    .stack-subtabs {
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .stack-subtabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Env files — stack on tablet */
+    .env-files-list {
+        flex-direction: column;
+    }
+
+    .env-file-item {
+        width: 100%;
+    }
+}
+
+/* ── Phone (480px) ─────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+    .ksm-dashboard {
+        padding: 8px;
+    }
+
+    /* Stat value — compact */
+    .stat-value {
+        font-size: 1.2rem;
+    }
+
+    .stat-card {
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    .stat-card-title {
+        font-size: 0.8rem;
+        gap: 6px;
+    }
+
+    .stat-subtitle {
+        font-size: 0.75rem;
+    }
+
+    /* Docker overview — single column on phone */
+    .docker-overview-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .docker-stat-card {
+        padding: 12px;
+    }
+
+    .docker-stat-value {
+        font-size: 1.3rem;
+    }
+
+    .docker-stat-label {
+        font-size: 0.75rem;
+    }
+
+    /* Docker card actions — smaller buttons */
+    .docker-card-actions {
+        flex-wrap: wrap;
+    }
+
+    .docker-card-btn {
+        padding: 8px 10px;
+        font-size: 0.75rem;
+        min-height: 44px;
+    }
+
+    /* Panel padding */
+    .panel {
+        padding: 12px;
+        border-radius: 8px;
+    }
+
+    .panel-header {
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+    }
+
+    .panel-title {
+        font-size: 0.85rem;
+    }
+
+    /* Chart cards */
+    .chart-card {
+        padding: 12px;
+        border-radius: 8px;
+        min-height: 140px;
+    }
+
+    .chart-card h3 {
+        font-size: 0.8rem;
+    }
+
+    .chart-card canvas {
+        max-height: 130px;
+    }
+
+    /* Stack cards — compact */
+    .stack-card {
+        padding: 14px;
+        border-radius: 8px;
+    }
+
+    .stack-card-name {
+        font-size: 1rem;
+    }
+
+    .stack-card-desc {
+        font-size: 0.8rem;
+    }
+
+    .stack-card-stats {
+        font-size: 0.75rem;
+        gap: 10px;
+    }
+
+    .stack-card-footer {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start;
+    }
+
+    .stack-card-actions {
+        width: 100%;
+    }
+
+    .stack-card-btn {
+        flex: 1;
+        justify-content: center;
+        min-height: 44px;
+    }
+
+    /* Stack services — single column */
+    .stack-services-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stack-service-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    /* Wizard — full screen on phone */
+    .wizard-dialog {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        padding: 12px;
+    }
+
+    .wizard-steps {
+        gap: 4px;
+    }
+
+    .wizard-step-indicator {
+        width: 28px;
+        height: 28px;
+        font-size: 0.7rem;
+    }
+
+    .wizard-step-line {
+        width: 16px;
+    }
+
+    .wizard-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .wizard-footer button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    /* Loading overlay */
+    .loading-content {
+        max-width: 95vw;
+        padding: 20px;
+        border-radius: 12px;
+    }
+
+    .loading-title {
+        font-size: 1.1rem;
+    }
+
+    .loading-spinner {
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Compose editor — smaller */
+    .compose-editor {
+        min-height: 30vh;
+        font-size: 0.75rem;
+    }
+
+    .compose-viewer {
+        font-size: 0.75rem;
+    }
+
+    /* Docker action buttons — stack */
+    .docker-actions-bar {
+        flex-direction: column;
+    }
+
+    .docker-action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Color picker — tighter */
+    .color-swatch {
+        width: 28px;
+        height: 28px;
+    }
+}
+
+/* ── Galaxy Fold Inner Screen (~280px) ─────────────────────────────────── */
+@media (max-width: 320px) {
+    .ksm-dashboard {
+        padding: 4px;
+    }
+
+    /* Tab nav — minimal */
+    .tab-btn {
+        padding: 6px 8px;
+        font-size: 0.7rem;
+        gap: 3px;
+    }
+
+    .tab-btn i {
+        font-size: 0.7rem;
+    }
+
+    .tab-nav {
+        gap: 2px;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+    }
+
+    /* Stats — ultra compact */
+    .stats-grid {
+        grid-template-columns: 1fr !important;
+        gap: 8px;
+    }
+
+    .stat-value {
+        font-size: 1rem;
+    }
+
+    .stat-card {
+        padding: 10px;
+    }
+
+    .stat-card-header {
+        margin-bottom: 6px;
+    }
+
+    .stat-card-title {
+        font-size: 0.7rem;
+    }
+
+    /* Charts — minimal height */
+    .charts-grid {
+        gap: 8px;
+    }
+
+    .chart-card {
+        padding: 8px;
+        min-height: 120px;
+    }
+
+    .chart-card h3 {
+        font-size: 0.7rem;
+        margin-bottom: 4px;
+    }
+
+    .chart-card canvas {
+        max-height: 100px;
+    }
+
+    /* Docker stat cards */
+    .docker-stat-card {
+        padding: 10px;
+    }
+
+    .docker-stat-icon {
+        margin-right: 10px;
+    }
+
+    .docker-stat-icon svg,
+    .docker-stat-icon i {
+        font-size: 1.2rem;
+        width: 20px;
+        height: 20px;
+    }
+
+    .docker-stat-value {
+        font-size: 1.1rem;
+    }
+
+    .docker-stat-label {
+        font-size: 0.7rem;
+    }
+
+    /* Docker container cards */
+    .docker-card-name {
+        font-size: 0.9rem;
+    }
+
+    .docker-card-image {
+        font-size: 0.7rem;
+    }
+
+    .docker-card-meta {
+        gap: 6px;
+        font-size: 0.7rem;
+    }
+
+    /* Panel ultra-compact */
+    .panel {
+        padding: 8px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+    }
+
+    .panel-title {
+        font-size: 0.78rem;
+    }
+
+    /* Stack subtabs — compact */
+    .stack-subtab {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    /* Stack detail */
+    .stack-detail-header {
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .stack-detail-title h2 {
+        font-size: 0.95rem;
+    }
+
+    /* Auto-refresh controls */
+    .auto-refresh-toggle {
+        font-size: 0.75rem;
+    }
+
+    .refresh-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    /* Header controls */
+    .header-controls {
+        gap: 6px;
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+
+    /* Health alerts compact */
+    .health-alert-header {
+        flex-wrap: wrap;
+    }
+
+    .health-alert-message {
+        font-size: 0.75rem;
+    }
+
+    /* Preflight warnings */
+    .preflight-warning {
+        padding: 8px;
+        gap: 8px;
+    }
+
+    .preflight-warning .warning-message {
+        font-size: 0.8rem;
+    }
+
+    .preflight-warning .warning-details {
+        font-size: 0.75rem;
+    }
+
+    /* Activity indicator */
+    .activity-text {
+        font-size: 0.78rem;
+    }
+
+    .activity-timer {
+        font-size: 0.75rem;
+    }
+
+    /* Ensure all buttons are touch-friendly */
+    button, .btn, [role="button"] {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* Prevent horizontal overflow */
+    .ksm-dashboard {
+        overflow-x: hidden;
+    }
+}
+
+/* ── Touch Target Enforcement (all mobile) ─────────────────────────────── */
+@media (max-width: 768px) {
+    .tab-btn,
+    .refresh-btn,
+    .docker-action-btn,
+    .docker-card-btn,
+    .stack-card-btn,
+    .stack-back-btn,
+    .stack-subtab,
+    .new-stack-btn,
+    .env-file-item {
+        min-height: 44px;
+    }
+
+    .color-swatch {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}
+
+/* ── Prevent Horizontal Overflow Globally ──────────────────────────────── */
+@media (max-width: 480px) {
+    .ksm-dashboard,
+    .ksm-dashboard * {
+        max-width: 100%;
+    }
+
+    /* Text truncation for long values */
+    .docker-card-image,
+    .stack-meta code,
+    .env-file-item .env-file-path {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
 }

@@ -46,7 +46,7 @@ def report_compliance(scan_result: dict) -> bool:
     endpoint = f"{hub_url}/api/standalone/compliance-report"
 
     payload = {
-        "product_name": "kytran-server-manager",
+        "product_name": "kytran-system-operations",
         "overall_score": scan_result.get("overall_score", 0),
         "pack_scores": scan_result.get("pack_scores", {}),
         "total_rules": scan_result.get("total_rules", 0),
@@ -77,11 +77,15 @@ def report_compliance(scan_result: dict) -> bool:
         return False
 
 
-def fetch_ai_analysis() -> dict | None:
-    """Fetch AI-powered compliance analysis from the ARCHIE hub.
+def fetch_ai_analysis(scan_target: str = "Kytran System Operations") -> dict | None:
+    """Fetch latest S.H.I.E.L.D. AI compliance analysis from the ARCHIE hub.
+
+    Args:
+        scan_target: Product name to fetch analysis for.
 
     Returns:
-        Analysis dict on success, None on failure or if hub is unreachable.
+        Analysis dict with keys executive_summary, remediation_plan, trend_analysis,
+        model_used, generated_at on success. None on failure or if hub is unreachable.
     """
     if not is_hub_configured():
         logger.debug("Hub not configured — skipping AI analysis fetch")
@@ -93,13 +97,17 @@ def fetch_ai_analysis() -> dict | None:
     try:
         resp = requests.get(
             endpoint,
-            params={"scan_target": "Kytran System Operations"},
+            params={"scan_target": scan_target},
             headers=_auth_header(),
             timeout=_REQUEST_TIMEOUT,
         )
         if resp.ok:
-            logger.info("AI compliance analysis fetched from hub")
-            return resp.json()
+            data = resp.json()
+            # Unwrap the {success, analysis} envelope — return just the analysis dict
+            analysis = data.get("analysis") if isinstance(data, dict) else None
+            if analysis:
+                logger.info("AI compliance analysis fetched from hub (model=%s)", analysis.get("model_used"))
+            return analysis
         else:
             logger.warning(
                 "Hub rejected AI analysis request: %s %s", resp.status_code, resp.text[:200]
@@ -114,6 +122,61 @@ def fetch_ai_analysis() -> dict | None:
     except Exception:
         logger.exception("Unexpected error fetching AI analysis from hub")
         return None
+
+
+def trigger_ai_analysis(scan_data: dict) -> bool:
+    """POST a compliance scan to the ARCHIE hub to trigger S.H.I.E.L.D. AI analysis.
+
+    The hub runs the analysis asynchronously in a background thread and stores
+    results in its compliance_ai_analysis table. Use fetch_ai_analysis() to
+    retrieve the result after the analysis completes (typically 30-120 seconds).
+
+    Args:
+        scan_data: Dict with scan results. Required key: scan_id.
+                   Recommended keys: overall_score, passed, failed, total_rules,
+                   pack_ids, pack_scores, failed_rules, started_at, completed_at.
+
+    Returns:
+        True if the hub accepted the report, False otherwise.
+    """
+    if not is_hub_configured():
+        logger.debug("Hub not configured — skipping AI analysis trigger")
+        return False
+
+    hub_url = current_app.config["ARCHIE_HUB_URL"].rstrip("/")
+    endpoint = f"{hub_url}/api/standalone/compliance-report"
+
+    # Include scan_target so S.H.I.E.L.D. associates the analysis correctly
+    payload = {
+        "scan_target": "Kytran System Operations",
+        "product_name": "kytran-system-operations",
+        **scan_data,
+    }
+
+    try:
+        resp = requests.post(
+            endpoint, json=payload, headers=_auth_header(), timeout=_REQUEST_TIMEOUT
+        )
+        if resp.ok:
+            logger.info(
+                "S.H.I.E.L.D. analysis triggered via hub (scan_id=%s)",
+                scan_data.get("scan_id"),
+            )
+            return True
+        else:
+            logger.warning(
+                "Hub rejected AI analysis trigger: %s %s", resp.status_code, resp.text[:200]
+            )
+            return False
+    except requests.ConnectionError:
+        logger.debug("Hub unreachable at %s — AI analysis trigger skipped", hub_url)
+        return False
+    except requests.Timeout:
+        logger.debug("Hub request timed out — AI analysis trigger skipped")
+        return False
+    except Exception:
+        logger.exception("Unexpected error triggering AI analysis via hub")
+        return False
 
 
 def create_checkout_session(price_id: str, success_url: str, cancel_url: str, user_id=None) -> str | None:

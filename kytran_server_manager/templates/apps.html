@@ -1,0 +1,1363 @@
+{% extends "base.html" %}
+{% block title %}App Catalog — {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/lcars-frames.css') }}">
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   APP CATALOG — LCARS Grid, Hero Stats, Cards, Logs Modal
+   All innerHTML usage below is XSS-safe: every dynamic value passes
+   through esc() which uses textContent-based entity encoding.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Hero Stats Bar ──────────────────────────────────────────────── */
+.ac-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: rgba(0, 229, 255, 0.04);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    border-radius: 6px;
+    flex-wrap: wrap;
+}
+
+.ac-hero-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.ac-hero-stat .ac-stat-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #00e5ff;
+    line-height: 1;
+}
+
+.ac-hero-stat .ac-stat-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #8899aa;
+    margin-top: 4px;
+}
+
+.ac-hero-stat.running .ac-stat-value { color: #22c55e; }
+.ac-hero-stat.infra .ac-stat-value { color: #8b5cf6; }
+
+.ac-hero-sep {
+    width: 1px;
+    height: 36px;
+    background: rgba(0, 229, 255, 0.15);
+    flex-shrink: 0;
+}
+
+.ac-hero-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* ── Filter Bar ──────────────────────────────────────────────────── */
+.ac-filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ac-filter-btn {
+    padding: 6px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #8899aa;
+    background: rgba(136, 153, 170, 0.08);
+    border: 1px solid rgba(136, 153, 170, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+}
+
+.ac-filter-btn:hover {
+    color: #00e5ff;
+    border-color: rgba(0, 229, 255, 0.3);
+    background: rgba(0, 229, 255, 0.08);
+}
+
+.ac-filter-btn.active {
+    color: #00e5ff;
+    border-color: rgba(0, 229, 255, 0.5);
+    background: rgba(0, 229, 255, 0.12);
+}
+
+/* ── Action Buttons (shared) ─────────────────────────────────────── */
+.ac-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.ac-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.ac-btn-primary {
+    color: #00e5ff;
+    background: rgba(0, 229, 255, 0.08);
+    border-color: rgba(0, 229, 255, 0.3);
+}
+.ac-btn-primary:hover:not(:disabled) {
+    background: rgba(0, 229, 255, 0.18);
+}
+
+.ac-btn-success {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.08);
+    border-color: rgba(34, 197, 94, 0.3);
+}
+.ac-btn-success:hover:not(:disabled) {
+    background: rgba(34, 197, 94, 0.18);
+}
+
+.ac-btn-warning {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.3);
+}
+.ac-btn-warning:hover:not(:disabled) {
+    background: rgba(245, 158, 11, 0.18);
+}
+
+.ac-btn-danger {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+.ac-btn-danger:hover:not(:disabled) {
+    background: rgba(239, 68, 68, 0.18);
+}
+
+.ac-btn-ghost {
+    color: #8899aa;
+    background: transparent;
+    border-color: rgba(136, 153, 170, 0.2);
+}
+.ac-btn-ghost:hover:not(:disabled) {
+    color: #00e5ff;
+    border-color: rgba(0, 229, 255, 0.3);
+}
+
+/* ── Refresh button with spin ────────────────────────────────────── */
+.ac-btn-refresh.spinning i {
+    animation: acSpin 0.8s linear infinite;
+}
+
+@keyframes acSpin {
+    100% { transform: rotate(360deg); }
+}
+
+/* ── App Grid ────────────────────────────────────────────────────── */
+.ac-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+}
+
+/* ── App Card ────────────────────────────────────────────────────── */
+.ac-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #111827;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0 8px 8px 0;
+    overflow: hidden;
+    transition: all 0.25s ease;
+}
+
+.ac-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    background: #4b5563;
+    border-radius: 4px 0 0 4px;
+    transition: background 0.25s ease, box-shadow 0.25s ease;
+}
+
+.ac-card:hover {
+    border-color: rgba(0, 229, 255, 0.2);
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.06);
+    transform: translateY(-2px);
+}
+
+/* Accent stripe colors by status */
+.ac-card[data-status="running"]::before {
+    background: #00e5ff;
+    box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.ac-card[data-status="stopped"]::before {
+    background: #f59e0b;
+    box-shadow: 0 0 6px rgba(245, 158, 11, 0.3);
+}
+
+.ac-card[data-status="error"]::before {
+    background: #ef4444;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.3);
+}
+
+.ac-card[data-status="deploying"]::before,
+.ac-card[data-status="updating"]::before {
+    background: #8b5cf6;
+    box-shadow: 0 0 6px rgba(139, 92, 246, 0.3);
+    animation: acPulseStripe 1.5s ease-in-out infinite;
+}
+
+@keyframes acPulseStripe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ── Card Header ─────────────────────────────────────────────────── */
+.ac-card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 16px 10px 20px;
+}
+
+.ac-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: rgba(0, 229, 255, 0.08);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #00e5ff;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+.ac-card-icon.infra {
+    background: rgba(139, 92, 246, 0.08);
+    border-color: rgba(139, 92, 246, 0.15);
+    color: #8b5cf6;
+}
+
+.ac-card-title-group {
+    flex: 1;
+    min-width: 0;
+}
+
+.ac-card-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ac-card-desc {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 4px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* ── Status Badge ────────────────────────────────────────────────── */
+.ac-badge {
+    flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.ac-badge-available {
+    color: #64748b;
+    background: rgba(100, 116, 139, 0.12);
+    border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+.ac-badge-running {
+    color: #22c55e;
+    background: rgba(34, 197, 94, 0.12);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.ac-badge-stopped {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.ac-badge-error {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.ac-badge-deploying, .ac-badge-updating {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.12);
+    border: 1px solid rgba(139, 92, 246, 0.25);
+    animation: acPulseStripe 1.5s ease-in-out infinite;
+}
+
+/* ── Card Meta ───────────────────────────────────────────────────── */
+.ac-card-meta {
+    display: flex;
+    gap: 10px;
+    padding: 0 16px 10px 20px;
+    flex-wrap: wrap;
+}
+
+.ac-meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    color: #64748b;
+    background: rgba(100, 116, 139, 0.06);
+    padding: 2px 8px;
+    border-radius: 3px;
+    border: 1px solid rgba(100, 116, 139, 0.1);
+}
+
+.ac-meta-tag i {
+    font-size: 0.6rem;
+    opacity: 0.7;
+}
+
+.ac-cat-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 3px;
+}
+
+.ac-cat-products {
+    color: #00e5ff;
+    background: rgba(0, 229, 255, 0.08);
+    border: 1px solid rgba(0, 229, 255, 0.15);
+}
+
+.ac-cat-infrastructure {
+    color: #8b5cf6;
+    background: rgba(139, 92, 246, 0.08);
+    border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+/* ── Card Actions ────────────────────────────────────────────────── */
+.ac-card-actions {
+    display: flex;
+    gap: 6px;
+    padding: 10px 16px 14px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
+    margin-top: auto;
+    flex-wrap: wrap;
+}
+
+/* ── Empty State ─────────────────────────────────────────────────── */
+.ac-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+.ac-empty i {
+    font-size: 3rem;
+    opacity: 0.3;
+    margin-bottom: 16px;
+}
+
+.ac-empty h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    color: #8899aa;
+    margin-bottom: 8px;
+}
+
+.ac-empty p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+}
+
+/* ── Loading Skeleton ────────────────────────────────────────────── */
+.ac-loading {
+    text-align: center;
+    padding: 40px;
+    color: #64748b;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+}
+
+.ac-loading .ac-loading-dots::after {
+    content: '';
+    animation: acDots 1.5s steps(4, end) infinite;
+}
+
+@keyframes acDots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+}
+
+/* ── Auto-refresh Indicator ──────────────────────────────────────── */
+.ac-live {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: #22c55e;
+    letter-spacing: 1px;
+}
+
+.ac-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    animation: acLivePulse 2s ease-in-out infinite;
+}
+
+@keyframes acLivePulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 4px #22c55e; }
+    50% { opacity: 0.3; box-shadow: none; }
+}
+
+/* ── Toast Notification ──────────────────────────────────────────── */
+.ac-toast-container {
+    position: fixed;
+    top: 60px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ac-toast {
+    padding: 10px 16px;
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.75rem;
+    color: #e2e8f0;
+    background: #1e293b;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    animation: acToastIn 0.3s ease;
+    max-width: 360px;
+}
+
+.ac-toast.success { border-color: rgba(34, 197, 94, 0.4); }
+.ac-toast.error { border-color: rgba(239, 68, 68, 0.4); }
+.ac-toast.warning { border-color: rgba(245, 158, 11, 0.4); }
+
+@keyframes acToastIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* ═══ LCARS LOGS MODAL ═══════════════════════════════════════════ */
+.bm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: acFadeIn 0.2s ease;
+}
+
+@keyframes acFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.bm-shell {
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.bm-frame {
+    --bm-accent: #00e5ff;
+    display: flex;
+    flex-direction: column;
+    background: #0f172a;
+    border: 1px solid rgba(0, 229, 255, 0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    max-height: 80vh;
+}
+
+.bm-content {
+    display: flex;
+    flex-direction: column;
+    max-height: 80vh;
+}
+
+.bm-header {
+    padding: 14px 20px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: var(--bm-accent);
+    background: rgba(0, 229, 255, 0.04);
+    border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.bm-header i { font-size: 0.9rem; }
+
+.bm-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    min-height: 200px;
+    max-height: 50vh;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 229, 255, 0.2) transparent;
+}
+
+.bm-body::-webkit-scrollbar { width: 6px; }
+.bm-body::-webkit-scrollbar-track { background: transparent; }
+.bm-body::-webkit-scrollbar-thumb { background: rgba(0, 229, 255, 0.2); border-radius: 3px; }
+
+.bm-footer {
+    padding: 12px 20px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    border-top: 1px solid rgba(0, 229, 255, 0.08);
+    flex-shrink: 0;
+    background: rgba(0, 229, 255, 0.02);
+}
+
+/* Log output area */
+.ac-log-output {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    color: #94a3b8;
+    white-space: pre-wrap;
+    word-break: break-all;
+    background: #0a0e17;
+    padding: 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    min-height: 150px;
+}
+
+/* Health check result */
+.ac-health-result {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+}
+
+.ac-health-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.ac-health-row:last-child { border-bottom: none; }
+
+.ac-health-key {
+    color: #8899aa;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.7rem;
+}
+
+.ac-health-val {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.ac-health-val.healthy { color: #22c55e; }
+.ac-health-val.unhealthy { color: #ef4444; }
+
+/* ── Confirm Modal ───────────────────────────────────────────────── */
+.ac-confirm-body {
+    text-align: center;
+    padding: 16px 0;
+}
+
+.ac-confirm-body p {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: #cbd5e1;
+    margin-bottom: 8px;
+}
+
+.ac-confirm-body .ac-confirm-warn {
+    font-size: 0.75rem;
+    color: #f59e0b;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .ac-grid { grid-template-columns: 1fr; }
+    .ac-hero { gap: 10px; }
+    .ac-hero-stat .ac-stat-value { font-size: 1.2rem; }
+    .ac-hero-sep { display: none; }
+    .bm-shell { width: 95%; }
+}
+
+@media (max-width: 480px) {
+    .ac-hero { flex-direction: column; align-items: flex-start; }
+    .ac-hero-actions { margin-left: 0; width: 100%; }
+    .ac-filters { gap: 6px; }
+    .ac-filter-btn { padding: 5px 10px; font-size: 0.68rem; }
+    .ac-card-actions { gap: 4px; }
+    .ac-btn { padding: 5px 10px; font-size: 0.65rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ksm-dashboard">
+    <div class="lcars-frame frame-build">
+        <div class="lcars-sidebar">
+            <div class="lcars-elbow-top"></div>
+            <div class="lcars-seg" style="--seg-color: #00e5ff"></div>
+            <div class="lcars-seg" style="--seg-color: #8b5cf6"></div>
+            <div class="lcars-seg" style="--seg-color: #00e5ff"></div>
+            <div class="lcars-seg" style="--seg-color: #1d4ed8"></div>
+            <div class="lcars-seg-light" style="--seg-color: #00e5ff"></div>
+            <div class="lcars-seg-fill"></div>
+            <div class="lcars-elbow-bottom"></div>
+        </div>
+        <div class="lcars-content">
+            <div class="lcars-bar">
+                <span class="lcars-bar-title">APP CATALOG</span>
+                <div class="lcars-bar-spacer"></div>
+                <div class="lcars-pips">
+                    <div class="lcars-pip" style="width: 24px"></div>
+                    <div class="lcars-pip" style="width: 16px"></div>
+                    <div class="lcars-pip" style="width: 32px"></div>
+                </div>
+                <span class="lcars-bar-status">FLEET APPS</span>
+            </div>
+            <div class="lcars-body">
+
+                <!-- Hero Stats -->
+                <div class="ac-hero">
+                    <div class="ac-hero-stat">
+                        <span class="ac-stat-value" id="statTotal">--</span>
+                        <span class="ac-stat-label">Total</span>
+                    </div>
+                    <div class="ac-hero-sep"></div>
+                    <div class="ac-hero-stat running">
+                        <span class="ac-stat-value" id="statRunning">--</span>
+                        <span class="ac-stat-label">Running</span>
+                    </div>
+                    <div class="ac-hero-sep"></div>
+                    <div class="ac-hero-stat">
+                        <span class="ac-stat-value" id="statAvailable">--</span>
+                        <span class="ac-stat-label">Available</span>
+                    </div>
+                    <div class="ac-hero-sep"></div>
+                    <div class="ac-hero-stat infra">
+                        <span class="ac-stat-value" id="statInfra">--</span>
+                        <span class="ac-stat-label">Infrastructure</span>
+                    </div>
+
+                    <div class="ac-hero-actions">
+                        <span class="ac-live" id="liveIndicator" style="display: none;">
+                            <span class="ac-live-dot"></span>
+                            LIVE
+                        </span>
+                        <button class="ac-btn ac-btn-primary ac-btn-refresh" id="refreshBtn" onclick="AppCatalog.refresh(true)">
+                            <i class="fas fa-sync-alt"></i>
+                            Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="ac-filters">
+                    <button class="ac-filter-btn active" data-filter="all" onclick="AppCatalog.setFilter('all', this)">All</button>
+                    <button class="ac-filter-btn" data-filter="running" onclick="AppCatalog.setFilter('running', this)">Running</button>
+                    <button class="ac-filter-btn" data-filter="available" onclick="AppCatalog.setFilter('available', this)">Available</button>
+                    <button class="ac-filter-btn" data-filter="stopped" onclick="AppCatalog.setFilter('stopped', this)">Stopped</button>
+                    <button class="ac-filter-btn" data-filter="products" onclick="AppCatalog.setFilter('products', this)">Products</button>
+                    <button class="ac-filter-btn" data-filter="infrastructure" onclick="AppCatalog.setFilter('infrastructure', this)">Infrastructure</button>
+                </div>
+
+                <!-- App Grid -->
+                <div class="ac-grid" id="appGrid">
+                    <div class="ac-loading">
+                        <i class="fas fa-satellite-dish" style="font-size: 2rem; opacity: 0.3; display: block; margin-bottom: 12px;"></i>
+                        Fetching catalog from hub<span class="ac-loading-dots"></span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="ac-toast-container" id="toastContainer"></div>
+
+<!-- Logs Modal -->
+<div class="bm-overlay" id="logsModal" style="display: none;" onclick="AppCatalog.closeModal(event, 'logsModal')">
+    <div class="bm-shell">
+        <div class="bm-frame" style="--bm-accent: #00e5ff">
+            <div class="bm-content">
+                <div class="bm-header">
+                    <i class="fas fa-terminal"></i>
+                    <span id="logsModalTitle">Container Logs</span>
+                </div>
+                <div class="bm-body">
+                    <pre class="ac-log-output" id="logsOutput">Loading logs...</pre>
+                </div>
+                <div class="bm-footer">
+                    <button class="ac-btn ac-btn-ghost" onclick="AppCatalog.refreshLogs()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                    <button class="ac-btn ac-btn-primary" onclick="AppCatalog.hideModal('logsModal')">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Health Modal -->
+<div class="bm-overlay" id="healthModal" style="display: none;" onclick="AppCatalog.closeModal(event, 'healthModal')">
+    <div class="bm-shell">
+        <div class="bm-frame" style="--bm-accent: #22c55e">
+            <div class="bm-content">
+                <div class="bm-header">
+                    <i class="fas fa-heartbeat"></i>
+                    <span id="healthModalTitle">Health Check</span>
+                </div>
+                <div class="bm-body">
+                    <div class="ac-health-result" id="healthOutput">Running health check...</div>
+                </div>
+                <div class="bm-footer">
+                    <button class="ac-btn ac-btn-primary" onclick="AppCatalog.hideModal('healthModal')">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="bm-overlay" id="confirmModal" style="display: none;" onclick="AppCatalog.closeModal(event, 'confirmModal')">
+    <div class="bm-shell">
+        <div class="bm-frame" style="--bm-accent: #ef4444">
+            <div class="bm-content">
+                <div class="bm-header">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="confirmModalTitle">Confirm Action</span>
+                </div>
+                <div class="bm-body">
+                    <div class="ac-confirm-body" id="confirmBody"></div>
+                </div>
+                <div class="bm-footer">
+                    <button class="ac-btn ac-btn-ghost" onclick="AppCatalog.hideModal('confirmModal')">Cancel</button>
+                    <button class="ac-btn ac-btn-danger" id="confirmActionBtn" onclick="AppCatalog.executeConfirmed()">Confirm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/**
+ * APP CATALOG — Client Controller
+ *
+ * XSS Safety: All dynamic values rendered via innerHTML pass through esc(),
+ * which uses DOM textContent-based entity encoding to neutralise HTML/JS.
+ */
+
+const AppCatalog = (function() {
+    'use strict';
+
+    let _apps = [];
+    let _filter = 'all';
+    let _autoRefreshTimer = null;
+    let _currentLogsApp = null;
+    let _pendingConfirm = null;
+
+    const AUTO_REFRESH_MS = 30000;
+    const BASE_URL = '/dashboard/api/apps';
+
+    /* ── Escape HTML (XSS-safe via textContent) ──────────────────── */
+    function esc(s) {
+        if (s == null) return '';
+        var d = document.createElement('div');
+        d.textContent = String(s);
+        return d.innerHTML;
+    }
+
+    /* ── API Helper ──────────────────────────────────────────────── */
+    async function api(path, opts) {
+        opts = opts || {};
+        var url = path.startsWith('http') ? path : BASE_URL + path;
+        var resp = await fetch(url, {
+            headers: Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {}),
+            method: opts.method || 'GET',
+            body: opts.body || undefined,
+        });
+        var data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'HTTP ' + resp.status);
+        return data;
+    }
+
+    /* ── Fetch & Render ──────────────────────────────────────────── */
+    async function loadCatalog(forceRefresh) {
+        var qs = forceRefresh ? '?refresh=true' : '';
+        try {
+            var data = await api('/catalog' + qs);
+            _apps = data.apps || [];
+            updateStats();
+            renderGrid();
+            showLive(true);
+        } catch (err) {
+            showToast('Failed to load catalog: ' + err.message, 'error');
+            showLive(false);
+        }
+    }
+
+    function updateStats() {
+        var total = _apps.length;
+        var running = _apps.filter(function(a) { return a.status === 'running'; }).length;
+        var available = _apps.filter(function(a) { return a.status === 'available'; }).length;
+        var infra = _apps.filter(function(a) { return (a.category || '').toLowerCase() === 'infrastructure'; }).length;
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statRunning').textContent = running;
+        document.getElementById('statAvailable').textContent = available;
+        document.getElementById('statInfra').textContent = infra;
+    }
+
+    /* ── Filtering ───────────────────────────────────────────────── */
+    function filterApps() {
+        if (_filter === 'all') return _apps;
+        if (_filter === 'products') return _apps.filter(function(a) { return (a.category || '').toLowerCase() === 'products'; });
+        if (_filter === 'infrastructure') return _apps.filter(function(a) { return (a.category || '').toLowerCase() === 'infrastructure'; });
+        return _apps.filter(function(a) { return a.status === _filter; });
+    }
+
+    function setFilter(f, btn) {
+        _filter = f;
+        document.querySelectorAll('.ac-filter-btn').forEach(function(b) { b.classList.remove('active'); });
+        if (btn) btn.classList.add('active');
+        renderGrid();
+    }
+
+    /* ── Icon Picker ─────────────────────────────────────────────── */
+    function getAppIcon(app) {
+        var name = (app.id || '').toLowerCase();
+        if (name.indexOf('news') !== -1) return 'fa-newspaper';
+        if (name.indexOf('gov') !== -1 || name.indexOf('procure') !== -1) return 'fa-landmark';
+        if (name.indexOf('market') !== -1 || name.indexOf('watch') !== -1) return 'fa-chart-line';
+        if (name.indexOf('mail') !== -1 || name.indexOf('stalwart') !== -1) return 'fa-envelope';
+        if (name.indexOf('monitor') !== -1 || name.indexOf('nagios') !== -1) return 'fa-heartbeat';
+        if (name.indexOf('dns') !== -1 || name.indexOf('adguard') !== -1) return 'fa-shield-alt';
+        if (name.indexOf('proxy') !== -1 || name.indexOf('npm') !== -1) return 'fa-network-wired';
+        if (name.indexOf('business') !== -1 || name.indexOf('suite') !== -1) return 'fa-briefcase';
+        if (name.indexOf('legal') !== -1) return 'fa-gavel';
+        if (name.indexOf('civic') !== -1) return 'fa-users';
+        if ((app.category || '').toLowerCase() === 'infrastructure') return 'fa-cogs';
+        return 'fa-cube';
+    }
+
+    /* ── Render Grid ─────────────────────────────────────────────── */
+    function renderGrid() {
+        var grid = document.getElementById('appGrid');
+        var apps = filterApps();
+
+        if (!apps.length) {
+            var msg = _filter === 'all'
+                ? 'The catalog is empty. Click Refresh to sync with the hub.'
+                : 'No apps match the current filter.';
+            grid.textContent = '';
+            var empty = document.createElement('div');
+            empty.className = 'ac-empty';
+            empty.style.gridColumn = '1 / -1';
+            var icon = document.createElement('i');
+            icon.className = 'fas fa-cube';
+            icon.style.display = 'block';
+            empty.appendChild(icon);
+            var h3 = document.createElement('h3');
+            h3.textContent = 'No Apps Found';
+            empty.appendChild(h3);
+            var p = document.createElement('p');
+            p.textContent = msg;
+            empty.appendChild(p);
+            grid.appendChild(empty);
+            return;
+        }
+
+        grid.textContent = '';
+        apps.forEach(function(app) {
+            grid.appendChild(buildCard(app));
+        });
+    }
+
+    /* ── Build Card (DOM-based, XSS-safe) ────────────────────────── */
+    function buildCard(app) {
+        var status = app.status || 'available';
+        var category = (app.category || 'products').toLowerCase();
+        var isInfra = category === 'infrastructure';
+        var nodeTypes = (app.node_types || []).join(', ') || 'any';
+        var ramMb = app.ram_mb || app.min_ram_mb || '?';
+        var port = app.port || app.default_port || '\u2014';
+        var version = app.version || '';
+
+        var card = document.createElement('div');
+        card.className = 'ac-card';
+        card.setAttribute('data-status', status);
+        card.setAttribute('data-id', app.id);
+        card.setAttribute('data-category', category);
+
+        // Header
+        var header = document.createElement('div');
+        header.className = 'ac-card-header';
+
+        var iconDiv = document.createElement('div');
+        iconDiv.className = 'ac-card-icon' + (isInfra ? ' infra' : '');
+        var iconI = document.createElement('i');
+        iconI.className = 'fas ' + getAppIcon(app);
+        iconDiv.appendChild(iconI);
+        header.appendChild(iconDiv);
+
+        var titleGroup = document.createElement('div');
+        titleGroup.className = 'ac-card-title-group';
+        var nameDiv = document.createElement('div');
+        nameDiv.className = 'ac-card-name';
+        nameDiv.textContent = app.name || app.id;
+        titleGroup.appendChild(nameDiv);
+        var descDiv = document.createElement('div');
+        descDiv.className = 'ac-card-desc';
+        descDiv.textContent = app.description || 'No description available.';
+        titleGroup.appendChild(descDiv);
+        header.appendChild(titleGroup);
+
+        var badge = document.createElement('span');
+        badge.className = 'ac-badge ac-badge-' + status;
+        badge.textContent = status.toUpperCase();
+        header.appendChild(badge);
+
+        card.appendChild(header);
+
+        // Meta
+        var meta = document.createElement('div');
+        meta.className = 'ac-card-meta';
+
+        var catBadge = document.createElement('span');
+        catBadge.className = 'ac-cat-badge ac-cat-' + category;
+        catBadge.textContent = category;
+        meta.appendChild(catBadge);
+
+        function addMetaTag(iconClass, text) {
+            var tag = document.createElement('span');
+            tag.className = 'ac-meta-tag';
+            var ti = document.createElement('i');
+            ti.className = 'fas ' + iconClass;
+            tag.appendChild(ti);
+            tag.appendChild(document.createTextNode(' ' + text));
+            meta.appendChild(tag);
+        }
+
+        addMetaTag('fa-plug', ':' + String(port));
+        addMetaTag('fa-memory', String(ramMb) + 'MB');
+        addMetaTag('fa-server', nodeTypes);
+        if (version) addMetaTag('fa-tag', version);
+
+        card.appendChild(meta);
+
+        // Actions
+        var actions = document.createElement('div');
+        actions.className = 'ac-card-actions';
+
+        function addBtn(cls, iconClass, label, onClick) {
+            var btn = document.createElement('button');
+            btn.className = 'ac-btn ' + cls;
+            var bi = document.createElement('i');
+            bi.className = 'fas ' + iconClass;
+            btn.appendChild(bi);
+            btn.appendChild(document.createTextNode(' ' + label));
+            btn.addEventListener('click', onClick);
+            actions.appendChild(btn);
+        }
+
+        var appId = app.id;
+        var appName = app.name || app.id;
+
+        switch (status) {
+            case 'available':
+                addBtn('ac-btn-success', 'fa-rocket', 'Deploy', function() { deploy(appId); });
+                break;
+            case 'running':
+                addBtn('ac-btn-warning', 'fa-stop', 'Stop', function() { stop(appId); });
+                addBtn('ac-btn-ghost', 'fa-terminal', 'Logs', function() { showLogs(appId, appName); });
+                addBtn('ac-btn-ghost', 'fa-heartbeat', 'Health', function() { showHealth(appId, appName); });
+                if (app.update_available) {
+                    addBtn('ac-btn-primary', 'fa-arrow-up', 'Update', function() { update(appId); });
+                }
+                break;
+            case 'stopped':
+                addBtn('ac-btn-success', 'fa-play', 'Start', function() { start(appId); });
+                addBtn('ac-btn-danger', 'fa-trash', 'Remove', function() { confirmRemove(appId, appName); });
+                addBtn('ac-btn-ghost', 'fa-terminal', 'Logs', function() { showLogs(appId, appName); });
+                break;
+            case 'error':
+                addBtn('ac-btn-success', 'fa-redo', 'Restart', function() { start(appId); });
+                addBtn('ac-btn-ghost', 'fa-terminal', 'Logs', function() { showLogs(appId, appName); });
+                addBtn('ac-btn-danger', 'fa-trash', 'Remove', function() { confirmRemove(appId, appName); });
+                break;
+            case 'deploying':
+            case 'updating':
+                var spinner = document.createElement('span');
+                spinner.style.cssText = 'color: #8b5cf6; font-family: "IBM Plex Mono", monospace; font-size: 0.72rem;';
+                var si = document.createElement('i');
+                si.className = 'fas fa-spinner fa-spin';
+                spinner.appendChild(si);
+                spinner.appendChild(document.createTextNode(' ' + (status === 'deploying' ? 'Deploying' : 'Updating') + '...'));
+                actions.appendChild(spinner);
+                break;
+        }
+
+        card.appendChild(actions);
+        return card;
+    }
+
+    /* ── Actions ─────────────────────────────────────────────────── */
+    async function deploy(appId) {
+        setCardBusy(appId, 'deploying');
+        showToast('Deploying ' + appId + '...', 'info');
+        try {
+            var data = await api('/' + appId + '/deploy', { method: 'POST' });
+            showToast(data.message || appId + ' deployed successfully', 'success');
+            await loadCatalog(false);
+        } catch (err) {
+            showToast('Deploy failed: ' + err.message, 'error');
+            await loadCatalog(false);
+        }
+    }
+
+    async function stop(appId) {
+        showToast('Stopping ' + appId + '...', 'info');
+        try {
+            var data = await api('/' + appId + '/stop', { method: 'POST' });
+            showToast(data.message || appId + ' stopped', 'success');
+            await loadCatalog(false);
+        } catch (err) {
+            showToast('Stop failed: ' + err.message, 'error');
+        }
+    }
+
+    async function start(appId) {
+        showToast('Starting ' + appId + '...', 'info');
+        try {
+            var data = await api('/' + appId + '/start', { method: 'POST' });
+            showToast(data.message || appId + ' started', 'success');
+            await loadCatalog(false);
+        } catch (err) {
+            showToast('Start failed: ' + err.message, 'error');
+        }
+    }
+
+    async function update(appId) {
+        setCardBusy(appId, 'updating');
+        showToast('Updating ' + appId + '...', 'info');
+        try {
+            var data = await api('/' + appId + '/update', { method: 'POST' });
+            showToast(data.message || appId + ' updated', 'success');
+            await loadCatalog(false);
+        } catch (err) {
+            showToast('Update failed: ' + err.message, 'error');
+            await loadCatalog(false);
+        }
+    }
+
+    function confirmRemove(appId, appName) {
+        _pendingConfirm = { action: 'remove', appId: appId };
+        document.getElementById('confirmModalTitle').textContent = 'Remove ' + appName;
+        var body = document.getElementById('confirmBody');
+        body.textContent = '';
+        var p1 = document.createElement('p');
+        p1.textContent = 'Remove ' + appName + ' from this node?';
+        body.appendChild(p1);
+        var p2 = document.createElement('p');
+        p2.className = 'ac-confirm-warn';
+        p2.textContent = 'This will stop and remove the container. Data volumes may be preserved.';
+        body.appendChild(p2);
+        showModal('confirmModal');
+    }
+
+    async function executeConfirmed() {
+        if (!_pendingConfirm) return;
+        hideModal('confirmModal');
+        var pending = _pendingConfirm;
+        _pendingConfirm = null;
+
+        if (pending.action === 'remove') {
+            showToast('Removing ' + pending.appId + '...', 'info');
+            try {
+                var data = await api('/' + pending.appId + '/remove', {
+                    method: 'POST',
+                    body: JSON.stringify({ keep_data: true }),
+                });
+                showToast(data.message || pending.appId + ' removed', 'success');
+                await loadCatalog(false);
+            } catch (err) {
+                showToast('Remove failed: ' + err.message, 'error');
+            }
+        }
+    }
+
+    /* ── Logs ────────────────────────────────────────────────────── */
+    async function showLogs(appId, appName) {
+        _currentLogsApp = appId;
+        document.getElementById('logsModalTitle').textContent = 'Logs \u2014 ' + appName;
+        document.getElementById('logsOutput').textContent = 'Loading logs...';
+        showModal('logsModal');
+        await fetchLogs(appId);
+    }
+
+    async function fetchLogs(appId) {
+        try {
+            var data = await api('/' + appId + '/logs?lines=200');
+            var output = document.getElementById('logsOutput');
+            output.textContent = data.logs || '(no output)';
+            output.scrollTop = output.scrollHeight;
+        } catch (err) {
+            document.getElementById('logsOutput').textContent = 'Error fetching logs: ' + err.message;
+        }
+    }
+
+    function refreshLogs() {
+        if (_currentLogsApp) fetchLogs(_currentLogsApp);
+    }
+
+    /* ── Health ──────────────────────────────────────────────────── */
+    async function showHealth(appId, appName) {
+        document.getElementById('healthModalTitle').textContent = 'Health \u2014 ' + appName;
+        var output = document.getElementById('healthOutput');
+        output.textContent = 'Running health check...';
+        showModal('healthModal');
+
+        try {
+            var data = await api('/' + appId + '/health');
+            var h = data.health || {};
+            var keys = Object.keys(h);
+
+            output.textContent = '';
+            if (!keys.length) {
+                output.textContent = 'No health data returned.';
+                return;
+            }
+
+            keys.forEach(function(k) {
+                var v = h[k];
+                var row = document.createElement('div');
+                row.className = 'ac-health-row';
+                var keySpan = document.createElement('span');
+                keySpan.className = 'ac-health-key';
+                keySpan.textContent = k;
+                row.appendChild(keySpan);
+                var valSpan = document.createElement('span');
+                valSpan.className = 'ac-health-val';
+                var vs = String(v).toLowerCase();
+                if (vs.indexOf('healthy') !== -1 || vs.indexOf('ok') !== -1 || vs === 'running') {
+                    valSpan.classList.add('healthy');
+                } else if (vs.indexOf('unhealthy') !== -1 || vs.indexOf('error') !== -1) {
+                    valSpan.classList.add('unhealthy');
+                }
+                valSpan.textContent = String(v);
+                row.appendChild(valSpan);
+                output.appendChild(row);
+            });
+        } catch (err) {
+            output.textContent = 'Health check failed: ' + err.message;
+            output.style.color = '#ef4444';
+        }
+    }
+
+    /* ── Modal Helpers ───────────────────────────────────────────── */
+    function showModal(id) {
+        document.getElementById(id).style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function hideModal(id) {
+        document.getElementById(id).style.display = 'none';
+        document.body.style.overflow = '';
+        if (id === 'logsModal') _currentLogsApp = null;
+    }
+
+    function closeModal(evt, id) {
+        if (evt.target === evt.currentTarget) hideModal(id);
+    }
+
+    /* ── Card Busy State ─────────────────────────────────────────── */
+    function setCardBusy(appId, status) {
+        var card = document.querySelector('.ac-card[data-id="' + CSS.escape(appId) + '"]');
+        if (!card) return;
+        card.setAttribute('data-status', status);
+        var badge = card.querySelector('.ac-badge');
+        if (badge) {
+            badge.className = 'ac-badge ac-badge-' + status;
+            badge.textContent = status.toUpperCase();
+        }
+        var actions = card.querySelector('.ac-card-actions');
+        if (actions) {
+            actions.textContent = '';
+            var spinner = document.createElement('span');
+            spinner.style.cssText = 'color: #8b5cf6; font-family: "IBM Plex Mono", monospace; font-size: 0.72rem;';
+            var si = document.createElement('i');
+            si.className = 'fas fa-spinner fa-spin';
+            spinner.appendChild(si);
+            spinner.appendChild(document.createTextNode(' ' + (status === 'deploying' ? 'Deploying' : 'Updating') + '...'));
+            actions.appendChild(spinner);
+        }
+    }
+
+    /* ── Toast ───────────────────────────────────────────────────── */
+    function showToast(msg, type) {
+        type = type || 'info';
+        var container = document.getElementById('toastContainer');
+        var toast = document.createElement('div');
+        toast.className = 'ac-toast ' + type;
+        toast.textContent = msg;
+        container.appendChild(toast);
+        setTimeout(function() {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 4000);
+    }
+
+    /* ── Live Indicator ──────────────────────────────────────────── */
+    function showLive(on) {
+        document.getElementById('liveIndicator').style.display = on ? 'inline-flex' : 'none';
+    }
+
+    /* ── Auto-Refresh ────────────────────────────────────────────── */
+    function startAutoRefresh() {
+        stopAutoRefresh();
+        _autoRefreshTimer = setInterval(function() { loadCatalog(false); }, AUTO_REFRESH_MS);
+    }
+
+    function stopAutoRefresh() {
+        if (_autoRefreshTimer) {
+            clearInterval(_autoRefreshTimer);
+            _autoRefreshTimer = null;
+        }
+    }
+
+    /* ── Refresh Button ──────────────────────────────────────────── */
+    async function refresh(force) {
+        var btn = document.getElementById('refreshBtn');
+        btn.classList.add('spinning');
+        btn.disabled = true;
+        try {
+            await loadCatalog(!!force);
+        } finally {
+            btn.classList.remove('spinning');
+            btn.disabled = false;
+        }
+    }
+
+    /* ── Keyboard ────────────────────────────────────────────────── */
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            ['logsModal', 'healthModal', 'confirmModal'].forEach(function(id) {
+                if (document.getElementById(id).style.display !== 'none') {
+                    hideModal(id);
+                }
+            });
+        }
+    });
+
+    /* ── Init ────────────────────────────────────────────────────── */
+    document.addEventListener('DOMContentLoaded', function() {
+        loadCatalog(false);
+        startAutoRefresh();
+    });
+
+    /* ── Public API ──────────────────────────────────────────────── */
+    return {
+        refresh: refresh,
+        setFilter: setFilter,
+        deploy: deploy,
+        stop: stop,
+        start: start,
+        update: update,
+        confirmRemove: confirmRemove,
+        executeConfirmed: executeConfirmed,
+        showLogs: showLogs,
+        refreshLogs: refreshLogs,
+        showHealth: showHealth,
+        showModal: showModal,
+        hideModal: hideModal,
+        closeModal: closeModal,
+    };
+})();
+</script>
+{% endblock %}
