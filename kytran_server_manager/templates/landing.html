@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kytran System Operations — Kytran Empowerment Inc.</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ke-cyan: #00e5ff;
+            --ke-gold: #fbbf24;
+            --ke-green: #10b981;
+            --ke-red: #ef4444;
+            --ke-purple: #8b5cf6;
+            --ke-bg: #0a0a1a;
+            --ke-panel: #111827;
+            --ke-accent: #10b981;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--ke-bg);
+            color: #e0e0e0;
+            font-family: 'IBM Plex Mono', 'Courier New', monospace;
+            min-height: 100vh;
+        }
+        .landing { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+        /* Nav */
+        .nav { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #1f2937; margin-bottom: 2rem; }
+        .nav-brand { font-family: 'Orbitron', sans-serif; color: var(--ke-accent); font-size: 1rem; font-weight: 700; text-decoration: none; }
+        .nav-links { display: flex; gap: 1rem; align-items: center; }
+        .nav-link { color: #9ca3af; text-decoration: none; font-size: 0.85rem; }
+        .nav-link:hover { color: var(--ke-accent); }
+        .nav-cta { background: var(--ke-accent); color: #000; padding: 6px 16px; text-decoration: none; font-weight: 700; font-size: 0.85rem; border-radius: 3px; }
+
+        /* Hero */
+        .hero { text-align: center; padding: 4rem 1rem; border-bottom: 2px solid var(--ke-accent); margin-bottom: 2rem; }
+        .hero-kicker { font-size: 0.8rem; color: var(--ke-accent); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .hero h1 { font-family: 'Orbitron', sans-serif; font-size: 2.5rem; color: #fff; margin-bottom: 0.5rem; }
+        .hero h1 span { color: var(--ke-accent); }
+        .hero .subtitle { font-size: 1rem; color: #9ca3af; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+        .hero-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+        .hero-cta { display: inline-block; padding: 14px 32px; background: var(--ke-accent); color: #000; text-decoration: none; font-weight: 700; font-size: 1.1rem; border-radius: 4px; }
+        .hero-cta:hover { opacity: 0.9; }
+        .hero-secondary { display: inline-block; padding: 14px 32px; border: 1px solid var(--ke-accent); color: var(--ke-accent); text-decoration: none; font-weight: 700; font-size: 1.1rem; border-radius: 4px; }
+        .hero-secondary:hover { background: rgba(16,185,129,0.1); }
+
+        /* Features */
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 3rem 0; }
+        .feature-card { background: var(--ke-panel); border: 1px solid #1f2937; border-radius: 8px; padding: 2rem; }
+        .feature-card h3 { font-family: 'Orbitron', sans-serif; color: var(--ke-accent); font-size: 0.9rem; margin-bottom: 0.75rem; }
+        .feature-card p { color: #9ca3af; font-size: 0.85rem; line-height: 1.6; }
+
+        /* Footer */
+        .footer { text-align: center; padding: 2rem 0; border-top: 1px solid #1f2937; margin-top: 3rem; color: #6b7280; font-size: 0.8rem; }
+        .footer a { color: var(--ke-accent); text-decoration: none; }
+
+        @media (max-width: 768px) { .hero h1 { font-size: 1.8rem; } }
+        @media (max-width: 480px) { .features { grid-template-columns: 1fr; } .hero-actions { flex-direction: column; align-items: center; } }
+    </style>
+</head>
+<body>
+    <div class="landing">
+        <nav class="nav">
+            <a href="/" class="nav-brand">K.S.O.</a>
+            <div class="nav-links">
+                <a href="/login" class="nav-link">Local Login</a>
+                <a href="/auth/sso" class="nav-cta">SIGN IN WITH KYTRAN</a>
+            </div>
+        </nav>
+
+        <div class="hero">
+            <div class="hero-kicker">KYTRAN EMPOWERMENT INC.</div>
+            <h1>KYTRAN <span>SYSTEM OPS</span></h1>
+            <p class="subtitle">Server monitoring and management — Docker containers, system health, network security, and compliance scanning.</p>
+            <div class="hero-actions">
+                <a href="/auth/sso" class="hero-cta">SIGN IN WITH KYTRAN</a>
+                <a href="/login" class="hero-secondary">LOCAL LOGIN</a>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <h3>Container Management</h3>
+                <p>Monitor and control Docker containers across your infrastructure. Start, stop, inspect logs, and track resource usage in real time.</p>
+            </div>
+            <div class="feature-card">
+                <h3>System Health</h3>
+                <p>Track CPU, memory, disk, and network metrics across all your servers. Get alerts before problems become outages.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Network Security</h3>
+                <p>Monitor open ports, firewall rules, and network traffic. Detect anomalies and enforce security policies across your fleet.</p>
+            </div>
+            <div class="feature-card">
+                <h3>Compliance Scanning</h3>
+                <p>Automated compliance checks against STIG, CIS, HIPAA, and SOC 2 rule packs with one-click remediation and audit reports.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            &copy; 2026 Kytran Empowerment Inc. &mdash;
+            <a href="/">Kytran System Operations</a> &mdash; Powered by A.R.C.H.I.E.
+        </div>
+    </div>
+</body>
+</html>

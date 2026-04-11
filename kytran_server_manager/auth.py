@@ -85,8 +85,7 @@ def register_auth_routes(app):
     def splash():
         if current_user.is_authenticated:
             return redirect(url_for("sysops.index"))
-        sso_enabled = is_hub_configured()
-        return render_template("splash.html", sso_enabled=sso_enabled)
+        return render_template("landing.html")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
