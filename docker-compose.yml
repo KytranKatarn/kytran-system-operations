@@ -14,4 +14,8 @@ services:
     environment:
       - KSM_SECRET_KEY=change-me-in-production
       - KSM_THEME=kytran
+      - KYTRAN_CLIENT_ID=kso
+      - KYTRAN_AUTH_URL=https://archie.kytranempowerment.com
+      - KYTRAN_REDIRECT_URI=https://sysops.kytranempowerment.com/auth/sso/callback
+      # KYTRAN_CLIENT_SECRET — set via .env or Docker secret
     restart: unless-stopped
