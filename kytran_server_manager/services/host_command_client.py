@@ -14,7 +14,7 @@ import time
 import uuid
 from datetime import datetime
 
-BASE_DIR = os.environ.get("KSM_BASE_DIR", "/")
+BASE_DIR = os.environ.get("ARCHIE_BASE_DIR", "/mnt/archie_brain")
 COMMANDS_DIR = os.path.join(BASE_DIR, "host_commands")
 PENDING_DIR = os.path.join(COMMANDS_DIR, "pending")
 COMPLETED_DIR = os.path.join(COMMANDS_DIR, "completed")

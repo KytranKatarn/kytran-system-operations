@@ -10,12 +10,12 @@ Helper: parse_ufw_rules
 from flask import jsonify, request
 from flask_login import login_required, current_user
 
-from ..services.host_command_client import (
+from .host_command_client import (
     submit_and_wait,
     HostCommandTimeout,
     HostCommandQueueUnavailable,
 )
-from ..helpers import audit_log, require_reauth
+from .helpers import audit_log, require_reauth
 
 
 def parse_ufw_rules(output):

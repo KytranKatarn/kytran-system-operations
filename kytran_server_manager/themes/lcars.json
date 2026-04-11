@@ -1,10 +1,8 @@
 {
-  "product_name": "Kytran System Operations",
-  "product_short": "KSO",
+  "product_name": "System Operations",
+  "product_short": "SYSOPS",
   "logo": "/static/img/archie-logo.svg",
   "frame_style": "lcars",
-  "is_premium": true,
-  "premium_label": "LCARS Command by Kytran Empowerment",
   "colors": {
     "accent": "#00e5ff",
     "accent_bright": "#4df0ff",

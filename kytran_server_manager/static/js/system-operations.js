@@ -3,31 +3,6 @@ if (typeof Chart === 'undefined') {
     console.error('Chart.js failed to load from primary CDN');
 }
 
-// Standalone shim: ArchieTime (platform uses archie-time.js for timezone formatting)
-if (typeof ArchieTime === 'undefined') {
-    var ArchieTime = {
-        format: function(date, opts) {
-            if (!date) return '--';
-            try {
-                const d = new Date(date);
-                if (isNaN(d.getTime())) return String(date);
-                return d.toLocaleString();
-            } catch(e) { return String(date); }
-        },
-        formatShort: function(date) {
-            if (!date) return '--';
-            try {
-                const d = new Date(date);
-                return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-            } catch(e) { return String(date); }
-        },
-        formatDate: function(date) {
-            if (!date) return '--';
-            try { return new Date(date).toLocaleDateString(); } catch(e) { return String(date); }
-        }
-    };
-}
-
 // State
 let autoRefreshEnabled = true;
 let refreshInterval = null;
@@ -162,7 +137,7 @@ let preflightPendingOperation = null;
 
 async function runPreflightCheck(device, mountpoint, operation, onProceed) {
     try {
-        const res = await fetch('/dashboard/api/storage/preflight', {
+        const res = await fetch('/tools/system-operations/api/storage/preflight', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ device, mountpoint, operation })
@@ -818,7 +793,7 @@ async function loadHistoricalData() {
 
     // Load CPU history
     try {
-        const cpuRes = await fetch('/dashboard/api/history?type=cpu&hours=' + hours);
+        const cpuRes = await fetch('/tools/system-operations/api/history?type=cpu&hours=' + hours);
         if (cpuRes.ok) {
             const cpuJson = await cpuRes.json();
             if (cpuJson.success && cpuJson.data && cpuJson.data.values && cpuJson.data.values.length > 0) {
@@ -839,7 +814,7 @@ async function loadHistoricalData() {
 
     // Load Memory history
     try {
-        const memRes = await fetch('/dashboard/api/history?type=memory&hours=' + hours);
+        const memRes = await fetch('/tools/system-operations/api/history?type=memory&hours=' + hours);
         if (memRes.ok) {
             const memJson = await memRes.json();
             if (memJson.success && memJson.data && memJson.data.values && memJson.data.values.length > 0) {
@@ -861,8 +836,8 @@ async function loadHistoricalData() {
     // Load GPU history — BOTH VRAM and Compute lines per GPU
     try {
         const [vramRes, computeRes] = await Promise.all([
-            fetch('/dashboard/api/history/multi?type=gpu_vram&hours=' + hours),
-            fetch('/dashboard/api/history/multi?type=gpu&hours=' + hours)
+            fetch('/tools/system-operations/api/history/multi?type=gpu_vram&hours=' + hours),
+            fetch('/tools/system-operations/api/history/multi?type=gpu&hours=' + hours)
         ]);
         const vramJson = vramRes.ok ? await vramRes.json() : null;
         const computeJson = computeRes.ok ? await computeRes.json() : null;
@@ -941,7 +916,7 @@ async function loadHistoricalData() {
 async function loadHostData() {
     // Load host system data (LVM, RAID, Disks, Services) from host monitor file
     try {
-        const res = await fetch('/dashboard/api/host-data');
+        const res = await fetch('/tools/system-operations/api/host-data');
         const json = await res.json();
         if (json.success && json.data) {
             renderHostLVM(json.data.lvm);
@@ -1005,7 +980,7 @@ async function loadHostData() {
 
 async function loadOverview() {
     try {
-        const res = await fetch('/dashboard/api/overview');
+        const res = await fetch('/tools/system-operations/api/overview');
         const json = await res.json();
         if (json.success) updateDashboard(json.data);
     } catch (e) {
@@ -1015,7 +990,7 @@ async function loadOverview() {
 
 async function loadDockerMounts() {
     try {
-        const res = await fetch('/dashboard/api/storage/docker-mounts');
+        const res = await fetch('/tools/system-operations/api/storage/docker-mounts');
         const json = await res.json();
         if (json.success && json.data?.path_mappings) {
             dockerMounts = json.data.path_mappings;
@@ -1497,25 +1472,25 @@ function updateDashboard(data) {
 
 async function loadDisks() {
     try {
-        const res = await fetch('/dashboard/api/disks');
+        const res = await fetch('/tools/system-operations/api/disks');
         const json = await res.json();
-        if (json.success && json.data) {
+        if (json.success) {
             // Only render container data if host monitor hasn't provided better data
             if (!hostStorageLoaded) {
-                if (json.data.partitions) renderPartitions(json.data.partitions);
-                if (json.data.raid) renderRaid(json.data.raid);
-                if (json.data.lvm) renderLVM(json.data.lvm);
+                renderPartitions(json.data.partitions || []);
+                renderRaid(json.data.raid);
+                renderLVM(json.data.lvm);
             }
         }
     } catch (e) {
-        // Disk rendering is non-critical — don't spam console
+        console.error('Disks error:', e);
     }
 }
 
 async function loadProcesses() {
     try {
         const sort = document.getElementById('process-sort').value;
-        const res = await fetch(`/dashboard/api/processes?sort=${sort}&limit=100`);
+        const res = await fetch(`/tools/system-operations/api/processes?sort=${sort}&limit=100`);
         const json = await res.json();
         if (json.success) {
             allProcesses = json.data || [];
@@ -1540,7 +1515,7 @@ async function loadProcesses() {
 async function loadServices() {
     try {
         const filter = document.getElementById('service-filter').value;
-        const res = await fetch(`/dashboard/api/services?filter=${filter}`);
+        const res = await fetch(`/tools/system-operations/api/services?filter=${filter}`);
         const json = await res.json();
         if (json.success) renderServices(json.data || []);
     } catch (e) {
@@ -1559,7 +1534,7 @@ async function loadHardwareData() {
 
     // Fetch fresh data
     try {
-        const res = await fetch('/dashboard/api/hardware');
+        const res = await fetch('/tools/system-operations/api/hardware');
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -2223,7 +2198,7 @@ function loadCachedMemoryHardware() {
 
 async function loadMemoryHardware() {
     try {
-        const res = await fetch('/dashboard/api/memory-hardware');
+        const res = await fetch('/tools/system-operations/api/memory-hardware');
         const json = await res.json();
 
         if (json.success && json.data) {
@@ -2346,7 +2321,7 @@ async function loadDashboardMemoryHardware() {
 
     if (dashboardMemHwLoaded) return;  // Only fetch once
     try {
-        const res = await fetch('/dashboard/api/memory-hardware');
+        const res = await fetch('/tools/system-operations/api/memory-hardware');
         const json = await res.json();
         if (json.success && json.data) {
             renderDashboardMemoryHardware(json.data);
@@ -2363,7 +2338,7 @@ async function loadDashboardMemoryHardware() {
 
 async function loadHealthAlerts() {
     try {
-        const res = await fetch('/dashboard/api/health/alerts');
+        const res = await fetch('/tools/system-operations/api/health/alerts');
         const data = await res.json();
         if (data.success) {
             renderHealthAlerts(data.alerts || [], data.counts || {});
@@ -2471,7 +2446,7 @@ function renderHealthAlerts(alerts, counts) {
 
 async function acknowledgeAlert(alertId) {
     try {
-        const res = await fetch('/dashboard/api/health/alerts/' + alertId + '/acknowledge', {
+        const res = await fetch('/tools/system-operations/api/health/alerts/' + alertId + '/acknowledge', {
             method: 'POST'
         });
         const data = await res.json();
@@ -2488,7 +2463,7 @@ async function acknowledgeAlert(alertId) {
 
 async function resolveAlert(alertId) {
     try {
-        const res = await fetch('/dashboard/api/health/alerts/' + alertId + '/resolve', {
+        const res = await fetch('/tools/system-operations/api/health/alerts/' + alertId + '/resolve', {
             method: 'POST'
         });
         const data = await res.json();
@@ -2523,8 +2498,8 @@ async function loadDocker() {
     try {
         // Fetch stacks and health data in parallel
         const [stacksRes, healthRes] = await Promise.all([
-            fetch('/dashboard/api/stacks'),
-            fetch('/dashboard/api/docker/health')
+            fetch('/tools/system-operations/api/stacks'),
+            fetch('/tools/system-operations/api/docker/health')
         ]);
         const stacksJson = await stacksRes.json();
         const healthJson = await healthRes.json();
@@ -2577,7 +2552,7 @@ async function loadDocker() {
 
 async function loadNetwork() {
     try {
-        const res = await fetch('/dashboard/api/network');
+        const res = await fetch('/tools/system-operations/api/network');
         const json = await res.json();
         if (json.success) renderNetwork(json.data || {});
         // Reset lazy-load flags and re-fetch active sub-tab
@@ -2618,7 +2593,7 @@ async function loadStorageData(forceRefresh = false) {
     try {
         const cacheBuster = forceRefresh || skipStorageCache ? '?t=' + Date.now() : '';
         console.log('loadStorageData: fetching with forceRefresh=' + forceRefresh + ', cacheBuster=' + cacheBuster);
-        const res = await fetch('/dashboard/api/storage/drives' + cacheBuster);
+        const res = await fetch('/tools/system-operations/api/storage/drives' + cacheBuster);
         const json = await res.json();
         console.log('loadStorageData: response success=' + json.success);
         if (json.success && json.data) {
@@ -3748,7 +3723,7 @@ async function browsePartition(mountpoint) {
     showToast('info', 'Opening file browser for ' + mountpoint + '...');
 
     try {
-        const res = await fetch('/dashboard/api/storage/browse?path=' + encodeURIComponent(mountpoint));
+        const res = await fetch('/tools/system-operations/api/storage/browse?path=' + encodeURIComponent(mountpoint));
         const json = await res.json();
         if (json.success) {
             // For now, show a summary toast. A full file browser modal could be added later.
@@ -3766,7 +3741,7 @@ async function browsePartition(mountpoint) {
 
 async function registerManagedMount(device, mountPoint, filesystem, capacityGb, driveModel) {
     try {
-        const res = await fetch('/dashboard/api/storage/mounts', {
+        const res = await fetch('/tools/system-operations/api/storage/mounts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -3816,7 +3791,7 @@ async function submitReauth() {
     }
 
     try {
-        const res = await fetch('/dashboard/api/auth/verify', {
+        const res = await fetch('/tools/system-operations/api/auth/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ password: password })
@@ -4699,7 +4674,7 @@ async function dockerComposeAction(action) {
     showConfirmModal('Docker Compose', actionMessages[action] || `Execute ${action}?`, async () => {
         showToast('success', `Executing docker-compose ${action}...`);
         try {
-            const res = await fetch('/dashboard/api/docker/compose', {
+            const res = await fetch('/tools/system-operations/api/docker/compose', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, confirm: true })
@@ -4719,7 +4694,7 @@ async function dockerComposeAction(action) {
 
 // View container logs
 function viewDockerLogs(containerId, containerName) {
-    window.open(`/dashboard/api/docker/${containerId}/logs?tail=100`, '_blank');
+    window.open(`/tools/system-operations/api/docker/${containerId}/logs?tail=100`, '_blank');
 }
 
 function renderNetwork(data) {
@@ -5065,7 +5040,7 @@ async function loadPortMap() {
 
     // Fetch fresh data
     try {
-        const res = await fetch('/dashboard/api/network/port-map');
+        const res = await fetch('/tools/system-operations/api/network/port-map');
         const json = await res.json();
         if (json.success) {
             window.cachedPortMapData = json;
@@ -5316,8 +5291,8 @@ function renderPortMap(data) {
 async function loadTopology() {
     try {
         const [netRes, portRes] = await Promise.all([
-            fetch('/dashboard/api/network'),
-            fetch('/dashboard/api/network/port-map')
+            fetch('/tools/system-operations/api/network'),
+            fetch('/tools/system-operations/api/network/port-map')
         ]);
         const netJson = await netRes.json();
         const portJson = await portRes.json();
@@ -5460,7 +5435,7 @@ async function loadBandwidthData() {
 
     // Fetch fresh data
     try {
-        const res = await fetch('/dashboard/api/network/bandwidth');
+        const res = await fetch('/tools/system-operations/api/network/bandwidth');
         const json = await res.json();
         if (json.success) {
             window.cachedBandwidthData = json;
@@ -5766,7 +5741,7 @@ function drawSparkline(ctx, data, width, height, color) {
 // Action Functions
 function killProcess(pid, name) {
     showConfirmModal('Kill Process', `Kill process "${name}" (PID: ${pid})?`, async () => {
-        const res = await fetch(`/dashboard/api/process/${pid}/kill`, {
+        const res = await fetch(`/tools/system-operations/api/process/${pid}/kill`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confirm: true, signal: 'SIGTERM' })
@@ -5820,7 +5795,7 @@ function restartDockerContainer(containerName) {
 
 function serviceAction(name, action) {
     showConfirmModal(`${action.charAt(0).toUpperCase() + action.slice(1)} Service`, `${action} service "${name}"?`, async () => {
-        const res = await fetch(`/dashboard/api/service/${name}/action`, {
+        const res = await fetch(`/tools/system-operations/api/service/${name}/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confirm: true, action })
@@ -5833,7 +5808,7 @@ function serviceAction(name, action) {
 
 function dockerAction(id, action) {
     showConfirmModal(`${action.charAt(0).toUpperCase() + action.slice(1)} Container`, `${action} container "${id.substring(0, 12)}"?`, async () => {
-        const res = await fetch(`/dashboard/api/docker/${id}/action`, {
+        const res = await fetch(`/tools/system-operations/api/docker/${id}/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ confirm: true, action })
@@ -6405,7 +6380,7 @@ async function submitHostCommand(commandType, params, options) {
     var startTime = Date.now();
 
     try {
-        var submitRes = await fetch('/dashboard/api/host-command/submit', {
+        var submitRes = await fetch('/tools/system-operations/api/host-command/submit', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ command_type: commandType, params: params, confirm: true })
@@ -6463,7 +6438,7 @@ async function submitHostCommand(commandType, params, options) {
             }
 
             try {
-                var resultRes = await fetch('/dashboard/api/host-command/' + commandId + '/result');
+                var resultRes = await fetch('/tools/system-operations/api/host-command/' + commandId + '/result');
                 if (resultRes.status === 200) {
                     var resultJson = await resultRes.json();
                     var cmdResult = (resultJson.data && resultJson.data.result) ? resultJson.data.result : {};
@@ -6892,7 +6867,7 @@ async function unmountPartitionsAndPrepareLvm(disk, mountedParts) {
         updateLoadingProgress(`Unmounting ${deviceToUnmount}...`);
 
         try {
-            const res = await fetch('/dashboard/api/host-command/submit', {
+            const res = await fetch('/tools/system-operations/api/host-command/submit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -6923,7 +6898,7 @@ async function unmountPartitionsAndPrepareLvm(disk, mountedParts) {
 
             while (attempts < 30 && !completed) {
                 await new Promise(r => setTimeout(r, 1000));
-                const resultRes = await fetch(`/dashboard/api/host-command/${cmdId}/result`);
+                const resultRes = await fetch(`/tools/system-operations/api/host-command/${cmdId}/result`);
 
                 if (resultRes.status === 200) {
                     const resultJson = await resultRes.json();
@@ -7304,7 +7279,7 @@ function executeCreatePartition() {
 
 async function checkHostCommandQueue() {
     try {
-        var res = await fetch('/dashboard/api/host-command/status');
+        var res = await fetch('/tools/system-operations/api/host-command/status');
         var json = await res.json();
         var el = document.getElementById('host-queue-status');
         if (!el) return;
@@ -7593,7 +7568,7 @@ async function viewComposeFile() {
     lucide.createIcons();
 
     try {
-        const res = await fetch('/dashboard/api/stack/compose');
+        const res = await fetch('/tools/system-operations/api/stack/compose');
         const json = await res.json();
 
         if (json.success) {
@@ -7664,8 +7639,8 @@ async function saveComposeFile() {
     try {
         // Use stack endpoint if in stack context
         const url = currentStackName
-            ? `/dashboard/api/stacks/${currentStackName}/compose`
-            : '/dashboard/api/stack/compose';
+            ? `/tools/system-operations/api/stacks/${currentStackName}/compose`
+            : '/tools/system-operations/api/stack/compose';
         const body = currentStackName
             ? { content }
             : { content, file: currentEditingFile };
@@ -7704,8 +7679,8 @@ function applyComposeChanges() {
             try {
                 // Save file - use stack endpoint if in stack context
                 const saveUrl = currentStackName
-                    ? `/dashboard/api/stacks/${currentStackName}/compose`
-                    : '/dashboard/api/stack/compose';
+                    ? `/tools/system-operations/api/stacks/${currentStackName}/compose`
+                    : '/tools/system-operations/api/stack/compose';
                 const saveBody = currentStackName
                     ? { content }
                     : { content, file: currentEditingFile };
@@ -7734,8 +7709,8 @@ function applyComposeChanges() {
 
                 // Then restart - use stack endpoint if in stack context
                 const restartUrl = currentStackName
-                    ? `/dashboard/api/stacks/${currentStackName}/action`
-                    : '/dashboard/api/docker/compose';
+                    ? `/tools/system-operations/api/stacks/${currentStackName}/action`
+                    : '/tools/system-operations/api/docker/compose';
                 const restartBody = currentStackName
                     ? { action: 'up', confirm: true }
                     : { action: 'up', confirm: true };
@@ -7804,7 +7779,7 @@ async function viewEnvFile(filename) {
     lucide.createIcons();
 
     try {
-        const res = await fetch(`/dashboard/api/stack/env?file=${encodeURIComponent(filename)}`);
+        const res = await fetch(`/tools/system-operations/api/stack/env?file=${encodeURIComponent(filename)}`);
         const json = await res.json();
 
         if (json.success) {
@@ -7894,7 +7869,7 @@ function showStackSubtab(tabName) {
 // NOTE: All data comes from authenticated admin-only API endpoints, not user input.
 async function loadStackDetail(stackName) {
     try {
-        const res = await fetch(`/dashboard/api/stacks/${stackName}`);
+        const res = await fetch(`/tools/system-operations/api/stacks/${stackName}`);
         const json = await res.json();
         if (!json.success) {
             showToast('error', json.error || 'Failed to load stack');
@@ -8009,7 +7984,7 @@ function renderStackContainers(containers) {
 async function loadStackCompose() {
     if (!currentStackName) return;
     try {
-        const res = await fetch(`/dashboard/api/stacks/${currentStackName}/compose`);
+        const res = await fetch(`/tools/system-operations/api/stacks/${currentStackName}/compose`);
         const json = await res.json();
         if (json.success) {
             document.getElementById('detail-compose-path').textContent = json.compose_path || '-';
@@ -8052,7 +8027,7 @@ async function loadStackEnv() {
     const container = document.getElementById('detail-env-files');
     container.innerHTML = '<div class="loading-placeholder">Loading environment files...</div>';
     try {
-        const res = await fetch(`/dashboard/api/stacks/${currentStackName}/env`);
+        const res = await fetch(`/tools/system-operations/api/stacks/${currentStackName}/env`);
         const json = await res.json();
         if (json.success) {
             const envFiles = json.data || [];
@@ -8082,7 +8057,7 @@ async function loadStackLogs() {
     const tail = document.getElementById('stack-log-tail').value;
     output.textContent = 'Loading logs...';
     try {
-        let url = `/dashboard/api/stacks/${currentStackName}/logs?tail=${tail}`;
+        let url = `/tools/system-operations/api/stacks/${currentStackName}/logs?tail=${tail}`;
         if (service) url += `&service=${encodeURIComponent(service)}`;
         const res = await fetch(url);
         const text = await res.text();
@@ -8115,7 +8090,7 @@ async function viewStackCompose() {
     lucide.createIcons();
 
     try {
-        const res = await fetch(`/dashboard/api/stacks/${currentStackName}/compose`);
+        const res = await fetch(`/tools/system-operations/api/stacks/${currentStackName}/compose`);
         const json = await res.json();
         if (json.success) {
             originalComposeContent = json.content;
@@ -8158,7 +8133,7 @@ async function viewStackEnvFile(stackName, filename) {
     lucide.createIcons();
 
     try {
-        const res = await fetch(`/dashboard/api/stacks/${stackName}/env`);
+        const res = await fetch(`/tools/system-operations/api/stacks/${stackName}/env`);
         const json = await res.json();
         if (json.success) {
             // Find the specific env file
@@ -8214,7 +8189,7 @@ function stackAction(action) {
 async function executeStackAction(stackName, action) {
     showToast('success', `Executing ${action} on ${stackName}...`);
     try {
-        const res = await fetch(`/dashboard/api/stacks/${stackName}/action`, {
+        const res = await fetch(`/tools/system-operations/api/stacks/${stackName}/action`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ action, confirm: true })
@@ -8243,7 +8218,7 @@ async function executeStackAction(stackName, action) {
 function deleteStack(stackName) {
     showConfirmModal('Delete Stack', `Are you sure you want to delete stack "${stackName}"? This will stop all containers and remove the stack from management.`, async () => {
         try {
-            const res = await fetch(`/dashboard/api/stacks/${stackName}`, {
+            const res = await fetch(`/tools/system-operations/api/stacks/${stackName}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ confirm: true })
@@ -8391,7 +8366,7 @@ async function createStack() {
     const env_content = document.getElementById('wizard-env').value;
 
     try {
-        const res = await fetch('/dashboard/api/stacks', {
+        const res = await fetch('/tools/system-operations/api/stacks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -8451,8 +8426,8 @@ async function loadFirewallData(retryCount = 0) {
         const fetchTimeout = setTimeout(() => controller.abort(), 35000); // 35s client timeout
 
         const [statusRes, rulesRes] = await Promise.all([
-            fetch('/dashboard/api/firewall/status', { signal: controller.signal }),
-            fetch('/dashboard/api/firewall/rules', { signal: controller.signal })
+            fetch('/tools/system-operations/api/firewall/status', { signal: controller.signal }),
+            fetch('/tools/system-operations/api/firewall/rules', { signal: controller.signal })
         ]);
 
         clearTimeout(fetchTimeout);
@@ -8695,7 +8670,7 @@ async function enableFirewall(retryCount = 0) {
             showToast('info', 'Enabling firewall...');
         }
 
-        const res = await fetch('/dashboard/api/firewall/enable', {
+        const res = await fetch('/tools/system-operations/api/firewall/enable', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -8763,7 +8738,7 @@ async function disableFirewall(retryCount = 0) {
             showToast('info', 'Disabling firewall...');
         }
 
-        const res = await fetch('/dashboard/api/firewall/disable', {
+        const res = await fetch('/tools/system-operations/api/firewall/disable', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -8849,7 +8824,7 @@ async function addFirewallRule() {
 
     try {
         const endpoint = action === 'allow' ? '/api/firewall/allow' : '/api/firewall/deny';
-        const res = await fetch('/dashboard' + endpoint, {
+        const res = await fetch('/tools/system-operations' + endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ port, protocol })
@@ -8909,7 +8884,7 @@ async function updateFirewallRule() {
     showToast('info', 'Updating firewall rule...');
 
     try {
-        const res = await fetch('/dashboard/api/firewall/update', {
+        const res = await fetch('/tools/system-operations/api/firewall/update', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -8956,7 +8931,7 @@ async function deleteFirewallRule() {
     showToast('info', 'Deleting firewall rule #' + ruleNumber + '...');
 
     try {
-        const res = await fetch('/dashboard/api/firewall/delete', {
+        const res = await fetch('/tools/system-operations/api/firewall/delete', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ rule_number: ruleNumber })
@@ -8981,338 +8956,3 @@ async function deleteFirewallRule() {
         showToast('error', 'Error deleting rule: ' + e.message);
     }
 }
-
-
-// ============================================================================
-// Compliance Tab
-// ============================================================================
-
-let complianceHistoryChart = null;
-let complianceLatestScanId = null;
-let complianceAllResults = [];
-
-/**
- * Sanitize a string for safe insertion into HTML.
- * All values are escaped via textContent to prevent XSS.
- */
-function escapeHtmlCompliance(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = String(str);
-    return div.innerHTML;
-}
-
-/**
- * Build a stat-card element safely using DOM APIs (no innerHTML with user data).
- */
-function _buildPackCard(name, score, passed, total) {
-    const card = document.createElement('div');
-    card.className = 'stat-card';
-
-    const header = document.createElement('div');
-    header.className = 'stat-card-header';
-    const title = document.createElement('div');
-    title.className = 'stat-card-title';
-    title.style.fontSize = '0.8rem';
-    title.textContent = name;
-    header.appendChild(title);
-    card.appendChild(header);
-
-    const color = score >= 90 ? 'var(--archie-green)' : score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
-    const val = document.createElement('div');
-    val.className = 'stat-value';
-    val.style.cssText = 'font-size:1.5rem; color:' + color;
-    val.textContent = score + '%';
-    card.appendChild(val);
-
-    const lbl = document.createElement('div');
-    lbl.className = 'stat-label';
-    lbl.textContent = passed + '/' + total + ' passed';
-    card.appendChild(lbl);
-
-    return card;
-}
-
-async function runComplianceScan() {
-    const btn = document.getElementById('complianceScanBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Scanning...'; }
-    showToast('info', 'Compliance scan started... this may take 10-30 seconds.');
-
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scan', {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'
-        });
-        const data = await resp.json();
-        if (data.success) {
-            showToast('success', 'Scan complete: ' + data.score + '% (' + data.passed + '/' + data.total + ' passed)');
-            loadComplianceScores();
-            loadScanHistory();
-        } else {
-            showToast('error', data.error || 'Scan failed');
-        }
-    } catch (e) {
-        showToast('error', 'Scan error: ' + e.message);
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Run Scan'; }
-    }
-}
-
-async function loadComplianceScores() {
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scores');
-        const data = await resp.json();
-        if (!data.success || !data.data) return;
-
-        const d = data.data;
-        complianceLatestScanId = d.scan_id || d.latest_scan_id;
-
-        // Overall score
-        const scoreEl = document.getElementById('compliance-overall-score');
-        const labelEl = document.getElementById('compliance-overall-label');
-        if (scoreEl) {
-            scoreEl.textContent = d.score != null ? d.score.toFixed(1) + '%' : '--';
-            scoreEl.style.color = d.score >= 90 ? 'var(--archie-green)' : d.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
-        }
-        if (labelEl) labelEl.textContent = (d.passed || 0) + '/' + (d.total_rules || 0) + ' passed' + (d.last_scan ? ' | Last: ' + new Date(d.last_scan).toLocaleString() : '');
-
-        // Counts
-        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val != null ? val : '--'; };
-        setVal('compliance-passed', d.passed);
-        setVal('compliance-failed', d.failed);
-        setVal('compliance-errors', d.errors);
-
-        // Pack scores — built with safe DOM APIs
-        const packContainer = document.getElementById('compliance-pack-scores');
-        if (packContainer && d.pack_scores) {
-            packContainer.replaceChildren();
-            for (const [packId, pack] of Object.entries(d.pack_scores)) {
-                packContainer.appendChild(_buildPackCard(pack.name, pack.score, pack.passed, pack.total));
-            }
-        }
-
-        // SOC 2 scores
-        renderSoc2Scores(d.soc2);
-
-        // Load findings
-        if (complianceLatestScanId) loadComplianceResults(complianceLatestScanId);
-
-    } catch (e) {
-        console.error('Failed to load compliance scores:', e);
-    }
-}
-
-function renderSoc2Scores(soc2) {
-    const container = document.getElementById('compliance-soc2-container');
-    if (!container || !soc2) return;
-
-    const criteriaColors = {
-        'Security': '#ef4444', 'Availability': '#22d3ee', 'Processing Integrity': '#fbbf24',
-        'Confidentiality': '#8b5cf6', 'Privacy': '#f472b6'
-    };
-
-    // Build SOC2 display safely using DOM APIs
-    container.replaceChildren();
-
-    // Overall SOC2 score header
-    const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap;';
-    const overallScore = document.createElement('div');
-    overallScore.style.cssText = 'font-size:1.8rem; font-weight:700;';
-    overallScore.style.color = soc2.score >= 90 ? 'var(--archie-green)' : soc2.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
-    overallScore.textContent = soc2.score != null ? soc2.score.toFixed(1) + '%' : '--';
-    headerDiv.appendChild(overallScore);
-    const overallLabel = document.createElement('div');
-    overallLabel.style.cssText = 'color:var(--archie-text-muted); font-size:0.85rem;';
-    overallLabel.textContent = 'SOC 2 Overall';
-    headerDiv.appendChild(overallLabel);
-    container.appendChild(headerDiv);
-
-    // Criteria grid
-    const grid = document.createElement('div');
-    grid.className = 'stats-grid';
-    grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
-    for (const [name, info] of Object.entries(soc2.criteria || {})) {
-        const color = criteriaColors[name] || '#888';
-        const card = document.createElement('div');
-        card.className = 'stat-card';
-        card.style.borderLeft = '3px solid ' + color;
-
-        const ch = document.createElement('div');
-        ch.className = 'stat-card-header';
-        const ct = document.createElement('div');
-        ct.className = 'stat-card-title';
-        ct.style.fontSize = '0.8rem';
-        ct.textContent = name;
-        ch.appendChild(ct);
-        card.appendChild(ch);
-
-        const scoreColor = info.score >= 90 ? 'var(--archie-green)' : info.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
-        const sv = document.createElement('div');
-        sv.className = 'stat-value';
-        sv.style.cssText = 'font-size:1.3rem; color:' + (info.score != null ? scoreColor : 'var(--archie-text-muted)');
-        sv.textContent = info.score != null ? info.score.toFixed(1) + '%' : 'N/A';
-        card.appendChild(sv);
-
-        const sl = document.createElement('div');
-        sl.className = 'stat-label';
-        sl.textContent = info.passed + '/' + info.total + ' controls';
-        card.appendChild(sl);
-
-        grid.appendChild(card);
-    }
-    container.appendChild(grid);
-}
-
-async function loadComplianceResults(scanId) {
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scans/' + encodeURIComponent(scanId));
-        const data = await resp.json();
-        if (!data.success) return;
-
-        complianceAllResults = data.results || [];
-        filterComplianceFindings();
-    } catch (e) {
-        console.error('Failed to load compliance results:', e);
-    }
-}
-
-function filterComplianceFindings() {
-    const severity = document.getElementById('compliance-filter-severity')?.value || '';
-    const status = document.getElementById('compliance-filter-status')?.value || '';
-
-    let filtered = complianceAllResults;
-    if (severity) filtered = filtered.filter(r => r.severity === severity);
-    if (status) filtered = filtered.filter(r => r.status === status);
-
-    const tbody = document.getElementById('compliance-findings-body');
-    if (!tbody) return;
-
-    // Clear existing rows safely
-    tbody.replaceChildren();
-
-    if (filtered.length === 0) {
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 5;
-        td.style.cssText = 'text-align:center; color:var(--archie-text-muted); padding:20px;';
-        td.textContent = 'No findings match the selected filters';
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-        return;
-    }
-
-    const severityColors = { critical: '#ef4444', high: '#f97316', medium: '#fbbf24', low: '#22d3ee' };
-    const statusIcons = { pass: '\u2713', fail: '\u2717', error: '!' };
-
-    filtered.slice(0, 200).forEach(r => {
-        const tr = document.createElement('tr');
-
-        const tdRule = document.createElement('td');
-        tdRule.className = 'mono';
-        tdRule.style.fontSize = '0.8rem';
-        tdRule.textContent = r.rule_id;
-        tr.appendChild(tdRule);
-
-        const tdSev = document.createElement('td');
-        const sevSpan = document.createElement('span');
-        sevSpan.style.cssText = 'text-transform:uppercase; font-size:0.75rem; font-weight:600; color:' + (severityColors[r.severity] || '#888');
-        sevSpan.textContent = r.severity;
-        tdSev.appendChild(sevSpan);
-        tr.appendChild(tdSev);
-
-        const tdStatus = document.createElement('td');
-        const statSpan = document.createElement('span');
-        statSpan.style.fontWeight = '600';
-        statSpan.style.color = r.status === 'pass' ? 'var(--archie-green)' : r.status === 'fail' ? 'var(--archie-red)' : 'var(--archie-yellow)';
-        statSpan.textContent = (statusIcons[r.status] || '?') + ' ' + r.status.toUpperCase();
-        tdStatus.appendChild(statSpan);
-        tr.appendChild(tdStatus);
-
-        const tdPack = document.createElement('td');
-        tdPack.style.fontSize = '0.8rem';
-        tdPack.textContent = r.pack_id;
-        tr.appendChild(tdPack);
-
-        const detail = r.status === 'pass' ? (r.actual_value || 'OK') : (r.details || r.actual_value || '');
-        const tdDetail = document.createElement('td');
-        tdDetail.style.cssText = 'font-size:0.8rem; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
-        tdDetail.title = detail;
-        tdDetail.textContent = detail.substring(0, 100);
-        tr.appendChild(tdDetail);
-
-        tbody.appendChild(tr);
-    });
-}
-
-async function loadScanHistory() {
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scans?limit=20');
-        const data = await resp.json();
-        if (!data.success || !data.scans || data.scans.length === 0) return;
-
-        const scans = data.scans.reverse();
-        const labels = scans.map(s => s.completed_at ? new Date(s.completed_at).toLocaleDateString() : '...');
-        const scores = scans.map(s => s.score || 0);
-
-        const ctx = document.getElementById('complianceHistoryChart');
-        if (!ctx) return;
-
-        if (complianceHistoryChart) complianceHistoryChart.destroy();
-
-        complianceHistoryChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Compliance Score %',
-                    data: scores,
-                    borderColor: '#22d3ee',
-                    backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointBackgroundColor: scores.map(s => s >= 90 ? '#10b981' : s >= 70 ? '#fbbf24' : '#ef4444'),
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { min: 0, max: 100, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { ticks: { color: '#888', maxRotation: 45 }, grid: { display: false } }
-                }
-            }
-        });
-    } catch (e) {
-        console.error('Failed to load scan history:', e);
-    }
-}
-
-async function collectEvidence() {
-    showToast('info', 'Collecting SOC 2 evidence artifacts...');
-    try {
-        const resp = await fetch('/dashboard/api/compliance/evidence/collect', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ scan_id: complianceLatestScanId })
-        });
-        const data = await resp.json();
-        if (data.success) {
-            showToast('success', 'Collected ' + data.collected + ' evidence artifacts');
-        } else {
-            showToast('error', data.error || 'Evidence collection failed');
-        }
-    } catch (e) {
-        showToast('error', 'Evidence error: ' + e.message);
-    }
-}
-
-// Auto-load compliance data when tab is activated
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.tab-btn[data-tab="compliance"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            loadComplianceScores();
-            loadScanHistory();
-        });
-    });
-});

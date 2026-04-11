@@ -6,18 +6,18 @@ from datetime import datetime
 
 from flask import jsonify, request
 from flask_login import login_required, current_user
-
-from ..helpers import (
+from psycopg2.extras import RealDictCursor
+from .helpers import (
     load_host_monitor_data,
     get_db,
     audit_log,
 )
-from ..services.host_command_client import (
+from .host_command_client import (
     submit_and_wait,
     HostCommandTimeout,
     HostCommandQueueUnavailable,
 )
-from ..services.system_service import get_system_service
+from .system_service import get_system_service
 
 
 def register_storage_routes(bp, admin_required_decorator):
@@ -282,7 +282,7 @@ def register_storage_routes(bp, admin_required_decorator):
         Useful when lvextend succeeded but resize2fs failed (e.g., device was busy).
         """
         try:
-            from ..services.host_command_client import (
+            from .host_command_client import (
                 submit_and_wait,
                 is_queue_available,
                 HostCommandTimeout,
@@ -385,7 +385,7 @@ def register_storage_routes(bp, admin_required_decorator):
             managed = {}
             try:
                 conn = get_db()
-                cur = conn.cursor()
+                cur = conn.cursor(cursor_factory=RealDictCursor)
                 cur.execute("SELECT device, label, is_managed FROM storage_mounts WHERE is_managed = TRUE")
                 for row in cur.fetchall():
                     managed[row["device"]] = row
@@ -430,7 +430,7 @@ def register_storage_routes(bp, admin_required_decorator):
         """Get managed storage mounts for Docker bridge"""
         try:
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, device, mount_point, filesystem, label, capacity_gb,
@@ -471,11 +471,11 @@ def register_storage_routes(bp, admin_required_decorator):
                 return jsonify({"success": False, "error": "Device path required"}), 400
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 INSERT INTO storage_mounts (device, mount_point, filesystem, label, capacity_gb, drive_model, is_managed)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (device) DO UPDATE SET
                     mount_point = EXCLUDED.mount_point,
                     filesystem = EXCLUDED.filesystem,
@@ -483,7 +483,8 @@ def register_storage_routes(bp, admin_required_decorator):
                     capacity_gb = EXCLUDED.capacity_gb,
                     drive_model = EXCLUDED.drive_model,
                     is_managed = EXCLUDED.is_managed,
-                    updated_at = datetime('now'), device, mount_point, label
+                    updated_at = NOW()
+                RETURNING id, device, mount_point, label
             """,
                 (
                     device,
@@ -591,7 +592,7 @@ def register_storage_routes(bp, admin_required_decorator):
             import yaml
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute("SELECT name, display_name, compose_directory, color FROM docker_stacks")
             stacks = cur.fetchall()
 

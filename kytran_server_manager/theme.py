@@ -1,5 +1,5 @@
 """
-Kytran System Operations — Theme System
+System Operations — Theme System
 Config-driven theming: load theme.json, merge with defaults, generate CSS vars.
 """
 
@@ -7,41 +7,41 @@ import json
 import os
 
 THEMES_DIR = os.path.join(os.path.dirname(__file__), "themes")
-DEFAULT_THEME = "kytran"
+DEFAULT_THEME = "lcars"
 
 _DEFAULT_CONFIG = {
-    "product_name": "Kytran System Operations",
-    "product_short": "KSO",
-    "logo": "/static/img/kytran-logo.svg",
+    "product_name": "System Operations",
+    "product_short": "SYSOPS",
+    "logo": "/static/img/archie-logo.svg",
     "favicon": "/static/img/favicon.ico",
-    "frame_style": "modern",
+    "frame_style": "lcars",
     "colors": {
-        "accent": "#2563eb",
-        "accent_bright": "#3b82f6",
-        "accent_rgb": "37, 99, 235",
+        "accent": "#00e5ff",
+        "accent_bright": "#4df0ff",
+        "accent_rgb": "0, 229, 255",
         "danger": "#ef4444",
         "success": "#22c55e",
         "warning": "#f59e0b",
-        "bg_void": "#0f172a",
-        "bg_primary": "#1e293b",
-        "bg_secondary": "#334155",
-        "bg_tertiary": "#475569",
-        "text_primary": "#f8fafc",
-        "text_secondary": "#cbd5e1",
-        "text_muted": "#94a3b8",
-        "border_default": "#334155",
+        "bg_void": "#000000",
+        "bg_primary": "#0a0a1a",
+        "bg_secondary": "#1a1a2e",
+        "bg_tertiary": "#2a2a3e",
+        "text_primary": "#e0e0e0",
+        "text_secondary": "#b0b0b0",
+        "text_muted": "#808080",
+        "border_default": "#2a2a3e",
     },
     "fonts": {
-        "heading": "Inter",
-        "body": "Inter",
-        "mono": "JetBrains Mono",
+        "heading": "Orbitron",
+        "body": "IBM Plex Mono",
+        "mono": "IBM Plex Mono",
     },
     "layout": {
-        "border_radius": "8px",
+        "border_radius": "20px",
         "nav_position": "top",
         "sidebar_width": "240px",
     },
-    "custom_css": None,
+    "custom_css": "/static/css/lcars-frames.css",
 }
 
 

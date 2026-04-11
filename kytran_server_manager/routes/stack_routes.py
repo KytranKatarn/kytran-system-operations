@@ -2,14 +2,13 @@
 
 import os
 import json as json_lib
-import sqlite3
 from datetime import datetime
 
 from flask import jsonify, request, Response
 from flask_login import login_required
-
-
-from ..helpers import (
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from .helpers import (
     BASE_DIR,
     get_db,
     audit_log,
@@ -249,7 +248,7 @@ def register_stack_routes(bp, admin_required_decorator):
             import subprocess
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, display_name, description, color, compose_directory,
@@ -422,11 +421,12 @@ def register_stack_routes(bp, admin_required_decorator):
 
             # Insert into database
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 INSERT INTO docker_stacks (name, display_name, description, color, compose_directory, is_system)
-                VALUES (?, ?, ?, ?, ?, FALSE), name, display_name, description, color, compose_directory, is_system, created_at, updated_at
+                VALUES (%s, %s, %s, %s, %s, FALSE)
+                RETURNING id, name, display_name, description, color, compose_directory, is_system, created_at, updated_at
             """,
                 (name, display_name, description, color, stack_dir),
             )
@@ -449,7 +449,7 @@ def register_stack_routes(bp, admin_required_decorator):
 
             return jsonify({"success": True, "data": stack}), 201
 
-        except sqlite3.IntegrityError:
+        except psycopg2.IntegrityError:
             if conn:
                 conn.rollback()
             if cur:
@@ -509,13 +509,13 @@ def register_stack_routes(bp, admin_required_decorator):
             import subprocess
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, display_name, description, color, compose_directory,
                        is_system, created_at, updated_at
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -610,12 +610,12 @@ def register_stack_routes(bp, admin_required_decorator):
             remove_files = data.get("remove_files", False)
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, display_name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -658,7 +658,7 @@ def register_stack_routes(bp, admin_required_decorator):
                     pass  # Best effort stop
 
             # Delete from database
-            cur.execute("DELETE FROM docker_stacks WHERE name = ?", (stack_name,))
+            cur.execute("DELETE FROM docker_stacks WHERE name = %s", (stack_name,))
             conn.commit()
 
             # Optionally remove files
@@ -739,12 +739,12 @@ def register_stack_routes(bp, admin_required_decorator):
 
             # Look up stack from DB
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, display_name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -843,12 +843,12 @@ def register_stack_routes(bp, admin_required_decorator):
             import subprocess
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -942,12 +942,12 @@ def register_stack_routes(bp, admin_required_decorator):
             import yaml
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -1034,12 +1034,12 @@ def register_stack_routes(bp, admin_required_decorator):
         """Get environment files for a stack"""
         try:
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -1107,12 +1107,12 @@ def register_stack_routes(bp, admin_required_decorator):
         """Save an environment file for a stack"""
         try:
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -1200,12 +1200,12 @@ def register_stack_routes(bp, admin_required_decorator):
             import subprocess
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 """
                 SELECT id, name, compose_directory, is_system
                 FROM docker_stacks
-                WHERE name = ?
+                WHERE name = %s
             """,
                 (stack_name,),
             )
@@ -1270,7 +1270,7 @@ def register_stack_routes(bp, admin_required_decorator):
             import subprocess
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
 
             # Get optional filter
             names_filter = request.args.get("names", "")
@@ -1281,7 +1281,7 @@ def register_stack_routes(bp, admin_required_decorator):
                     """
                     SELECT id, name, display_name, color, compose_directory
                     FROM docker_stacks
-                    WHERE name = (?)
+                    WHERE name = ANY(%s)
                     ORDER BY display_name ASC
                     """,
                     (filter_names,),
