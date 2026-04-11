@@ -1,9 +1,33 @@
-version: "3.8"
-
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kytran-sysops-postgres
+    environment:
+      POSTGRES_USER: sysops
+      POSTGRES_DB: sysops
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sysops -d sysops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 200
+    security_opt:
+      - no-new-privileges:true
+
   kytran-system-operations:
     build: .
     container_name: kytran-system-operations
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8085:8085"
     volumes:
@@ -11,11 +35,36 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+    secrets:
+      - db_password
     environment:
       - KSM_SECRET_KEY=change-me-in-production
       - KSM_THEME=kytran
+      - KSM_PORT=8085
+      # Postgres sidecar (see above)
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=sysops
+      - DB_USER=sysops
+      - DB_PASSWORD_FILE=/run/secrets/db_password
+      # ARCHIE hub SSO
       - KYTRAN_CLIENT_ID=kso
       - KYTRAN_AUTH_URL=https://archie.kytranempowerment.com
       - KYTRAN_REDIRECT_URI=https://sysops.kytranempowerment.com/auth/sso/callback
       # KYTRAN_CLIENT_SECRET — set via .env or Docker secret
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8085/health', timeout=3)\" || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    mem_limit: 1g
+    cpus: 2.0
+    pids_limit: 200
+    security_opt:
+      - no-new-privileges:true
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt

@@ -16,8 +16,22 @@ def create_app(config=None):
     app.config.from_object(config or Config)
     os.makedirs(app.config.get("DATA_DIR", Config.DATA_DIR), exist_ok=True)
 
-    # Initialize SQLite
+    # Initialize SQLite (native standalone: users, api_keys, audit, settings)
     init_db(app.config.get("DB_PATH", Config.DB_PATH))
+
+    # Initialize Postgres sidecar (for modules copied from ARCHIE platform).
+    # Graceful fallback: if sidecar is unreachable, log and continue so the
+    # app can still serve auth + landing + compliance scanner features that
+    # don't depend on platform module tables.
+    if os.environ.get("DB_HOST"):
+        try:
+            from .migrations import run_migrations
+            run_migrations()
+            app.logger.info("Postgres schema migrations applied")
+        except Exception as e:
+            app.logger.warning(
+                "Postgres sidecar unavailable — platform module features degraded: %s", e
+            )
 
     # Initialize auth
     login_manager.init_app(app)
