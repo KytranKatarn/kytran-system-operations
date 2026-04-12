@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: '3.11'
       - run: pip install -e .
-      - run: python -c "from kytran_server_manager.app import create_app; app = create_app(); print('App creates OK')"
+      - run: python -c "from kytran_system_operations.app import create_app; app = create_app(); print('App creates OK')"
 
   docker:
     runs-on: ubuntu-latest

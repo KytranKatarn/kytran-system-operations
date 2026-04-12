@@ -1,4 +1,4 @@
-# KSM Access Control Implementation Plan
+# KSO Access Control Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -13,9 +13,9 @@
 ### Task 1: Tier Context Injection
 
 **Files:**
-- Modify: `kytran_server_manager/theme.py` — add tier info to context processor
-- Modify: `kytran_server_manager/auth.py` — set local admin tier on login
-- Modify: `kytran_server_manager/templates/base.html` — add `window.KSM_TIER` JS global
+- Modify: `kytran_system_operations/theme.py` — add tier info to context processor
+- Modify: `kytran_system_operations/auth.py` — set local admin tier on login
+- Modify: `kytran_system_operations/templates/base.html` — add `window.KSO_TIER` JS global
 
 - [ ] **Step 1: Update context processor in theme.py**
 
@@ -62,16 +62,16 @@ if row:
     set_user_tier(row["id"], "pro")
 ```
 
-- [ ] **Step 3: Add window.KSM_TIER to base.html**
+- [ ] **Step 3: Add window.KSO_TIER to base.html**
 
 In `templates/base.html`, before the closing `</head>` tag, add:
 
 ```html
 <script>
-    window.KSM_TIER = "{{ user_tier | default('free') }}";
-    window.KSM_TIER_AT_LEAST = function(minTier) {
+    window.KSO_TIER = "{{ user_tier | default('free') }}";
+    window.KSO_TIER_AT_LEAST = function(minTier) {
         var levels = {free: 0, pro: 1, business: 2, enterprise: 3};
-        return (levels[window.KSM_TIER] || 0) >= (levels[minTier] || 0);
+        return (levels[window.KSO_TIER] || 0) >= (levels[minTier] || 0);
     };
 </script>
 ```
@@ -80,15 +80,15 @@ In `templates/base.html`, before the closing `</head>` tag, add:
 
 Rebuild container, login as admin, open browser console:
 ```
-console.log(window.KSM_TIER)  // Should print "pro"
-console.log(window.KSM_TIER_AT_LEAST('pro'))  // true
-console.log(window.KSM_TIER_AT_LEAST('business'))  // false
+console.log(window.KSO_TIER)  // Should print "pro"
+console.log(window.KSO_TIER_AT_LEAST('pro'))  // true
+console.log(window.KSO_TIER_AT_LEAST('business'))  // false
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add kytran_server_manager/theme.py kytran_server_manager/auth.py kytran_server_manager/templates/base.html
+git add kytran_system_operations/theme.py kytran_system_operations/auth.py kytran_system_operations/templates/base.html
 git commit -m "feat: inject user tier into template context + JS global"
 ```
 
@@ -97,7 +97,7 @@ git commit -m "feat: inject user tier into template context + JS global"
 ### Task 2: Frosted Overlay CSS
 
 **Files:**
-- Modify: `kytran_server_manager/static/css/system-operations.css` — add tier-locked overlay styles
+- Modify: `kytran_system_operations/static/css/system-operations.css` — add tier-locked overlay styles
 
 - [ ] **Step 1: Add frosted overlay CSS**
 
@@ -202,7 +202,7 @@ Add after the `/* --- Modern Frame --- */` section in `system-operations.css`:
 - [ ] **Step 2: Commit**
 
 ```bash
-git add kytran_server_manager/static/css/system-operations.css
+git add kytran_system_operations/static/css/system-operations.css
 git commit -m "style: add frosted teaser overlay CSS for tier gating"
 ```
 
@@ -211,7 +211,7 @@ git commit -m "style: add frosted teaser overlay CSS for tier gating"
 ### Task 3: JS Tier Gating Logic
 
 **Files:**
-- Modify: `kytran_server_manager/static/js/system-operations.js` — add tier overlay logic on tab switch
+- Modify: `kytran_system_operations/static/js/system-operations.js` — add tier overlay logic on tab switch
 
 - [ ] **Step 1: Add tab teaser definitions**
 
@@ -283,7 +283,7 @@ function buildTeaserOverlay(teaser) {
 }
 
 function applyTierGating() {
-    if (window.KSM_TIER_AT_LEAST('pro')) return;
+    if (window.KSO_TIER_AT_LEAST('pro')) return;
 
     Object.keys(TAB_TEASERS).forEach(function(tabName) {
         var tabContent = document.getElementById('tab-' + tabName);
@@ -298,7 +298,7 @@ function applyTierGating() {
 
     // Hide action buttons marked as tier-gated
     document.querySelectorAll('[data-tier-required]').forEach(function(el) {
-        if (!window.KSM_TIER_AT_LEAST(el.dataset.tierRequired)) {
+        if (!window.KSO_TIER_AT_LEAST(el.dataset.tierRequired)) {
             el.classList.add('tier-action-locked');
         }
     });
@@ -315,12 +315,12 @@ applyTierGating();
 
 - [ ] **Step 3: Verify overlays render for free tier**
 
-Set `KSM_TIER_OVERRIDE=free` in docker-compose, rebuild, login. Click Storage tab — should show frosted overlay with "Unlock with Pro" CTA. Dashboard tab should show data without overlay.
+Set `KSO_TIER_OVERRIDE=free` in docker-compose, rebuild, login. Click Storage tab — should show frosted overlay with "Unlock with Pro" CTA. Dashboard tab should show data without overlay.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kytran_server_manager/static/js/system-operations.js
+git add kytran_system_operations/static/js/system-operations.js
 git commit -m "feat: JS tier gating with frosted tab teasers"
 ```
 
@@ -329,10 +329,10 @@ git commit -m "feat: JS tier gating with frosted tab teasers"
 ### Task 4: Server-Side Route Gating
 
 **Files:**
-- Modify: `kytran_server_manager/routes/firewall_routes.py` — gate firewall actions
-- Modify: `kytran_server_manager/routes/process_routes.py` — gate kill actions
-- Modify: `kytran_server_manager/routes/stack_routes.py` — gate stack mutations
-- Modify: `kytran_server_manager/routes/docker_routes.py` — gate docker actions
+- Modify: `kytran_system_operations/routes/firewall_routes.py` — gate firewall actions
+- Modify: `kytran_system_operations/routes/process_routes.py` — gate kill actions
+- Modify: `kytran_system_operations/routes/stack_routes.py` — gate stack mutations
+- Modify: `kytran_system_operations/routes/docker_routes.py` — gate docker actions
 
 - [ ] **Step 1: Add @require_tier to firewall mutation routes**
 
@@ -363,12 +363,12 @@ In `docker_routes.py`, gate container stop/restart/start endpoints with `@requir
 
 - [ ] **Step 5: Verify gating works**
 
-With `KSM_TIER_OVERRIDE=free`, attempt POST to `/dashboard/api/firewall/enable`. Should return 403 JSON with upgrade message.
+With `KSO_TIER_OVERRIDE=free`, attempt POST to `/dashboard/api/firewall/enable`. Should return 403 JSON with upgrade message.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add kytran_server_manager/routes/*.py
+git add kytran_system_operations/routes/*.py
 git commit -m "feat: server-side @require_tier on all action endpoints"
 ```
 
@@ -377,7 +377,7 @@ git commit -m "feat: server-side @require_tier on all action endpoints"
 ### Task 5: Local Admin Pro Default
 
 **Files:**
-- Modify: `kytran_server_manager/auth.py` — auto-set Pro tier for admin users
+- Modify: `kytran_system_operations/auth.py` — auto-set Pro tier for admin users
 
 - [ ] **Step 1: Set Pro tier on admin creation**
 
@@ -410,12 +410,12 @@ if user.is_admin:
 
 - [ ] **Step 3: Verify**
 
-Login as admin, check `window.KSM_TIER` in console — should be `"pro"`.
+Login as admin, check `window.KSO_TIER` in console — should be `"pro"`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kytran_server_manager/auth.py
+git add kytran_system_operations/auth.py
 git commit -m "feat: auto-grant Pro tier to local admin users"
 ```
 
@@ -424,7 +424,7 @@ git commit -m "feat: auto-grant Pro tier to local admin users"
 ### Task 6: Dashboard Consolidation
 
 **Files:**
-- Modify: `kytran_server_manager/templates/dashboard.html` — ensure tab content IDs + remove duplicates
+- Modify: `kytran_system_operations/templates/dashboard.html` — ensure tab content IDs + remove duplicates
 
 - [ ] **Step 1: Audit dashboard for duplicate sections**
 
@@ -445,7 +445,7 @@ Rebuild, navigate each tab, confirm no duplicate sections.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add kytran_server_manager/templates/dashboard.html
+git add kytran_system_operations/templates/dashboard.html
 git commit -m "fix: consolidate dashboard — add tab IDs, remove duplicates"
 ```
 
@@ -454,8 +454,8 @@ git commit -m "fix: consolidate dashboard — add tab IDs, remove duplicates"
 ### Task 7: Compliance Scanner Tab
 
 **Files:**
-- Modify: `kytran_server_manager/templates/dashboard.html` — add tab 9
-- Modify: `kytran_server_manager/static/js/system-operations.js` — compliance tab logic
+- Modify: `kytran_system_operations/templates/dashboard.html` — add tab 9
+- Modify: `kytran_system_operations/static/js/system-operations.js` — compliance tab logic
 
 - [ ] **Step 1: Add Compliance tab button**
 
@@ -479,7 +479,7 @@ Add `loadCompliance()` function fetching from existing `/dashboard/api/complianc
 - [ ] **Step 4: Verify and commit**
 
 ```bash
-git add kytran_server_manager/templates/dashboard.html kytran_server_manager/static/js/system-operations.js
+git add kytran_system_operations/templates/dashboard.html kytran_system_operations/static/js/system-operations.js
 git commit -m "feat: Compliance Scanner tab with tier-gated fix buttons"
 ```
 
@@ -488,7 +488,7 @@ git commit -m "feat: Compliance Scanner tab with tier-gated fix buttons"
 ### Task 8: Landing Page Update
 
 **Files:**
-- Modify: `kytran_server_manager/templates/landing.html`
+- Modify: `kytran_system_operations/templates/landing.html`
 
 - [ ] **Step 1: Update landing page**
 
@@ -497,7 +497,7 @@ Replace content with: product hero, feature highlights (8 tabs + compliance), pr
 - [ ] **Step 2: Verify and commit**
 
 ```bash
-git add kytran_server_manager/templates/landing.html
+git add kytran_system_operations/templates/landing.html
 git commit -m "feat: product landing page with pricing tiers"
 ```
 
@@ -505,7 +505,7 @@ git commit -m "feat: product landing page with pricing tiers"
 
 ### Task 9: Integration Test
 
-- [ ] **Step 1: Test free tier** — `KSM_TIER_OVERRIDE=free`: Dashboard read-only, frosted teasers on tabs 2-8, POST actions return 403
+- [ ] **Step 1: Test free tier** — `KSO_TIER_OVERRIDE=free`: Dashboard read-only, frosted teasers on tabs 2-8, POST actions return 403
 - [ ] **Step 2: Test Pro tier** — Local admin login: all tabs, actions work, 3 themes
 - [ ] **Step 3: Test theme switching** — tier persists across theme changes
 - [ ] **Step 4: Push**

@@ -39,7 +39,7 @@ Repository = "https://github.com/KytranKatarn/kytran-system-operations"
 Documentation = "https://kytranempowerment.com/products"
 
 [tool.setuptools.package-data]
-kytran_server_manager = [
+kytran_system_operations = [
     "static/**/*",
     "templates/**/*",
     "themes/**/*",
@@ -47,4 +47,4 @@ kytran_server_manager = [
 ]
 
 [project.scripts]
-kytran-system-operations = "kytran_server_manager.app:main"
+kytran-system-operations = "kytran_system_operations.app:main"

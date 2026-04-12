@@ -11,9 +11,9 @@ import requests
 import yaml
 
 
-APPS_DIR = os.environ.get("KSM_APPS_DIR", "/opt/archie-fleet/apps")
-HUB_URL = os.environ.get("KSM_HUB_URL", "http://100.64.0.2:3000")
-NODE_TYPE = os.environ.get("KSM_NODE_TYPE", "outpost")
+APPS_DIR = os.environ.get("KSO_APPS_DIR", "/opt/archie-fleet/apps")
+HUB_URL = os.environ.get("KSO_HUB_URL", "http://100.64.0.2:3000")
+NODE_TYPE = os.environ.get("KSO_NODE_TYPE", "outpost")
 CATALOG_CACHE_FILE = os.path.join(APPS_DIR, ".catalog-cache.json")
 CATALOG_CACHE_TTL = 1800  # 30 minutes
 

@@ -1,7 +1,7 @@
-# KSM Access Control & Subscription Gating — Design Spec
+# KSO Access Control & Subscription Gating — Design Spec
 
 **Date:** 2026-04-12
-**Product:** Kytran Server Manager (KSM)
+**Product:** Kytran System Operations (KSO)
 **Reference UI:** Civic Watch / Legal Watch standalone pattern
 
 ---
@@ -19,7 +19,7 @@ KSM has three access modes with a unified tier resolution chain. Features are ga
 | **Kytran Subscriber** | "Sign in with Kytran" OAuth | Per ARCHIE Account Center | Yes, via Stripe billing |
 
 ### Tier Resolution Order
-1. `KSM_TIER_OVERRIDE` env var (internal deployments)
+1. `KSO_TIER_OVERRIDE` env var (internal deployments)
 2. OAuth entitlements from ARCHIE Account Center (SSO users)
 3. Local DB `subscriptions` table (Stripe payment)
 4. Local admin default → **Pro**
@@ -78,7 +78,7 @@ Overlay card contains:
 
 ### 4.4 Technical Implementation
 - Server returns full data regardless of tier (no tier-conditional API queries)
-- JS checks `window.KSM_TIER` and applies `.tier-locked` class to gated sections
+- JS checks `window.KSO_TIER` and applies `.tier-locked` class to gated sections
 - Action API endpoints enforce `@require_tier()` server-side (defense in depth)
 - Template injects `{{ user_tier }}` and `{{ tier_features }}` via context processor
 
@@ -145,7 +145,7 @@ Current state has duplicate sections from the platform module copy. Consolidatio
 |-------|-----------|---------------|
 | **Route decorator** | `@require_tier("pro")` | API actions (kill, firewall, fix) |
 | **Template context** | `{% if user_tier_at_least('pro') %}` | Button rendering |
-| **JS client** | `window.KSM_TIER` | Frosted overlay, disabled buttons |
+| **JS client** | `window.KSO_TIER` | Frosted overlay, disabled buttons |
 | **Middleware** | `require_tier()` in `middleware/tier_gate.py` | Batch route protection |
 
 ## 8. Separate Project: Cross-Product Auth Evaluation
@@ -169,7 +169,7 @@ This should be tracked as its own project in Dev HQ.
 | `static/css/system-operations.css` | Add `.tier-locked-overlay` styles |
 | `static/js/system-operations.js` | Add tier checking + overlay logic |
 | `theme.py` | Inject `user_tier` into template context |
-| `app.py` | Set `window.KSM_TIER` in base template |
+| `app.py` | Set `window.KSO_TIER` in base template |
 | `templates/base.html` | Add tier JS global |
 | `templates/landing.html` | Update with product intro + pricing |
 

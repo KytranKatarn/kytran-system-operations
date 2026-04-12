@@ -343,7 +343,7 @@ def register_compliance_routes(bp, admin_required_decorator):
             return jsonify({
                 "success": False,
                 "triggered": False,
-                "message": "ARCHIE hub not configured — set KSM_ARCHIE_HUB_URL and KSM_ARCHIE_CLIENT_SECRET",
+                "message": "ARCHIE hub not configured — set KSO_ARCHIE_HUB_URL and KSO_ARCHIE_CLIENT_SECRET",
             }), 503
 
         data = request.get_json(silent=True) or {}

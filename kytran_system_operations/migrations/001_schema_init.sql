@@ -9,7 +9,7 @@
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- NOTE on users: the standalone's auth layer uses SQLite (kytran_server_manager/db.py).
+-- NOTE on users: the standalone's auth layer uses SQLite (kytran_system_operations/db.py).
 -- Audit tables below store user_id as a bare INTEGER — no cross-DB FK. Values
 -- reference users.id from the SQLite database.
 -- -----------------------------------------------------------------------------

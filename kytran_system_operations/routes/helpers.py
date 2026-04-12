@@ -1,20 +1,25 @@
 """
-Kytran System Operations — Shared helpers and constants
-=====================================================
-Standalone version adapted from System Operations helpers.
-Uses SQLite instead of PostgreSQL.
+System Operations — Shared helpers and constants
+=================================================
+Extracted from routes.py during ADR-045 route split refactor.
 """
 
 from flask import jsonify, request
 from flask_login import current_user
+from psycopg2.extras import Json
+import psycopg2
 import os
+try:
+    from database import _get_db_password
+except ImportError:
+    from kytran_system_operations.database import _get_db_password
 import json as json_lib
 import time as time_mod
 
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-BASE_DIR = os.environ.get("KSM_BASE_DIR", "/")
+BASE_DIR = os.environ.get("ARCHIE_BASE_DIR", "/mnt/archie_brain")
 HOST_DATA_FILE = os.path.join(BASE_DIR, "host_monitor_data.json")
 
 
@@ -37,14 +42,19 @@ def load_host_monitor_data():
 
 
 # ---------------------------------------------------------------------------
-# Database (SQLite)
+# Database
 # ---------------------------------------------------------------------------
 
 
 def get_db():
-    """Get database connection (SQLite)."""
-    from .db import get_db as _get_db
-    return _get_db()
+    """Get database connection for platform module routes (Postgres sidecar)."""
+    return psycopg2.connect(
+        host=os.getenv("DB_HOST", "postgres"),
+        port=os.getenv("DB_PORT", "5432"),
+        database=os.getenv("DB_NAME", "sysops"),
+        user=os.getenv("DB_USER", "sysops"),
+        password=_get_db_password(),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -59,58 +69,70 @@ def audit_log(
     success: bool = True,
     error_message: str = None,
 ):
-    """Log system operation to audit table (SQLite version)."""
+    """Log system operation to audit table"""
     try:
         conn = get_db()
         cur = conn.cursor()
-        username = getattr(current_user, "username", None) if current_user and hasattr(current_user, "is_authenticated") and current_user.is_authenticated else None
-        ip_addr = request.remote_addr if request else None
         cur.execute(
-            """INSERT INTO audit_log
-            (action_type, target, details, success, error_message, username, ip_address)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """
+            INSERT INTO system_operations_audit
+            (user_id, action_type, target, details, success, error_message, ip_address)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """,
             (
+                current_user.id if current_user.is_authenticated else None,
                 action_type,
                 target,
-                json_lib.dumps(details) if details else None,
-                1 if success else 0,
+                Json(details) if details else None,
+                success,
                 error_message,
-                username,
-                ip_addr,
+                request.remote_addr,
             ),
         )
-        audit_id = cur.lastrowid
+        audit_id = cur.fetchone()[0]
         conn.commit()
-        conn.close()
         return audit_id
     except Exception as e:
         print(f"Audit log error: {e}")
         return None
+    finally:
+        try:
+            cur.close()
+            conn.close()
+        except Exception:
+            pass
 
 
 def record_metric(metric_type: str, value: float, details: dict = None):
-    """Record a system metric for historical tracking (SQLite version)."""
+    """Record a system metric for historical tracking"""
     try:
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
-            """INSERT INTO system_metrics_history (metric_type, value, details)
-            VALUES (?, ?, ?)""",
-            (metric_type, value, json_lib.dumps(details) if details else None),
+            """
+            INSERT INTO system_metrics_history (metric_type, value, details)
+            VALUES (%s, %s, %s)
+        """,
+            (metric_type, value, Json(details) if details else None),
         )
         conn.commit()
 
         # Run cleanup (delete records older than 30 days) - every 100th insert
         import random
+
         if random.randint(1, 100) == 1:
-            cur.execute(
-                "DELETE FROM system_metrics_history WHERE recorded_at < datetime('now', '-30 days')"
-            )
+            cur.execute("SELECT cleanup_old_system_metrics()")
             conn.commit()
 
-        conn.close()
     except Exception as e:
         print(f"Metric recording error: {e}")
+    finally:
+        try:
+            cur.close()
+            conn.close()
+        except Exception:
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -144,7 +166,10 @@ def require_reauth():
 
 
 def parse_compose_host_port(port_entry):
-    """Parse a docker-compose port entry and return the host port as int, or None."""
+    """Parse a docker-compose port entry and return the host port as int, or None.
+    Handles string formats: "3000:3000", "0.0.0.0:3000:3000", "3000:3000/tcp", "3000"
+    and dict format: {"target": 8080, "published": 80, "protocol": "tcp"}
+    """
     if isinstance(port_entry, dict):
         published = port_entry.get("published")
         if published is not None:

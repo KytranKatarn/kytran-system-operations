@@ -118,8 +118,8 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
     environment:
-      - KSM_SECRET_KEY=your-secret-key
-      - KSM_THEME=kytran
+      - KSO_SECRET_KEY=your-secret-key
+      - KSO_THEME=kytran
     restart: unless-stopped
 
 volumes:
@@ -130,12 +130,12 @@ volumes:
 
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
-| `KSM_SECRET_KEY` | `change-me` | Flask secret key |
-| `KSM_PORT` | `8080` | Server port |
-| `KSM_HOST` | `0.0.0.0` | Bind address |
-| `KSM_THEME` | `kytran` | Theme name (`kytran`, `lcars`, `midnight`, `arctic`, `ember`) |
-| `KSM_DATA_DIR` | `~/.kytran-system-operations` | Data directory (SQLite DB) |
-| `KSM_DEBUG` | `false` | Debug mode |
+| `KSO_SECRET_KEY` | `change-me` | Flask secret key |
+| `KSO_PORT` | `8080` | Server port |
+| `KSO_HOST` | `0.0.0.0` | Bind address |
+| `KSO_THEME` | `kytran` | Theme name (`kytran`, `lcars`, `midnight`, `arctic`, `ember`) |
+| `KSO_DATA_DIR` | `~/.kytran-system-operations` | Data directory (SQLite DB) |
+| `KSO_DEBUG` | `false` | Debug mode |
 
 ## Themes
 
@@ -156,7 +156,7 @@ Create a custom theme by adding a JSON file to the `themes/` directory:
 }
 ```
 
-Set `KSM_THEME=mytheme` to use it.
+Set `KSO_THEME=mytheme` to use it.
 
 ## Tech Stack
 

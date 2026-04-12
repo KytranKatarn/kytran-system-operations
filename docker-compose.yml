@@ -45,13 +45,13 @@ services:
     secrets:
       - db_password
     environment:
-      - KSM_SECRET_KEY=${KSM_SECRET_KEY}
-      - KSM_THEME=kytran
-      - KSM_PORT=8085
+      - KSO_SECRET_KEY=${KSO_SECRET_KEY}
+      - KSO_THEME=kytran
+      - KSO_PORT=8085
       - ARCHIE_BASE_DIR=/data
       # Host admin auto-seed (skips first-run setup page)
-      - KSM_ADMIN_USER=admin
-      - KSM_ADMIN_PASSWORD=${KSM_ADMIN_PASSWORD}
+      - KSO_ADMIN_USER=admin
+      - KSO_ADMIN_PASSWORD=${KSO_ADMIN_PASSWORD}
       # Postgres sidecar (see above)
       - DB_HOST=postgres
       - DB_PORT=5432

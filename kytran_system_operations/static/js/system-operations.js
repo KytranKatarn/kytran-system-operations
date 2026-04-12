@@ -77,7 +77,7 @@ function buildTeaserOverlay(teaser) {
 }
 
 function applyTierGating() {
-    if (typeof window.KSM_TIER_AT_LEAST === 'function' && window.KSM_TIER_AT_LEAST('pro')) return;
+    if (typeof window.KSO_TIER_AT_LEAST === 'function' && window.KSO_TIER_AT_LEAST('pro')) return;
 
     Object.keys(TAB_TEASERS).forEach(function(tabName) {
         var tabContent = document.getElementById('tab-' + tabName);
@@ -91,7 +91,7 @@ function applyTierGating() {
     if (typeof lucide !== 'undefined') lucide.createIcons();
 
     document.querySelectorAll('[data-tier-required]').forEach(function(el) {
-        if (typeof window.KSM_TIER_AT_LEAST === 'function' && !window.KSM_TIER_AT_LEAST(el.dataset.tierRequired)) {
+        if (typeof window.KSO_TIER_AT_LEAST === 'function' && !window.KSO_TIER_AT_LEAST(el.dataset.tierRequired)) {
             el.classList.add('tier-action-locked');
         }
     });

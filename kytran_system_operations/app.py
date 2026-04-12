@@ -45,8 +45,8 @@ def create_app(config=None):
     register_auth_routes(app)
 
     # Auto-seed admin from env vars (skip manual setup for host owner)
-    admin_user = os.environ.get("KSM_ADMIN_USER")
-    admin_pass = os.environ.get("KSM_ADMIN_PASSWORD")
+    admin_user = os.environ.get("KSO_ADMIN_USER")
+    admin_pass = os.environ.get("KSO_ADMIN_PASSWORD")
     if admin_user and admin_pass and setup_required():
         from .auth import create_admin
         create_admin(admin_user, admin_pass)

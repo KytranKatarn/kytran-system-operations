@@ -15,17 +15,17 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
     {% block styles %}{% endblock %}
     <script>
-        window.KSM_TIER = "{{ user_tier | default('free') }}";
-        window.KSM_TIER_AT_LEAST = function(minTier) {
+        window.KSO_TIER = "{{ user_tier | default('free') }}";
+        window.KSO_TIER_AT_LEAST = function(minTier) {
             var levels = {free: 0, pro: 1, business: 2, enterprise: 3};
-            return (levels[window.KSM_TIER] || 0) >= (levels[minTier] || 0);
+            return (levels[window.KSO_TIER] || 0) >= (levels[minTier] || 0);
         };
     </script>
     <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-    <nav class="ksm-nav">
-        <a href="/dashboard" class="ksm-nav-brand" style="text-decoration: none; color: inherit;">
+    <nav class="kso-nav">
+        <a href="/dashboard" class="kso-nav-brand" style="text-decoration: none; color: inherit;">
             {% if sysops_theme and sysops_theme.logo %}
             <img src="{{ sysops_theme.logo }}" alt="Logo" style="height: 28px; width: auto;">
             {% else %}
@@ -33,22 +33,22 @@
             {% endif %}
             <span>{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}</span>
         </a>
-        <div class="ksm-nav-links">
+        <div class="kso-nav-links">
             {% if current_user.is_authenticated %}
-            <a href="/settings" class="ksm-nav-user" style="text-decoration: none; cursor: pointer;">
+            <a href="/settings" class="kso-nav-user" style="text-decoration: none; cursor: pointer;">
                 <i class="fas fa-user-circle" style="font-size: 1.3rem;"></i>
                 <span>{{ current_user.display_name or current_user.username }}</span>
             </a>
-            <a href="{{ url_for('logout') }}" class="ksm-nav-link">Logout</a>
+            <a href="{{ url_for('logout') }}" class="kso-nav-link">Logout</a>
             {% endif %}
         </div>
     </nav>
-    <main class="ksm-main">
+    <main class="kso-main">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-        <div class="ksm-flash-container">
+        <div class="kso-flash-container">
             {% for category, message in messages %}
-            <div class="ksm-flash ksm-flash-{{ category }}">{{ message }}</div>
+            <div class="kso-flash kso-flash-{{ category }}">{{ message }}</div>
             {% endfor %}
         </div>
         {% endif %}

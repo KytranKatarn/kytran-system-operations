@@ -13,19 +13,19 @@ RUN groupadd -g ${DOCKER_GID} docker || true \
     && useradd --no-create-home --shell /bin/false -G docker appuser
 
 COPY pyproject.toml README.md LICENSE ./
-COPY kytran_server_manager/ ./kytran_server_manager/
+COPY kytran_system_operations/ ./kytran_system_operations/
 
 RUN pip install --no-cache-dir .
 
 # Set permissions before switching user
 RUN mkdir -p /data && chown appuser:appuser /data \
-    && chown -R appuser:appuser /usr/local/lib/python3.12/site-packages/kytran_server_manager/
+    && chown -R appuser:appuser /usr/local/lib/python3.12/site-packages/kytran_system_operations/
 
 USER appuser
 
-ENV KSM_HOST=0.0.0.0
-ENV KSM_PORT=8085
-ENV KSM_DATA_DIR=/data
+ENV KSO_HOST=0.0.0.0
+ENV KSO_PORT=8085
+ENV KSO_DATA_DIR=/data
 
 EXPOSE 8085
 
