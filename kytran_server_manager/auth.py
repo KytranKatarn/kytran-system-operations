@@ -20,20 +20,33 @@ kytran_auth = KytranAuth()
 
 
 class User(UserMixin):
-    def __init__(self, id, username, role):
+    def __init__(self, id, username, role, display_name=None, email=None):
         self.id = id
         self.username = username
         self.role = role
         self.is_admin = role == "admin"
+        self.display_name = display_name or username
+        self.email = email
 
 
 @login_manager.user_loader
 def load_user(user_id):
     db = get_db()
-    row = db.execute("SELECT id, username, role FROM users WHERE id = ?", (user_id,)).fetchone()
+    # Ensure display_name and email columns exist
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+        db.commit()
+    except Exception:
+        pass
+    try:
+        db.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        db.commit()
+    except Exception:
+        pass
+    row = db.execute("SELECT id, username, role, display_name, email FROM users WHERE id = ?", (user_id,)).fetchone()
     db.close()
     if row:
-        return User(row["id"], row["username"], row["role"])
+        return User(row["id"], row["username"], row["role"], row["display_name"], row["email"])
     return None
 
 
@@ -175,6 +188,29 @@ def register_auth_routes(app):
         db.close()
 
         return jsonify({"success": True, "theme": theme})
+
+    @app.route("/settings/profile", methods=["POST"])
+    @login_required
+    def update_profile():
+        display_name = request.form.get("display_name", "").strip()
+        email = request.form.get("email", "").strip()
+        db = get_db()
+        try:
+            db.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+            db.commit()
+        except Exception:
+            pass
+        try:
+            db.execute("ALTER TABLE users ADD COLUMN email TEXT")
+            db.commit()
+        except Exception:
+            pass
+        db.execute("UPDATE users SET display_name = ?, email = ? WHERE id = ?",
+                   (display_name or None, email or None, current_user.id))
+        db.commit()
+        db.close()
+        flash("Profile updated", "success")
+        return redirect("/settings")
 
     @app.route("/settings/password", methods=["POST"])
     @login_required

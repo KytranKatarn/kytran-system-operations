@@ -121,10 +121,23 @@
     <!-- Account Info -->
     <div class="settings-section">
         <div class="settings-title"><i class="fas fa-user"></i> Account</div>
-        <p style="color: var(--sysops-text-secondary, #cbd5e1);">
-            Username: <strong>{{ current_user.username }}</strong>
-        </p>
-        <p style="color: var(--sysops-text-secondary, #cbd5e1);">
+        <form method="POST" action="/settings/profile" id="profileForm" style="margin-bottom: 16px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 12px;">
+                <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--sysops-text-muted, #94a3b8); margin-bottom: 4px; text-transform: uppercase;">Display Name</label>
+                    <input type="text" name="display_name" value="{{ current_user.display_name or '' }}" placeholder="{{ current_user.username }}"
+                           style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary, #475569); border: 1px solid var(--sysops-border-default, #334155); border-radius: 6px; color: var(--sysops-text-primary, #f8fafc); font-size: 0.95rem;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.8rem; color: var(--sysops-text-muted, #94a3b8); margin-bottom: 4px; text-transform: uppercase;">Email</label>
+                    <input type="email" name="email" value="{{ current_user.email or '' }}" placeholder="you@example.com"
+                           style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary, #475569); border: 1px solid var(--sysops-border-default, #334155); border-radius: 6px; color: var(--sysops-text-primary, #f8fafc); font-size: 0.95rem;">
+                </div>
+            </div>
+            <button type="submit" class="ksm-btn ksm-btn-primary" style="padding: 8px 20px; font-size: 0.85rem;">Update Profile</button>
+        </form>
+        <p style="color: var(--sysops-text-secondary, #cbd5e1); font-size: 0.85rem;">
+            Username: <strong>{{ current_user.username }}</strong> &nbsp;|&nbsp;
             Role: <strong>{{ current_user.role }}</strong>
         </p>
     </div>
