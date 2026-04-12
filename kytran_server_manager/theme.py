@@ -117,6 +117,18 @@ def generate_theme_css(theme):
     lines.append("  --archie-duration-normal: 200ms;")
     lines.append("  --archie-ease-out: ease-out;")
 
+    # Named color aliases used by progress bars, badges, status indicators
+    lines.append("  --archie-green: #22c55e;")
+    lines.append("  --archie-red: #ef4444;")
+    lines.append("  --archie-orange: #f59e0b;")
+    lines.append("  --archie-purple: #8b5cf6;")
+    lines.append("  --archie-blue: #3b82f6;")
+    lines.append("  --archie-yellow: #eab308;")
+    lines.append("  --archie-orange-alpha-10: rgba(245, 158, 11, 0.1);")
+    lines.append("  --archie-red-alpha-10: rgba(239, 68, 68, 0.1);")
+    lines.append("  --archie-green-alpha-10: rgba(34, 197, 94, 0.1);")
+    lines.append("  --archie-accent-bright: " + colors.get("accent_bright", "#4df0ff") + ";")
+
     lines.append("}")
     return "\n".join(lines)
 
