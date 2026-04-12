@@ -2,6 +2,7 @@
 import logging
 import os
 import bcrypt
+from urllib.parse import urlparse
 from flask import request, redirect, render_template, flash, jsonify, url_for
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -20,20 +21,25 @@ kytran_auth = KytranAuth()
 
 
 class User(UserMixin):
-    def __init__(self, id, username, role):
+    def __init__(self, id, username, role, display_name=None, email=None, sso_provider=None):
         self.id = id
         self.username = username
         self.role = role
         self.is_admin = role == "admin"
+        self.display_name = display_name or username
+        self.email = email
+        self.sso_provider = sso_provider
+        self.is_sso = sso_provider is not None and sso_provider != ""
+        self.is_local = not self.is_sso
 
 
 @login_manager.user_loader
 def load_user(user_id):
     db = get_db()
-    row = db.execute("SELECT id, username, role FROM users WHERE id = ?", (user_id,)).fetchone()
+    row = db.execute("SELECT id, username, role, display_name, email, sso_provider FROM users WHERE id = ?", (user_id,)).fetchone()
     db.close()
     if row:
-        return User(row["id"], row["username"], row["role"])
+        return User(row["id"], row["username"], row["role"], row["display_name"], row["email"], row["sso_provider"])
     return None
 
 
@@ -64,7 +70,11 @@ def create_admin(username, password):
     db.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')",
                (username, pw_hash))
     db.commit()
+    row = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     db.close()
+    if row:
+        from .services.subscription_service import set_user_tier
+        set_user_tier(row["id"], "pro")
 
 
 def verify_password(username, password):
@@ -84,9 +94,8 @@ def register_auth_routes(app):
     @app.route("/")
     def splash():
         if current_user.is_authenticated:
-            return redirect(url_for("sysops.index"))
-        sso_enabled = is_hub_configured()
-        return render_template("splash.html", sso_enabled=sso_enabled)
+            return redirect(url_for("system_operations.index"))
+        return render_template("landing.html")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -94,7 +103,14 @@ def register_auth_routes(app):
             user = verify_password(request.form["username"], request.form["password"])
             if user:
                 login_user(user)
-                return redirect(request.args.get("next", "/"))
+                if user.is_admin:
+                    from .services.subscription_service import get_user_tier, set_user_tier
+                    if get_user_tier(user.id) == "free":
+                        set_user_tier(user.id, "pro")
+                next_url = request.args.get("next", "/")
+                if urlparse(next_url).netloc:
+                    next_url = "/"
+                return redirect(next_url)
             flash("Invalid credentials", "error")
         sso_enabled = is_hub_configured()
         return render_template("login.html", sso_enabled=sso_enabled)
@@ -169,6 +185,19 @@ def register_auth_routes(app):
 
         return jsonify({"success": True, "theme": theme})
 
+    @app.route("/settings/profile", methods=["POST"])
+    @login_required
+    def update_profile():
+        display_name = request.form.get("display_name", "").strip()
+        email = request.form.get("email", "").strip()
+        db = get_db()
+        db.execute("UPDATE users SET display_name = ?, email = ? WHERE id = ?",
+                   (display_name or None, email or None, current_user.id))
+        db.commit()
+        db.close()
+        flash("Profile updated", "success")
+        return redirect("/settings")
+
     @app.route("/settings/password", methods=["POST"])
     @login_required
     def change_password():
@@ -230,7 +259,7 @@ def register_auth_routes(app):
         if not is_hub_configured():
             return jsonify({
                 "error": "SSO not yet configured",
-                "message": "Sign in with Kytran requires ARCHIE hub connection. Use local login.",
+                "message": "Connect with Kytran Empowerment requires hub connection. Use local login.",
             }), 501
 
         # SSO requires pro tier (only check if already logged in)
@@ -240,7 +269,7 @@ def register_auth_routes(app):
             if not tier_at_least(tier, "pro"):
                 return render_template("upgrade_required.html",
                     required_tier="pro", current_tier=tier,
-                    feature="Sign in with Kytran (SSO)",
+                    feature="Connect with Kytran Empowerment (SSO)",
                     tier_prices={"pro": 29, "business": 49, "enterprise": 99}), 403
 
         hub_url = app.config["ARCHIE_HUB_URL"].rstrip("/")
@@ -298,15 +327,6 @@ def register_auth_routes(app):
         if row:
             user = User(row["id"], row["username"], row["role"])
         else:
-            # Ensure sso_provider column exists
-            try:
-                db.execute(
-                    "ALTER TABLE users ADD COLUMN sso_provider TEXT DEFAULT NULL"
-                )
-                db.commit()
-            except Exception:
-                pass  # Column already exists
-
             # Create new user from SSO (empty password_hash — authenticates via ARCHIE)
             db.execute(
                 "INSERT INTO users (username, password_hash, role, sso_provider) VALUES (?, '', 'user', 'archie')",
@@ -344,13 +364,6 @@ def register_auth_routes(app):
 
         db = get_db()
         username = userinfo.get("username", "")
-
-        # Ensure sso_provider column exists
-        try:
-            db.execute("ALTER TABLE users ADD COLUMN sso_provider TEXT DEFAULT NULL")
-            db.commit()
-        except Exception:
-            pass  # Column already exists
 
         row = db.execute(
             "SELECT id, username, role FROM users WHERE username = ? AND sso_provider = 'kytran'",

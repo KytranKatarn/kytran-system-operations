@@ -1,23 +1,24 @@
 """Docker Management Routes"""
 
-import json as json_lib
 import os
 import subprocess
 
 from flask import jsonify, request, Response
 from flask_login import login_required
-
-from ..helpers import (
+from psycopg2.extras import RealDictCursor, Json
+from .helpers import (
     BASE_DIR,
     load_host_monitor_data,
     get_db,
     audit_log,
     require_reauth,
 )
-from ..services.system_service import get_system_service
+from .system_service import get_system_service
 
 
 def register_docker_routes(bp, admin_required_decorator):
+    from ..middleware.tier_gate import require_tier
+
     @bp.route("/api/docker")
     @login_required
     @admin_required_decorator
@@ -38,7 +39,10 @@ def register_docker_routes(bp, admin_required_decorator):
         try:
             host_data, host_age = load_host_monitor_data()
             if not host_data:
-                return jsonify({"success": True, "data": [], "stacks": {}, "source": "unavailable"})
+                return (
+                    jsonify({"success": False, "error": "Host monitor data not available"}),
+                    503,
+                )
 
             docker_health = host_data.get("docker_health", [])
 
@@ -98,9 +102,9 @@ def register_docker_routes(bp, admin_required_decorator):
         """Update web UI port definitions for a stack"""
         try:
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
-                "SELECT id, name, is_system FROM docker_stacks WHERE name = ?",
+                "SELECT id, name, is_system FROM docker_stacks WHERE name = %s",
                 (stack_name,),
             )
             stack = cur.fetchone()
@@ -151,8 +155,8 @@ def register_docker_routes(bp, admin_required_decorator):
                     )
 
             cur.execute(
-                "UPDATE docker_stacks SET web_ui_ports = ? WHERE name = ?",
-                (json_lib.dumps(web_ui_ports), stack_name),
+                "UPDATE docker_stacks SET web_ui_ports = %s WHERE name = %s",
+                (Json(web_ui_ports), stack_name),
             )
             conn.commit()
 
@@ -171,6 +175,7 @@ def register_docker_routes(bp, admin_required_decorator):
     @bp.route("/api/docker/<container_id>/action", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_docker_action(container_id):
         """Perform action on a Docker container"""
         try:
@@ -211,6 +216,7 @@ def register_docker_routes(bp, admin_required_decorator):
     @bp.route("/api/docker/compose", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_docker_compose():
         """Execute docker-compose commands"""
         try:

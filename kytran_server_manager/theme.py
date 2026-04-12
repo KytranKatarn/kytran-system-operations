@@ -1,5 +1,5 @@
 """
-Kytran System Operations — Theme System
+System Operations — Theme System
 Config-driven theming: load theme.json, merge with defaults, generate CSS vars.
 """
 
@@ -7,41 +7,41 @@ import json
 import os
 
 THEMES_DIR = os.path.join(os.path.dirname(__file__), "themes")
-DEFAULT_THEME = "kytran"
+DEFAULT_THEME = "lcars"
 
 _DEFAULT_CONFIG = {
-    "product_name": "Kytran System Operations",
-    "product_short": "KSO",
-    "logo": "/static/img/kytran-logo.svg",
+    "product_name": "System Operations",
+    "product_short": "SYSOPS",
+    "logo": "/static/img/archie-logo.svg",
     "favicon": "/static/img/favicon.ico",
-    "frame_style": "modern",
+    "frame_style": "lcars",
     "colors": {
-        "accent": "#2563eb",
-        "accent_bright": "#3b82f6",
-        "accent_rgb": "37, 99, 235",
+        "accent": "#00e5ff",
+        "accent_bright": "#4df0ff",
+        "accent_rgb": "0, 229, 255",
         "danger": "#ef4444",
         "success": "#22c55e",
         "warning": "#f59e0b",
-        "bg_void": "#0f172a",
-        "bg_primary": "#1e293b",
-        "bg_secondary": "#334155",
-        "bg_tertiary": "#475569",
-        "text_primary": "#f8fafc",
-        "text_secondary": "#cbd5e1",
-        "text_muted": "#94a3b8",
-        "border_default": "#334155",
+        "bg_void": "#000000",
+        "bg_primary": "#0a0a1a",
+        "bg_secondary": "#1a1a2e",
+        "bg_tertiary": "#2a2a3e",
+        "text_primary": "#e0e0e0",
+        "text_secondary": "#b0b0b0",
+        "text_muted": "#808080",
+        "border_default": "#2a2a3e",
     },
     "fonts": {
-        "heading": "Inter",
-        "body": "Inter",
-        "mono": "JetBrains Mono",
+        "heading": "Orbitron",
+        "body": "IBM Plex Mono",
+        "mono": "IBM Plex Mono",
     },
     "layout": {
-        "border_radius": "8px",
+        "border_radius": "20px",
         "nav_position": "top",
         "sidebar_width": "240px",
     },
-    "custom_css": None,
+    "custom_css": "/static/css/lcars-frames.css",
 }
 
 
@@ -73,12 +73,62 @@ def load_theme(theme_name=None):
 
 def generate_theme_css(theme):
     lines = [":root {"]
-    for key, value in theme.get("colors", {}).items():
+    colors = theme.get("colors", {})
+    fonts = theme.get("fonts", {})
+    layout = theme.get("layout", {})
+
+    # Standalone --sysops-* tokens
+    for key, value in colors.items():
         lines.append(f"  --sysops-{key.replace('_', '-')}: {value};")
-    for key, value in theme.get("fonts", {}).items():
+    for key, value in fonts.items():
         lines.append(f"  --sysops-font-{key}: '{value}', sans-serif;")
-    for key, value in theme.get("layout", {}).items():
+    for key, value in layout.items():
         lines.append(f"  --sysops-{key.replace('_', '-')}: {value};")
+
+    # Platform-compatible --archie-* aliases (for shared CSS like components.css)
+    lines.append("")
+    lines.append("  /* Platform CSS compatibility aliases */")
+    for key, value in colors.items():
+        lines.append(f"  --archie-{key.replace('_', '-')}: {value};")
+    for key, value in fonts.items():
+        lines.append(f"  --archie-font-{key}: '{value}', sans-serif;")
+    accent_rgb = colors.get("accent_rgb", "0, 229, 255")
+    lines.append(f"  --archie-accent-alpha-10: rgba({accent_rgb}, 0.1);")
+    lines.append(f"  --archie-accent-alpha-20: rgba({accent_rgb}, 0.2);")
+    lines.append(f"  --archie-cyan: {colors.get('accent', '#00e5ff')};")
+
+    # Spacing, radius, typography tokens
+    lines.append("  --archie-space-1: 4px;")
+    lines.append("  --archie-space-2: 8px;")
+    lines.append("  --archie-space-2-5: 10px;")
+    lines.append("  --archie-space-3: 12px;")
+    lines.append("  --archie-space-4: 16px;")
+    lines.append("  --archie-space-5: 20px;")
+    lines.append("  --archie-space-6: 24px;")
+    lines.append("  --archie-radius-sm: 4px;")
+    lines.append("  --archie-radius-md: 8px;")
+    lines.append("  --archie-radius-lg: 12px;")
+    lines.append("  --archie-radius-full: 9999px;")
+    lines.append("  --archie-text-xs: 0.75rem;")
+    lines.append("  --archie-text-sm: 0.875rem;")
+    lines.append("  --archie-text-base: 1rem;")
+    lines.append("  --archie-font-semibold: 600;")
+    lines.append("  --archie-transition-fast: 150ms ease;")
+    lines.append("  --archie-duration-normal: 200ms;")
+    lines.append("  --archie-ease-out: ease-out;")
+
+    # Named color aliases used by progress bars, badges, status indicators
+    lines.append("  --archie-green: #22c55e;")
+    lines.append("  --archie-red: #ef4444;")
+    lines.append("  --archie-orange: #f59e0b;")
+    lines.append("  --archie-purple: #8b5cf6;")
+    lines.append("  --archie-blue: #3b82f6;")
+    lines.append("  --archie-yellow: #eab308;")
+    lines.append("  --archie-orange-alpha-10: rgba(245, 158, 11, 0.1);")
+    lines.append("  --archie-red-alpha-10: rgba(239, 68, 68, 0.1);")
+    lines.append("  --archie-green-alpha-10: rgba(34, 197, 94, 0.1);")
+    lines.append("  --archie-accent-bright: " + colors.get("accent_bright", "#4df0ff") + ";")
+
     lines.append("}")
     return "\n".join(lines)
 
@@ -97,4 +147,19 @@ def init_theme(app):
 
     @app.context_processor
     def inject_sysops_theme():
-        return {"sysops_theme": theme}
+        # Reload theme dynamically so switching takes effect without restart
+        current_name = os.environ.get("SYSOPS_THEME", DEFAULT_THEME)
+        current_theme = load_theme(current_name)
+
+        from flask_login import current_user
+        from .services.subscription_service import get_user_tier, tier_at_least
+
+        user_tier = "free"
+        if current_user and current_user.is_authenticated:
+            user_tier = get_user_tier(current_user.id)
+
+        return {
+            "sysops_theme": current_theme,
+            "user_tier": user_tier,
+            "user_tier_at_least": lambda min_tier: tier_at_least(user_tier, min_tier),
+        }

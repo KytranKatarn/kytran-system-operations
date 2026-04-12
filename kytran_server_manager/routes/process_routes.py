@@ -1,13 +1,16 @@
 """Process & Service Management Routes"""
 
+import re
 from flask import jsonify, request
 from flask_login import login_required, current_user
-from ..helpers import get_db, audit_log, load_host_monitor_data
-from ..services.system_service import get_system_service
-
+from .helpers import get_db, audit_log, load_host_monitor_data
+from .system_service import get_system_service
+from psycopg2.extras import RealDictCursor
 
 
 def register_process_routes(bp, admin_required_decorator):
+    from ..middleware.tier_gate import require_tier
+
     @bp.route("/api/processes")
     @login_required
     @admin_required_decorator
@@ -76,6 +79,7 @@ def register_process_routes(bp, admin_required_decorator):
     @bp.route("/api/process/<int:pid>/kill", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_kill_process(pid):
         """Kill a process"""
         try:
@@ -128,8 +132,11 @@ def register_process_routes(bp, admin_required_decorator):
     @bp.route("/api/service/<service_name>/action", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_service_action(service_name):
         """Perform action on a systemd service"""
+        if not re.match(r'^[a-zA-Z0-9@._-]+$', service_name):
+            return jsonify({"error": "Invalid service name"}), 400
         try:
             data = request.get_json() or {}
 

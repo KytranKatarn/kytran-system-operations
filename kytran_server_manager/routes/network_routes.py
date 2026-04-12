@@ -8,18 +8,18 @@ Endpoints: api_network, api_network_port_map, api_network_bandwidth, api_port_us
 
 from flask import jsonify, request
 from flask_login import login_required
-
+from psycopg2.extras import RealDictCursor
 import os
 import json as json_lib
 
-from ..helpers import (
+from .helpers import (
     BASE_DIR,
     load_host_monitor_data,
     get_db,
     parse_compose_host_port,
     find_compose_file,
 )
-from ..services.system_service import get_system_service
+from .system_service import get_system_service
 
 
 def register_network_routes(bp, admin_required_decorator):
@@ -69,7 +69,7 @@ def register_network_routes(bp, admin_required_decorator):
                 import yaml
 
                 conn = get_db()
-                cur = conn.cursor()
+                cur = conn.cursor(cursor_factory=RealDictCursor)
                 cur.execute("SELECT name, compose_directory, color, web_ui_ports FROM docker_stacks ORDER BY name")
                 stack_rows = cur.fetchall()
                 cur.close()
@@ -127,7 +127,7 @@ def register_network_routes(bp, admin_required_decorator):
             import yaml
 
             conn = get_db()
-            cur = conn.cursor()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute(
                 "SELECT id, name, compose_directory, color, is_system, web_ui_ports FROM docker_stacks ORDER BY name"
             )

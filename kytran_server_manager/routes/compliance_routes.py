@@ -80,6 +80,36 @@ def register_compliance_routes(bp, admin_required_decorator):
             logger.error("Failed to get scan results: %s", exc)
             return jsonify({"error": str(exc)}), 500
 
+    @bp.route("/api/compliance/latest", methods=["GET"])
+    @login_required
+    @admin_required_decorator
+    def compliance_latest_combined():
+        """Get the latest scan summary + its results (used by dashboard JS)."""
+        try:
+            scores = compliance_service.get_latest_scores()
+            if scores is None:
+                return jsonify({"success": False, "message": "No completed scans yet"}), 404
+
+            scan_id = scores.get("scan_id")
+            results = compliance_service.get_scan_results(scan_id) if scan_id else []
+
+            return jsonify({
+                "success": True,
+                "scan": {
+                    "scan_id": scan_id,
+                    "score": scores.get("score", 0),
+                    "passed": scores.get("passed", 0),
+                    "failed": scores.get("failed", 0),
+                    "total_rules": scores.get("total_rules", 0),
+                    "completed_at": scores.get("completed_at"),
+                    "started_at": scores.get("started_at"),
+                },
+                "results": results,
+            })
+        except Exception as exc:
+            logger.error("Failed to get latest compliance data: %s", exc)
+            return jsonify({"success": False, "error": str(exc)}), 500
+
     @bp.route("/api/compliance/scores", methods=["GET"])
     @login_required
     @admin_required_decorator

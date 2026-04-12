@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}Kytran System Operations — Manage Your Server From Anywhere{% endblock %}
+
+{% block styles %}
+<style>
+    /* Hide the default nav for landing page — we use our own */
+    .ksm-nav { display: none; }
+
+    /* Landing nav */
+    .landing-nav {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 16px 32px;
+        border-bottom: 1px solid var(--archie-border, #1e293b);
+        background: var(--archie-bg-primary, #0a0a1a);
+        position: sticky; top: 0; z-index: 100;
+    }
+    .landing-nav-brand {
+        font-family: 'Orbitron', sans-serif;
+        color: var(--archie-accent, #10b981);
+        font-size: 1.1rem; font-weight: 700;
+        text-decoration: none;
+        display: flex; align-items: center; gap: 10px;
+    }
+    .landing-nav-brand i { width: 20px; height: 20px; }
+    .landing-nav-links { display: flex; gap: 12px; align-items: center; }
+    .landing-nav-link {
+        color: var(--archie-text-secondary, #9ca3af);
+        text-decoration: none; font-size: 0.85rem;
+        padding: 6px 12px; border-radius: 4px;
+        transition: color 0.2s;
+    }
+    .landing-nav-link:hover { color: var(--archie-accent, #10b981); }
+    .landing-nav-cta {
+        background: var(--archie-accent, #10b981);
+        color: var(--archie-bg-primary, #000);
+        padding: 8px 20px; text-decoration: none;
+        font-weight: 700; font-size: 0.85rem;
+        border-radius: 4px; transition: opacity 0.2s;
+    }
+    .landing-nav-cta:hover { opacity: 0.85; }
+
+    /* Landing container */
+    .landing { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+    /* Hero */
+    .hero {
+        text-align: center; padding: 80px 16px 60px;
+        border-bottom: 2px solid var(--archie-accent, #10b981);
+    }
+    .hero-kicker {
+        font-size: 0.8rem; color: var(--archie-accent, #10b981);
+        letter-spacing: 4px; text-transform: uppercase; margin-bottom: 12px;
+    }
+    .hero h1 {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 3rem; color: var(--archie-text-primary, #fff);
+        margin-bottom: 8px; line-height: 1.2;
+    }
+    .hero h1 span { color: var(--archie-accent, #10b981); }
+    .hero .subtitle {
+        font-size: 1.1rem; color: var(--archie-text-secondary, #9ca3af);
+        margin: 0 auto 36px; max-width: 640px; line-height: 1.7;
+    }
+    .hero-actions { display: flex; justify-content: center; }
+    .btn-primary {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 16px 36px; background: var(--archie-accent, #10b981);
+        color: var(--archie-bg-primary, #000); text-decoration: none;
+        font-weight: 700; font-size: 1.05rem; border-radius: 6px;
+        transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-primary i { width: 18px; height: 18px; }
+
+    /* Section titles */
+    .section-title {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 1.6rem; color: var(--archie-text-primary, #fff);
+        text-align: center; margin-bottom: 8px;
+    }
+    .section-subtitle {
+        text-align: center; color: var(--archie-text-secondary, #9ca3af);
+        font-size: 0.95rem; margin-bottom: 48px; max-width: 560px; margin-left: auto; margin-right: auto;
+    }
+
+    /* Features */
+    .features-section { padding: 72px 0; }
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    .feature-card {
+        background: var(--archie-bg-secondary, #111827);
+        border: 1px solid var(--archie-border, #1e293b);
+        border-radius: 8px; padding: 28px;
+        transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: var(--archie-accent, #10b981); }
+    .feature-icon {
+        width: 40px; height: 40px;
+        color: var(--archie-accent, #10b981);
+        margin-bottom: 16px;
+    }
+    .feature-card h3 {
+        font-family: 'Orbitron', sans-serif;
+        color: var(--archie-text-primary, #fff);
+        font-size: 0.85rem; margin-bottom: 8px;
+    }
+    .feature-card p {
+        color: var(--archie-text-secondary, #9ca3af);
+        font-size: 0.82rem; line-height: 1.6;
+    }
+
+    /* Pricing */
+    .pricing-section { padding: 72px 0; border-top: 1px solid var(--archie-border, #1e293b); }
+    .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px; align-items: start;
+    }
+    .pricing-card {
+        background: var(--archie-bg-secondary, #111827);
+        border: 1px solid var(--archie-border, #1e293b);
+        border-radius: 10px; padding: 32px 24px;
+        position: relative; transition: border-color 0.2s;
+    }
+    .pricing-card:hover { border-color: var(--archie-accent, #10b981); }
+    .pricing-card.featured {
+        border-color: var(--archie-accent, #10b981);
+        box-shadow: 0 0 24px rgba(16, 185, 129, 0.1);
+    }
+    .pricing-badge {
+        position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+        background: var(--archie-accent, #10b981);
+        color: var(--archie-bg-primary, #000);
+        font-size: 0.7rem; font-weight: 700;
+        padding: 4px 14px; border-radius: 20px;
+        text-transform: uppercase; letter-spacing: 1px;
+    }
+    .pricing-tier {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 0.9rem; color: var(--archie-accent, #10b981);
+        margin-bottom: 8px;
+    }
+    .pricing-price {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 2.2rem; color: var(--archie-text-primary, #fff);
+        margin-bottom: 4px;
+    }
+    .pricing-price span {
+        font-size: 0.85rem; color: var(--archie-text-secondary, #9ca3af);
+        font-family: 'IBM Plex Mono', monospace;
+    }
+    .pricing-desc {
+        color: var(--archie-text-secondary, #9ca3af);
+        font-size: 0.8rem; margin-bottom: 24px; line-height: 1.5;
+    }
+    .pricing-features { list-style: none; padding: 0; margin: 0 0 28px; }
+    .pricing-features li {
+        display: flex; align-items: flex-start; gap: 8px;
+        color: var(--archie-text-secondary, #9ca3af);
+        font-size: 0.8rem; padding: 6px 0;
+        border-bottom: 1px solid var(--archie-border, #1e293b);
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+    .pricing-features li i {
+        width: 16px; height: 16px; flex-shrink: 0;
+        color: var(--archie-accent, #10b981);
+        margin-top: 2px;
+    }
+    .pricing-cta {
+        display: block; text-align: center;
+        padding: 12px; border-radius: 6px;
+        text-decoration: none; font-weight: 700;
+        font-size: 0.85rem; transition: opacity 0.2s;
+    }
+    .pricing-cta-primary {
+        background: var(--archie-accent, #10b981);
+        color: var(--archie-bg-primary, #000);
+    }
+    .pricing-cta-outline {
+        border: 1px solid var(--archie-accent, #10b981);
+        color: var(--archie-accent, #10b981);
+        background: transparent;
+    }
+    .pricing-cta:hover { opacity: 0.85; }
+
+    /* Footer */
+    .landing-footer {
+        text-align: center; padding: 40px 0;
+        border-top: 1px solid var(--archie-border, #1e293b);
+        color: var(--archie-text-muted, #6b7280);
+        font-size: 0.8rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .pricing-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+        .hero h1 { font-size: 2rem; }
+        .features-grid { grid-template-columns: repeat(2, 1fr); }
+        .pricing-grid { grid-template-columns: 1fr; max-width: 400px; margin: 0 auto; }
+        .landing-nav { padding: 12px 16px; }
+    }
+    @media (max-width: 480px) {
+        .hero { padding: 48px 8px 40px; }
+        .hero h1 { font-size: 1.6rem; }
+        .features-grid { grid-template-columns: 1fr; }
+        .btn-primary { width: 100%; justify-content: center; }
+        .landing-nav-link { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Landing Nav (replaces hidden base nav) -->
+<nav class="landing-nav">
+    <a href="/" class="landing-nav-brand">
+        <i data-lucide="server"></i>
+        Kytran System Operations
+    </a>
+    <div class="landing-nav-links">
+        <a href="#features" class="landing-nav-link">Features</a>
+        <a href="#pricing" class="landing-nav-link">Pricing</a>
+        <a href="/login" class="landing-nav-cta"><img src="/static/img/kytran-logo.svg" alt="" style="height: 16px; width: auto; vertical-align: middle; margin-right: 6px;">Connect with Kytran Empowerment</a>
+    </div>
+</nav>
+
+<div class="landing">
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-kicker">Kytran Empowerment</div>
+        <h1>SERVER <span>MANAGER</span></h1>
+        <p class="subtitle">
+            Manage your server from anywhere. Monitor hardware, control Docker containers,
+            enforce firewall rules, and run compliance scans.
+        </p>
+        <div class="hero-actions">
+            <a href="/login" class="btn-primary">
+                <img src="/static/img/kytran-logo.svg" alt="" style="height: 20px; width: auto; vertical-align: middle; margin-right: 8px;">
+                Connect with Kytran Empowerment
+            </a>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features-section" id="features">
+        <h2 class="section-title">Everything You Need</h2>
+        <p class="section-subtitle">Nine purpose-built tabs to monitor, manage, and secure your infrastructure.</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <i data-lucide="layout-dashboard" class="feature-icon"></i>
+                <h3>Dashboard</h3>
+                <p>Real-time system overview with CPU, memory, disk, and uptime at a glance. The command center for your server.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="hard-drive" class="feature-icon"></i>
+                <h3>Storage</h3>
+                <p>Monitor disk usage, partitions, mount points, and I/O performance. Spot capacity issues before they hit.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="cpu" class="feature-icon"></i>
+                <h3>Hardware</h3>
+                <p>Detailed CPU, GPU, and motherboard information. Track temperatures, clock speeds, and hardware health.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="memory-stick" class="feature-icon"></i>
+                <h3>Memory</h3>
+                <p>RAM and swap usage breakdown. Identify memory-hungry processes and optimize allocation.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="activity" class="feature-icon"></i>
+                <h3>Processes</h3>
+                <p>Live process list with resource consumption. Sort, filter, and manage running services.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="container" class="feature-icon"></i>
+                <h3>Docker</h3>
+                <p>Container management with start, stop, restart, and log viewing. Monitor images and resource limits.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="network" class="feature-icon"></i>
+                <h3>Network</h3>
+                <p>Interface stats, active connections, bandwidth monitoring, and routing tables. Full network visibility.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="shield" class="feature-icon"></i>
+                <h3>Firewall</h3>
+                <p>UFW rule management with add, remove, and status controls. Lock down your server with precision.</p>
+            </div>
+            <div class="feature-card">
+                <i data-lucide="clipboard-check" class="feature-icon"></i>
+                <h3>Compliance</h3>
+                <p>Automated scanning against STIG, CIS, HIPAA, and SOC 2 rule packs with remediation guidance and PDF reports.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing -->
+    <section class="pricing-section" id="pricing">
+        <h2 class="section-title">Simple, Transparent Pricing</h2>
+        <p class="section-subtitle">Start free. Scale when you need to.</p>
+
+        <div class="pricing-grid">
+            <!-- Free -->
+            <div class="pricing-card">
+                <div class="pricing-tier">Free</div>
+                <div class="pricing-price">$0</div>
+                <div class="pricing-desc">Get started with read-only monitoring.</div>
+                <ul class="pricing-features">
+                    <li><i data-lucide="check"></i> Read-only dashboard</li>
+                    <li><i data-lucide="check"></i> System health overview</li>
+                    <li><i data-lucide="check"></i> 1 compliance scan pack</li>
+                    <li><i data-lucide="check"></i> Default theme</li>
+                    <li><i data-lucide="check"></i> Community support</li>
+                </ul>
+                <a href="/login" class="pricing-cta pricing-cta-outline">Start Free</a>
+            </div>
+
+            <!-- Pro -->
+            <div class="pricing-card featured">
+                <div class="pricing-badge">Most Popular</div>
+                <div class="pricing-tier">Pro</div>
+                <div class="pricing-price">$29 <span>/mo</span></div>
+                <div class="pricing-desc">Full control with all 9 management tabs.</div>
+                <ul class="pricing-features">
+                    <li><i data-lucide="check"></i> All 9 tabs unlocked</li>
+                    <li><i data-lucide="check"></i> Actions enabled (start, stop, restart)</li>
+                    <li><i data-lucide="check"></i> 3 compliance scan packs</li>
+                    <li><i data-lucide="check"></i> 3 themes</li>
+                    <li><i data-lucide="check"></i> Email support</li>
+                </ul>
+                <a href="/login" class="pricing-cta pricing-cta-primary">Upgrade to Pro</a>
+            </div>
+
+            <!-- Business -->
+            <div class="pricing-card">
+                <div class="pricing-tier">Business</div>
+                <div class="pricing-price">$49 <span>/mo</span></div>
+                <div class="pricing-desc">Advanced compliance and full customization.</div>
+                <ul class="pricing-features">
+                    <li><i data-lucide="check"></i> Everything in Pro</li>
+                    <li><i data-lucide="check"></i> All 5 compliance packs</li>
+                    <li><i data-lucide="check"></i> PDF compliance reports</li>
+                    <li><i data-lucide="check"></i> All 5 themes</li>
+                    <li><i data-lucide="check"></i> Priority support</li>
+                </ul>
+                <a href="/login" class="pricing-cta pricing-cta-outline">Choose Business</a>
+            </div>
+
+            <!-- Enterprise -->
+            <div class="pricing-card">
+                <div class="pricing-tier">Enterprise</div>
+                <div class="pricing-price">$99 <span>/mo</span></div>
+                <div class="pricing-desc">AI-powered management and monitoring.</div>
+                <ul class="pricing-features">
+                    <li><i data-lucide="check"></i> Everything in Business</li>
+                    <li><i data-lucide="check"></i> A.R.C.H.I.E. AI integration</li>
+                    <li><i data-lucide="check"></i> Real-time monitoring alerts</li>
+                    <li><i data-lucide="check"></i> Custom rule packs</li>
+                    <li><i data-lucide="check"></i> Dedicated support</li>
+                </ul>
+                <a href="/login" class="pricing-cta pricing-cta-outline">Contact Sales</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="landing-footer">
+        &copy; 2026 Kytran Empowerment Inc. &mdash; Kytran System Operations
+    </footer>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+</script>
+{% endblock %}

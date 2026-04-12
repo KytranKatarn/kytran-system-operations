@@ -7,8 +7,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     procps \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd --no-create-home --shell /bin/false appuser
+# Create non-root user with docker group access (GID must match host's docker socket)
+ARG DOCKER_GID=988
+RUN groupadd -g ${DOCKER_GID} docker || true \
+    && useradd --no-create-home --shell /bin/false -G docker appuser
 
 COPY pyproject.toml README.md LICENSE ./
 COPY kytran_server_manager/ ./kytran_server_manager/

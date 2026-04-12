@@ -1,71 +1,73 @@
 {% extends "base.html" %}
+
 {% block title %}{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
+{% block module_name %}system-operations{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/lcars-frames.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/system-operations.css') }}">
-<style>
-.compliance-summary-bar{display:flex;align-items:center;gap:12px;padding:8px 16px;margin-bottom:12px;background:rgba(0,229,255,.04);border:1px solid rgba(0,229,255,.15);border-radius:6px;flex-wrap:wrap;min-height:40px}
-.compliance-label{font-family:'Orbitron','Antonio',sans-serif;font-size:11px;font-weight:700;color:#8899aa;letter-spacing:1.5px;white-space:nowrap}
-.compliance-score{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;padding:2px 10px;border-radius:4px;white-space:nowrap}
-.compliance-score.score-green{color:#22c55e;background:rgba(34,197,94,.1)}
-.compliance-score.score-amber{color:#f59e0b;background:rgba(245,158,11,.1)}
-.compliance-score.score-red{color:#ef4444;background:rgba(239,68,68,.1)}
-.compliance-score.score-none{color:#64748b;background:rgba(100,116,139,.1)}
-.compliance-packs{display:flex;gap:8px;flex-wrap:wrap;flex:1}
-.compliance-pack-badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:12px;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px}
-.compliance-pack-badge.badge-green{color:#22c55e;background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.25)}
-.compliance-pack-badge.badge-amber{color:#f59e0b;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25)}
-.compliance-pack-badge.badge-red{color:#ef4444;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25)}
-.compliance-scan-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;font-size:12px;font-weight:600;color:#00e5ff;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.3);border-radius:4px;cursor:pointer;transition:all .2s;white-space:nowrap;margin-left:auto}
-.compliance-scan-btn:hover{background:rgba(0,229,255,.15)}
-.compliance-scan-btn:disabled{opacity:.5;cursor:not-allowed}
-@media(max-width:768px){.compliance-summary-bar{gap:8px;padding:8px 12px}.compliance-scan-btn{margin-left:0}}
-</style>
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/lcars-panels.css">
+{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+<link rel="stylesheet" href="/static/css/lcars-frames.css">
+<link rel="stylesheet" href="/static/css/admin-ops.css">
+{% endif %}
+<link rel="stylesheet" href="/static/css/system-operations.css">
 {% endblock %}
 
 {% block content %}
-<div class="ksm-dashboard">
-    <!-- LCARS Frame Structure (matches A.R.C.H.I.E. admin modules) -->
-    <div class="lcars-frame frame-build">
-        <!-- Left Sidebar -->
+<div class="sysops-container" data-module="system-operations">
+    {# Category Navigation — Admin Tools #}
+    {% set cat_accent = "#f97316" %}
+    {% set cat_accent_rgb = "249,115,22" %}
+    {% set cat_accent_light = "#ea580c" %}
+    {% set cat_label = "ADMIN TOOLS" %}
+    {% set cat_icon = "settings-2" %}
+    {% set cat_modules = [
+        {'url': url_for('system_operations.index'), 'endpoint_prefix': 'system_operations', 'icon': 'server', 'label': 'System Ops', 'title': 'System Operations'}
+    ] %}
+
+    {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+    <div class="lcars-frame">
         <div class="lcars-sidebar">
             <div class="lcars-elbow-top"></div>
-            <div class="lcars-seg" style="--seg-color: #2563eb"></div>
-            <div class="lcars-seg" style="--seg-color: #00e5ff"></div>
-            <div class="lcars-seg" style="--seg-color: #2563eb"></div>
-            <div class="lcars-seg" style="--seg-color: #1d4ed8"></div>
-            <div class="lcars-seg-light" style="--seg-color: #00e5ff"></div>
+            <div class="lcars-seg sysops-seg-red"></div>
+            <div class="lcars-seg sysops-seg-amber"></div>
+            <div class="lcars-seg sysops-seg-red"></div>
+            <div class="lcars-seg sysops-seg-danger"></div>
             <div class="lcars-seg-fill"></div>
             <div class="lcars-elbow-bottom"></div>
         </div>
-        <!-- Right Content Column -->
         <div class="lcars-content">
-            <!-- Header Bar -->
             <div class="lcars-bar">
-                <span class="lcars-bar-title">{{ sysops_theme.product_name if sysops_theme else 'KYTRAN SYSTEM OPERATIONS' }}</span>
+                <span class="lcars-bar-title">SYSTEM OPERATIONS</span>
                 <div class="lcars-bar-spacer"></div>
                 <div class="lcars-pips">
-                    <div class="lcars-pip" style="width: 24px"></div>
-                    <div class="lcars-pip" style="width: 16px"></div>
-                    <div class="lcars-pip" style="width: 32px"></div>
+                    <span class="lcars-pip sysops-pip-20"></span>
+                    <span class="lcars-pip sysops-pip-35"></span>
+                    <span class="lcars-pip sysops-pip-14"></span>
                 </div>
-                <span class="lcars-bar-status">SYSOPS</span>
+                <span class="lcars-bar-status">SYS OPS</span>
             </div>
-            <!-- Content Body -->
             <div class="lcars-body">
+    {% else %}
+    <div class="modern-frame">
+        <div class="modern-header">
+            <h2 class="modern-title">{{ sysops_theme.product_name if sysops_theme else 'System Operations' }}</h2>
+            <span class="modern-badge">{{ sysops_theme.product_short if sysops_theme else 'KSM' }}</span>
+        </div>
+        <div class="modern-body">
+    {% endif %}
                 <!-- Controls -->
-                <div class="header-controls" style="justify-content: flex-start; margin-bottom: 16px; padding: 0; border: none;">
+                <div class="header-controls sysops-header-controls">
                     <div class="auto-refresh-toggle">
                         <input type="checkbox" id="autoRefresh" checked>
                         <label for="autoRefresh"><span data-i18n="system_operations.auto_refresh_5s">Auto-refresh (5s)</span></label>
                     </div>
-                    <div class="live-indicator" id="liveIndicator" style="display: none;">
+                    <div class="live-indicator sysops-hidden" id="liveIndicator">
                         <span class="dot"></span>
                         <span><span data-i18n="system_operations.live">LIVE</span></span>
                     </div>
                     <button class="refresh-btn" onclick="refreshAll()">
-                        <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                        <i data-lucide="refresh-cw" class="sysops-icon-14"></i>
                         Refresh
                     </button>
                 </div>
@@ -80,50 +82,43 @@
                     </div>
                 </div>
 
-                <!-- Compliance Summary Bar -->
-                <div class="compliance-summary-bar" id="complianceSummaryBar">
-                    <span class="compliance-label">COMPLIANCE</span>
-                    <span class="compliance-score" id="complianceScore" title="Overall compliance score">--</span>
-                    <div class="compliance-packs" id="compliancePacks"></div>
-                    <button class="compliance-scan-btn" id="complianceScanBtn" onclick="triggerComplianceScan()" title="Run compliance scan">
-                        <i data-lucide="shield-check" style="width:14px;height:14px;"></i>
-                        Run Scan
-                    </button>
-                </div>
-
                 <!-- Tab Navigation -->
     <div class="tab-nav">
         <button class="tab-btn active" data-tab="dashboard">
-            <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="layout-dashboard" class="sysops-icon-16"></i>
             Dashboard
         </button>
         <button class="tab-btn" data-tab="storage">
-            <i data-lucide="hard-drive" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="hard-drive" class="sysops-icon-16"></i>
             Storage
         </button>
         <button class="tab-btn" data-tab="hardware">
-            <i data-lucide="server" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="server" class="sysops-icon-16"></i>
             Hardware
         </button>
         <button class="tab-btn" data-tab="memory">
-            <i data-lucide="memory-stick" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="memory-stick" class="sysops-icon-16"></i>
             Memory
         </button>
         <button class="tab-btn" data-tab="processes">
-            <i data-lucide="cpu" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="cpu" class="sysops-icon-16"></i>
             Processes
         </button>
         <button class="tab-btn" data-tab="docker">
-            <i data-lucide="container" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="container" class="sysops-icon-16"></i>
             Docker
         </button>
         <button class="tab-btn" data-tab="network">
-            <i data-lucide="network" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="network" class="sysops-icon-16"></i>
             Network
         </button>
         <button class="tab-btn" data-tab="firewall">
-            <i data-lucide="shield" style="width: 16px; height: 16px;"></i>
+            <i data-lucide="shield" class="sysops-icon-16"></i>
             Firewall
+        </button>
+        <button class="tab-btn" data-tab="compliance">
+            <i data-lucide="shield-check" class="sysops-icon-16"></i>
+            Compliance
         </button>
     </div>
 
@@ -133,35 +128,35 @@
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-title">
-                        <i data-lucide="cpu" style="width: 20px; height: 20px;"></i>
+                        <i data-lucide="cpu" class="sysops-icon-20"></i>
                         CPU Usage
                     </div>
-                    <span id="cpu-temp" class="stat-badge" style="display: none;" title="CPU Temperature">
-                        <i data-lucide="thermometer" style="width: 12px; height: 12px;"></i>
+                    <span id="cpu-temp" class="stat-badge sysops-hidden" title="CPU Temperature">
+                        <i data-lucide="thermometer" class="sysops-icon-12"></i>
                         <span id="cpu-temp-value">--</span>
                     </span>
                 </div>
                 <!-- CPU 0 -->
-                <div class="stat-subtitle" style="font-size: 0.7rem; color: var(--sysops-text-muted); margin-bottom: 2px;"><span data-i18n="system_operations.cpu_0">CPU 0</span></div>
-                <div class="stat-value" id="cpu-value" style="font-size: 1.8rem;">--</div>
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.cpu_0">CPU 0</span></div>
+                <div class="stat-value sysops-text-xl" id="cpu-value">--</div>
                 <div class="stat-subtitle" id="cpu-model"><span data-i18n="system_operations.loading">Loading...</span></div>
                 <div class="progress-bar">
                     <div class="progress-fill green" id="cpu-bar" style="width: 0%"></div>
                 </div>
-                <div class="stat-subtitle" style="margin-top: 4px; font-size: 0.75rem;"><span data-i18n="system_operations.load">Load: </span><span id="cpu-load">--</span></div>
+                <div class="stat-subtitle sysops-stat-footer"><span data-i18n="system_operations.load">Load: </span><span id="cpu-load">--</span></div>
                 <!-- CPU 1 Divider -->
-                <div style="border-top: 1px dashed var(--sysops-border); margin: 10px 0 8px 0;"></div>
-                <div class="stat-subtitle" style="font-size: 0.7rem; color: var(--sysops-text-muted); margin-bottom: 2px;"><span data-i18n="system_operations.cpu_1">CPU 1</span></div>
+                <div class="sysops-divider"></div>
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.cpu_1">CPU 1</span></div>
                 <div id="cpu1-container">
-                    <div class="stat-value" id="cpu1-value" style="font-size: 1.4rem; color: var(--sysops-text-muted);"><span data-i18n="system_operations.unavailable">Unavailable</span></div>
-                    <div class="stat-subtitle" id="cpu1-model" style="font-size: 0.75rem;"><span data-i18n="system_operations.no_second_cpu_detected">No second CPU detected</span></div>
+                    <div class="stat-value sysops-text-2xl-muted" id="cpu1-value"><span data-i18n="system_operations.unavailable">Unavailable</span></div>
+                    <div class="stat-subtitle sysops-text-xs" id="cpu1-model"><span data-i18n="system_operations.no_second_cpu_detected">No second CPU detected</span></div>
                 </div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-title">
-                        <i data-lucide="memory-stick" style="width: 20px; height: 20px;"></i>
+                        <i data-lucide="memory-stick" class="sysops-icon-20"></i>
                         Memory Usage
                     </div>
                 </div>
@@ -170,25 +165,25 @@
                 <div class="progress-bar">
                     <div class="progress-fill green" id="mem-bar" style="width: 0%"></div>
                 </div>
-                <div class="stat-subtitle" style="margin-top: 4px; font-size: 0.75rem;"><span data-i18n="system_operations.swap">Swap: </span><span id="mem-swap">--</span></div>
+                <div class="stat-subtitle sysops-stat-footer"><span data-i18n="system_operations.swap">Swap: </span><span id="mem-swap">--</span></div>
                 <!-- DIMM Hardware Info -->
-                <div style="border-top: 1px dashed var(--sysops-border); margin: 10px 0 8px 0;"></div>
-                <div class="stat-subtitle" style="font-size: 0.7rem; color: var(--sysops-text-muted); margin-bottom: 4px;"><span data-i18n="system_operations.hardware">Hardware</span></div>
-                <div id="mem-hw-summary" style="font-size: 0.75rem; line-height: 1.4;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.dimms">DIMMs:</span></span>
+                <div class="sysops-divider"></div>
+                <div class="stat-subtitle sysops-sublabel sysops-mb-4"><span data-i18n="system_operations.hardware">Hardware</span></div>
+                <div id="mem-hw-summary" class="sysops-hw-detail">
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.dimms">DIMMs:</span></span>
                         <span id="dash-mem-dimms">--</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.type">Type:</span></span>
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.type">Type:</span></span>
                         <span id="dash-mem-type">--</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.speed">Speed:</span></span>
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.speed">Speed:</span></span>
                         <span id="dash-mem-speed">--</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.config">Config:</span></span>
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.config">Config:</span></span>
                         <span id="dash-mem-channels">--</span>
                     </div>
                 </div>
@@ -197,47 +192,47 @@
             <div class="stat-card" id="gpu-card">
                 <div class="stat-card-header">
                     <div class="stat-card-title">
-                        <i data-lucide="monitor" style="width: 20px; height: 20px;"></i>
+                        <i data-lucide="monitor" class="sysops-icon-20"></i>
                         GPU VRAM
                     </div>
-                    <span id="gpu-temp" class="stat-badge" style="display: none;" title="GPU Temperature">
-                        <i data-lucide="thermometer" style="width: 12px; height: 12px;"></i>
+                    <span id="gpu-temp" class="stat-badge sysops-hidden" title="GPU Temperature">
+                        <i data-lucide="thermometer" class="sysops-icon-12"></i>
                         <span id="gpu-temp-value">--</span>
                     </span>
                 </div>
                 <!-- GPU 0 -->
-                <div class="stat-subtitle" style="font-size: 0.7rem; color: var(--sysops-text-muted); margin-bottom: 2px;"><span data-i18n="system_operations.gpu_0">GPU 0</span></div>
-                <div class="stat-value" id="gpu-value" style="font-size: 1.8rem;">--</div>
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.gpu_0">GPU 0</span></div>
+                <div class="stat-value sysops-text-xl" id="gpu-value">--</div>
                 <div class="stat-subtitle" id="gpu-model"><span data-i18n="system_operations.checking">Checking...</span></div>
                 <div class="progress-bar">
                     <div class="progress-fill green" id="gpu-bar" style="width: 0%"></div>
                 </div>
-                <div class="stat-subtitle" style="margin-top: 4px; font-size: 0.75rem;"><span data-i18n="system_operations.vram">VRAM: </span><span id="gpu-vram">--</span></div>
+                <div class="stat-subtitle sysops-stat-footer"><span data-i18n="system_operations.vram">VRAM: </span><span id="gpu-vram">--</span></div>
                 <div class="stat-subtitle" style="margin-top: 2px; font-size: 0.75rem;"><span data-i18n="system_operations.compute">Compute: </span><span id="gpu-compute">--</span></div>
                 <!-- GPU 1 Divider -->
-                <div style="border-top: 1px dashed var(--sysops-border); margin: 10px 0 8px 0;"></div>
-                <div class="stat-subtitle" style="font-size: 0.7rem; color: var(--sysops-text-muted); margin-bottom: 2px;"><span data-i18n="system_operations.gpu_1">GPU 1</span></div>
+                <div class="sysops-divider"></div>
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.gpu_1">GPU 1</span></div>
                 <div id="gpu1-container">
-                    <div class="stat-value" id="gpu1-value" style="font-size: 1.4rem; color: var(--sysops-text-muted);"><span data-i18n="system_operations.unavailable_2">Unavailable</span></div>
-                    <div class="stat-subtitle" id="gpu1-model" style="font-size: 0.75rem;"><span data-i18n="system_operations.no_second_gpu_detected">No second GPU detected</span></div>
+                    <div class="stat-value sysops-text-2xl-muted" id="gpu1-value"><span data-i18n="system_operations.unavailable_2">Unavailable</span></div>
+                    <div class="stat-subtitle sysops-text-xs" id="gpu1-model"><span data-i18n="system_operations.no_second_gpu_detected">No second GPU detected</span></div>
                 </div>
             </div>
 
             <div class="stat-card">
                 <div class="stat-card-header">
                     <div class="stat-card-title">
-                        <i data-lucide="hard-drive" style="width: 20px; height: 20px;"></i>
+                        <i data-lucide="hard-drive" class="sysops-icon-20"></i>
                         Disk Usage
                     </div>
                 </div>
                 <div id="disk-drives-container">
-                    <div style="color: var(--sysops-text-muted); font-size: 0.85rem;"><span data-i18n="system_operations.loading_3">Loading...</span></div>
+                    <div class="sysops-text-muted-085"><span data-i18n="system_operations.loading_3">Loading...</span></div>
                 </div>
             </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-            <span style="color: var(--sysops-text-muted); font-size: 0.85rem;"><span data-i18n="system_operations.history_range">History Range:</span></span>
+        <div class="sysops-flex-center-mb">
+            <span class="sysops-text-muted-085"><span data-i18n="system_operations.history_range">History Range:</span></span>
             <div style="display: flex; gap: 4px;" id="history-range-selector">
                 <button class="btn btn-sm" data-hours="1" onclick="changeHistoryRange(1)">1h</button>
                 <button class="btn btn-sm active" data-hours="24" onclick="changeHistoryRange(24)">24h</button>
@@ -263,7 +258,7 @@
         <div class="panel">
             <div class="panel-header">
                 <div class="panel-title">
-                    <i data-lucide="info" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="info" class="sysops-icon-18"></i>
                     System Information
                 </div>
             </div>
@@ -310,7 +305,7 @@
         <div class="storage-overview-bar">
             <!-- Local Storage Section -->
             <div class="storage-section-group storage-local-section">
-                <span class="storage-section-label" style="color: var(--sysops-accent);"><span data-i18n="system_operations.local">LOCAL</span></span>
+                <span class="storage-section-label sysops-text-cyan"><span data-i18n="system_operations.local">LOCAL</span></span>
                 <div class="storage-overview-stat">
                     <span class="storage-overview-label"><span data-i18n="system_operations.capacity">Capacity</span></span>
                     <span class="storage-overview-value" id="storage-local-total">--</span>
@@ -330,7 +325,7 @@
             </div>
             <!-- Attached Storage Section -->
             <div class="storage-section-group storage-attached-section">
-                <span class="storage-section-label" style="color: var(--sysops-warning);"><span data-i18n="system_operations.usb_attached">USB/ATTACHED</span></span>
+                <span class="storage-section-label sysops-text-orange"><span data-i18n="system_operations.usb_attached">USB/ATTACHED</span></span>
                 <div class="storage-overview-stat">
                     <span class="storage-overview-label"><span data-i18n="system_operations.capacity_2">Capacity</span></span>
                     <span class="storage-overview-value" id="storage-attached-total">--</span>
@@ -362,73 +357,73 @@
             <div class="storage-visual-area">
                 <!-- Treemap -->
                 <div class="section-title">
-                    <i data-lucide="hard-drive" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="hard-drive" class="sysops-icon-18"></i>
                     Disk Map
                     <span class="host-badge" style="margin-left: 8px;"><span data-i18n="system_operations.interactive">INTERACTIVE</span></span>
                 </div>
                 <div class="panel" id="storage-treemap">
-                    <p style="color: var(--sysops-text-muted); padding: 20px; text-align: center;"><span data-i18n="system_operations.loading_disk_map">Loading disk map...</span></p>
+                    <p class="sysops-empty-state"><span data-i18n="system_operations.loading_disk_map">Loading disk map...</span></p>
                 </div>
 
                 <!-- Disk Usage Breakdown -->
                 <div class="panel" style="padding: 16px;">
-                    <h4 style="color: var(--sysops-text-secondary); margin: 0 0 12px 0; font-size: 0.85rem;"><span data-i18n="system_operations.disk_usage">Disk Usage</span></h4>
+                    <h4 style="color: var(--archie-text-secondary); margin: 0 0 12px 0; font-size: 0.85rem;"><span data-i18n="system_operations.disk_usage">Disk Usage</span></h4>
                     <div id="storage-disk-breakdown">
-                        <div style="color: var(--sysops-text-muted); font-size: 0.85rem;"><span data-i18n="system_operations.loading_4">Loading...</span></div>
+                        <div class="sysops-text-muted-085"><span data-i18n="system_operations.loading_4">Loading...</span></div>
                     </div>
                 </div>
 
                 <!-- LVM Configuration -->
                 <div class="section-title">
-                    <i data-lucide="database" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="database" class="sysops-icon-18"></i>
                     LVM Configuration
                 </div>
                 <div class="panel" id="lvm-panel">
                     <div class="lvm-grid">
                         <div class="lvm-section">
-                            <h4 style="color: var(--sysops-accent); margin-bottom: 10px;"><span data-i18n="system_operations.volume_groups">Volume Groups</span></h4>
+                            <h4 class="sysops-text-cyan-mb"><span data-i18n="system_operations.volume_groups">Volume Groups</span></h4>
                             <table class="data-table data-table-compact">
                                 <thead>
                                     <tr><th><span data-i18n="system_operations.vg_name">VG Name</span></th><th><span data-i18n="system_operations.total">Total</span></th><th><span data-i18n="system_operations.free_2">Free</span></th></tr>
                                 </thead>
                                 <tbody id="lvm-vgs">
-                                    <tr><td colspan="3" style="color: var(--sysops-text-muted)"><span data-i18n="system_operations.loading_5">Loading...</span></td></tr>
+                                    <tr><td colspan="3" class="sysops-text-muted"><span data-i18n="system_operations.loading_5">Loading...</span></td></tr>
                                 </tbody>
                             </table>
                         </div>
                         <div class="lvm-section">
-                            <h4 style="color: var(--sysops-success); margin-bottom: 10px;"><span data-i18n="system_operations.logical_volumes">Logical Volumes</span></h4>
+                            <h4 style="color: var(--archie-green); margin-bottom: 10px;"><span data-i18n="system_operations.logical_volumes">Logical Volumes</span></h4>
                             <table class="data-table data-table-compact">
                                 <thead>
                                     <tr><th><span data-i18n="system_operations.lv_name">LV Name</span></th><th>VG</th><th><span data-i18n="system_operations.size">Size</span></th><th><span data-i18n="system_operations.actions">Actions</span></th></tr>
                                 </thead>
                                 <tbody id="lvm-lvs">
-                                    <tr><td colspan="4" style="color: var(--sysops-text-muted)"><span data-i18n="system_operations.loading_6">Loading...</span></td></tr>
+                                    <tr><td colspan="4" class="sysops-text-muted"><span data-i18n="system_operations.loading_6">Loading...</span></td></tr>
                                 </tbody>
                             </table>
                         </div>
                         <div class="lvm-section">
-                            <h4 style="color: var(--sysops-warning); margin-bottom: 10px;"><span data-i18n="system_operations.physical_volumes">Physical Volumes</span></h4>
+                            <h4 style="color: var(--archie-orange); margin-bottom: 10px;"><span data-i18n="system_operations.physical_volumes">Physical Volumes</span></h4>
                             <table class="data-table data-table-compact">
                                 <thead>
                                     <tr><th><span data-i18n="system_operations.pv_name">PV Name</span></th><th>VG</th><th><span data-i18n="system_operations.size_2">Size</span></th></tr>
                                 </thead>
                                 <tbody id="lvm-pvs">
-                                    <tr><td colspan="3" style="color: var(--sysops-text-muted)"><span data-i18n="system_operations.loading_7">Loading...</span></td></tr>
+                                    <tr><td colspan="3" class="sysops-text-muted"><span data-i18n="system_operations.loading_7">Loading...</span></td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    <p id="lvm-none" style="color: var(--sysops-text-muted); display: none;"><span data-i18n="system_operations.no_lvm_configuration_detected">No LVM configuration detected</span></p>
+                    <p id="lvm-none" style="color: var(--archie-text-muted); display: none;"><span data-i18n="system_operations.no_lvm_configuration_detected">No LVM configuration detected</span></p>
                 </div>
 
                 <!-- RAID Status -->
                 <div class="section-title">
-                    <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="layers" class="sysops-icon-18"></i>
                     RAID Status
                 </div>
                 <div class="panel" id="raid-status">
-                    <p style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.checking_raid_configuration">Checking RAID configuration...</span></p>
+                    <p class="sysops-text-muted"><span data-i18n="system_operations.checking_raid_configuration">Checking RAID configuration...</span></p>
                 </div>
 
                 <!-- Capacity Alerts Banner -->
@@ -436,12 +431,12 @@
 
                 <!-- SMART Health Panel -->
                 <div class="section-title">
-                    <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="activity" class="sysops-icon-18"></i>
                     Drive Health (SMART)
                 </div>
                 <div class="panel" id="smart-health-panel">
                     <div id="smart-health-content" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
-                        <p style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.loading_smart_data">Loading SMART data...</span></p>
+                        <p class="sysops-text-muted"><span data-i18n="system_operations.loading_smart_data">Loading SMART data...</span></p>
                     </div>
                 </div>
             </div>
@@ -453,9 +448,9 @@
     <!-- Tab: Hardware -->
     <div id="tab-hardware" class="tab-content">
         <div class="section-title">
-            <i data-lucide="server" style="width: 18px; height: 18px;"></i>
+            <i data-lucide="server" class="sysops-icon-18"></i>
             Hardware Configuration
-            <span id="hardware-data-age" style="font-size: 0.75rem; color: var(--sysops-text-muted); font-weight: normal; margin-left: 8px;"></span>
+            <span id="hardware-data-age" class="sysops-tag-label"></span>
         </div>
 
         <!-- Hardware Summary Cards -->
@@ -483,17 +478,17 @@
         </div>
 
         <!-- Two column layout for CPU and Memory sections -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="sysops-grid-2col-lg">
             <!-- CPU Section -->
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <i data-lucide="cpu" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="cpu" class="sysops-icon-16"></i>
                         Processor
                     </div>
                 </div>
                 <div id="hw-cpu-content">
-                    <div style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.loading_cpu_info">Loading CPU info...</span></div>
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_cpu_info">Loading CPU info...</span></div>
                 </div>
             </div>
 
@@ -501,28 +496,28 @@
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <i data-lucide="memory-stick" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="memory-stick" class="sysops-icon-16"></i>
                         Memory
                     </div>
                 </div>
                 <div id="hw-memory-content">
-                    <div style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.loading_memory_info">Loading memory info...</span></div>
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_memory_info">Loading memory info...</span></div>
                 </div>
             </div>
         </div>
 
         <!-- Two column layout for GPU and Motherboard sections -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+        <div class="sysops-grid-2col-lg">
             <!-- GPU Section -->
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <i data-lucide="monitor" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="monitor" class="sysops-icon-16"></i>
                         Graphics
                     </div>
                 </div>
                 <div id="hw-gpu-content">
-                    <div style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.loading_gpu_info">Loading GPU info...</span></div>
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_gpu_info">Loading GPU info...</span></div>
                 </div>
             </div>
 
@@ -530,12 +525,12 @@
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">
-                        <i data-lucide="circuit-board" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="circuit-board" class="sysops-icon-16"></i>
                         Motherboard
                     </div>
                 </div>
                 <div id="hw-motherboard-content">
-                    <div style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.loading_motherboard_info">Loading motherboard info...</span></div>
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_motherboard_info">Loading motherboard info...</span></div>
                 </div>
             </div>
         </div>
@@ -544,11 +539,11 @@
         <div class="panel">
             <div class="panel-header">
                 <div class="panel-title">
-                    <i data-lucide="plug" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="plug" class="sysops-icon-16"></i>
                     PCI Expansion Slots
                 </div>
                 <button class="btn btn-ghost btn-sm" onclick="loadHardwareData()">
-                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i>
                     Refresh
                 </button>
             </div>
@@ -565,7 +560,7 @@
                     </thead>
                     <tbody id="pci-slots-body">
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--sysops-text-muted);">
+                            <td colspan="5" class="sysops-center-muted">
                                 Loading PCI slot info...
                             </td>
                         </tr>
@@ -575,28 +570,28 @@
         </div>
 
         <!-- SATA Ports Section -->
-        <div class="panel" style="margin-top: 20px;">
+        <div class="panel sysops-mt-20">
             <div class="panel-header">
                 <div class="panel-title">
-                    <i data-lucide="hard-drive" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="hard-drive" class="sysops-icon-16"></i>
                     SATA Ports
                 </div>
             </div>
             <div id="hw-sata-content">
-                <div style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.loading_sata_port_info">Loading SATA port info...</span></div>
+                <div class="sysops-text-muted"><span data-i18n="system_operations.loading_sata_port_info">Loading SATA port info...</span></div>
             </div>
         </div>
 
         <!-- Upgrade Potential Section -->
-        <div class="panel" style="margin-top: 20px;">
+        <div class="panel sysops-mt-20">
             <div class="panel-header">
                 <div class="panel-title">
-                    <i data-lucide="trending-up" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="trending-up" class="sysops-icon-16"></i>
                     Upgrade Potential
                 </div>
             </div>
             <div id="hw-upgrade-content">
-                <div style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.loading_upgrade_information">Loading upgrade information...</span></div>
+                <div class="sysops-text-muted"><span data-i18n="system_operations.loading_upgrade_information">Loading upgrade information...</span></div>
             </div>
         </div>
     </div>
@@ -604,9 +599,9 @@
     <!-- Tab: Memory Hardware -->
     <div id="tab-memory" class="tab-content">
         <div class="section-title">
-            <i data-lucide="memory-stick" style="width: 18px; height: 18px;"></i>
+            <i data-lucide="memory-stick" class="sysops-icon-18"></i>
             Memory Hardware Configuration
-            <span id="memory-dimm-count" style="font-size: 0.75rem; color: var(--sysops-text-muted); font-weight: normal; margin-left: 8px;"></span>
+            <span id="memory-dimm-count" class="sysops-tag-label"></span>
         </div>
 
         <!-- Memory Summary -->
@@ -637,11 +632,11 @@
         <div class="panel">
             <div class="panel-header">
                 <div class="panel-title">
-                    <i data-lucide="cpu" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="cpu" class="sysops-icon-16"></i>
                     DIMM Slots
                 </div>
                 <button class="btn btn-ghost btn-sm" onclick="loadMemoryHardware()">
-                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i>
                     Refresh
                 </button>
             </div>
@@ -661,7 +656,7 @@
                     </thead>
                     <tbody id="dimm-table-body">
                         <tr>
-                            <td colspan="8" style="text-align: center; color: var(--sysops-text-muted);">
+                            <td colspan="8" class="sysops-center-muted">
                                 Loading memory hardware info...
                             </td>
                         </tr>
@@ -674,7 +669,7 @@
         <div class="panel" style="margin-top: 1rem;">
             <div class="panel-header">
                 <div class="panel-title">
-                    <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="info" class="sysops-icon-16"></i>
                     Memory Controller
                 </div>
             </div>
@@ -702,9 +697,9 @@
     <!-- Tab: Processes -->
     <div id="tab-processes" class="tab-content">
         <div class="section-title">
-            <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
+            <i data-lucide="activity" class="sysops-icon-18"></i>
             Running Processes
-            <span id="process-count-badge" style="font-size: 0.75rem; color: var(--sysops-text-muted); font-weight: normal; margin-left: 8px;"></span>
+            <span id="process-count-badge" class="sysops-tag-label"></span>
             <span id="process-source-badge" style="font-size: 0.7rem; font-weight: normal; margin-left: 8px;"></span>
         </div>
         <div class="filter-bar">
@@ -723,8 +718,8 @@
                 <option value="category"><span data-i18n="system_operations.sort_by_category">Sort by Category</span></option>
             </select>
             <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
-                <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.show">Show:</span></span>
-                <select id="process-page-size" onchange="changeProcessPageSize(this.value)" style="padding: 4px 8px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 0.85rem;">
+                <span class="sysops-text-muted-sm"><span data-i18n="system_operations.show">Show:</span></span>
+                <select id="process-page-size" onchange="changeProcessPageSize(this.value)" style="padding: 4px 8px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-text-primary); font-size: 0.85rem;">
                     <option value="10">10</option>
                     <option value="20" selected>20</option>
                     <option value="50">50</option>
@@ -750,9 +745,9 @@
                     <tr><td colspan="8" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_8"> Loading...</span></td></tr>
                 </tbody>
             </table>
-            <div id="process-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid var(--sysops-border-default); margin-top: 8px;">
-                <span id="process-page-info" style="color: var(--sysops-text-muted); font-size: 0.85rem;"><span data-i18n="system_operations.showing_1_20_of_0">Showing 1-20 of 0</span></span>
-                <div style="display: flex; gap: 8px;">
+            <div id="process-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid var(--archie-border-default); margin-top: 8px;">
+                <span id="process-page-info" class="sysops-text-muted-085"><span data-i18n="system_operations.showing_1_20_of_0">Showing 1-20 of 0</span></span>
+                <div class="sysops-flex-gap-8">
                     <button class="btn btn-ghost btn-sm" id="process-prev-btn" onclick="processPagePrev()" disabled><span data-i18n="system_operations.prev">← Prev</span></button>
                     <button class="btn btn-ghost btn-sm" id="process-next-btn" onclick="processPageNext()"><span data-i18n="system_operations.next">Next →</span></button>
                 </div>
@@ -760,10 +755,10 @@
         </div>
 
         <div class="section-title">
-            <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
+            <i data-lucide="settings" class="sysops-icon-18"></i>
             Systemd Services
             <span class="docker-note" title="Running in Docker container - host services not accessible">
-                <i data-lucide="info" style="width: 14px; height: 14px;"></i> Docker Mode
+                <i data-lucide="info" class="sysops-icon-14"></i> Docker Mode
             </span>
         </div>
         <div class="filter-bar">
@@ -774,8 +769,8 @@
             </select>
         </div>
         <div class="panel">
-            <div id="services-docker-notice" class="info-notice" style="display: none;">
-                <i data-lucide="alert-circle" style="width: 16px; height: 16px;"></i>
+            <div id="services-docker-notice" class="info-notice sysops-hidden">
+                <i data-lucide="alert-circle" class="sysops-icon-16"></i>
                 <span><span data-i18n="system_operations.systemd_services_are_not_accessible_from_within_th">Systemd services are not accessible from within the Docker container. Use Docker Containers section below for container management.</span></span>
             </div>
             <table class="data-table">
@@ -793,8 +788,8 @@
             </table>
         </div>
 
-        <p style="color: var(--sysops-text-muted); font-size: 0.85rem; padding: 10px;">
-            <i data-lucide="info" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+        <p style="color: var(--archie-text-muted); font-size: 0.85rem; padding: 10px;">
+            <i data-lucide="info" class="sysops-icon-inline-14-bare"></i>
             Docker management has moved to the <strong><span data-i18n="system_operations.docker">Docker</span></strong> tab for a more complete experience.
         </p>
     </div>
@@ -806,7 +801,7 @@
             <div class="docker-overview-grid">
                 <div class="docker-stat-card running">
                     <div class="docker-stat-icon">
-                        <i data-lucide="play-circle" style="width: 32px; height: 32px;"></i>
+                        <i data-lucide="play-circle" class="sysops-icon-32"></i>
                     </div>
                     <div class="docker-stat-info">
                         <span class="docker-stat-value" id="docker-running-count">0</span>
@@ -815,7 +810,7 @@
                 </div>
                 <div class="docker-stat-card stopped">
                     <div class="docker-stat-icon">
-                        <i data-lucide="stop-circle" style="width: 32px; height: 32px;"></i>
+                        <i data-lucide="stop-circle" class="sysops-icon-32"></i>
                     </div>
                     <div class="docker-stat-info">
                         <span class="docker-stat-value" id="docker-stopped-count">0</span>
@@ -824,7 +819,7 @@
                 </div>
                 <div class="docker-stat-card total">
                     <div class="docker-stat-icon">
-                        <i data-lucide="box" style="width: 32px; height: 32px;"></i>
+                        <i data-lucide="box" class="sysops-icon-32"></i>
                     </div>
                     <div class="docker-stat-info">
                         <span class="docker-stat-value" id="docker-total-count">0</span>
@@ -833,7 +828,7 @@
                 </div>
                 <div class="docker-stat-card images">
                     <div class="docker-stat-icon">
-                        <i data-lucide="layers" style="width: 32px; height: 32px;"></i>
+                        <i data-lucide="layers" class="sysops-icon-32"></i>
                     </div>
                     <div class="docker-stat-info">
                         <span class="docker-stat-value" id="docker-stacks-count">0</span>
@@ -843,38 +838,38 @@
             </div>
 
             <!-- Health Alerts Panel -->
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--sysops-space-4);">
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--archie-space-4);">
                 <span>
-                    <i data-lucide="alert-triangle" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="alert-triangle" class="sysops-icon-18"></i>
                     Health Alerts
-                    <span class="health-alert-badge" id="health-alert-badge" style="display: none;">0</span>
+                    <span class="health-alert-badge sysops-hidden" id="health-alert-badge">0</span>
                 </span>
                 <button class="btn btn-sm btn-ghost" onclick="showAlertConfigModal()">
-                    <i data-lucide="settings" style="width: 14px; height: 14px;"></i>
+                    <i data-lucide="settings" class="sysops-icon-14"></i>
                     Configure
                 </button>
             </div>
             <div class="health-alerts-panel" id="health-alerts-panel">
-                <div class="empty-state" style="padding: var(--sysops-space-4); text-align: center; color: var(--sysops-text-muted);">
-                    <i data-lucide="check-circle" style="width: 24px; height: 24px; color: var(--sysops-success);"></i>
-                    <p style="margin-top: var(--sysops-space-2);"><span data-i18n="system_operations.no_active_alerts">No active alerts</span></p>
+                <div class="empty-state" style="padding: var(--archie-space-4); text-align: center; color: var(--archie-text-muted);">
+                    <i data-lucide="check-circle" style="width: 24px; height: 24px; color: var(--archie-green);"></i>
+                    <p style="margin-top: var(--archie-space-2);"><span data-i18n="system_operations.no_active_alerts">No active alerts</span></p>
                 </div>
             </div>
 
             <!-- Stack Cards -->
             <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
                 <span>
-                    <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
+                    <i data-lucide="layers" class="sysops-icon-18"></i>
                     Stacks
                 </span>
                 <button class="new-stack-btn" onclick="openCreateStackWizard()">
-                    <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                    <i data-lucide="plus" class="sysops-icon-16"></i>
                     New Stack
                 </button>
             </div>
             <div class="stack-overview-grid" id="stack-overview-grid">
                 <div class="loading-placeholder">
-                    <i data-lucide="loader" style="width: 24px; height: 24px;"></i>
+                    <i data-lucide="loader" class="sysops-icon-24"></i>
                     Loading stacks...
                 </div>
             </div>
@@ -885,7 +880,7 @@
             <div class="stack-detail-header">
                 <div class="stack-detail-title">
                     <button class="stack-back-btn" onclick="showStackOverview()">
-                        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                        <i data-lucide="arrow-left" class="sysops-icon-16"></i>
                         Back
                     </button>
                     <span class="stack-color-dot" id="detail-stack-color"></span>
@@ -897,41 +892,41 @@
 
             <div class="stack-subtabs" id="stack-subtabs">
                 <button class="stack-subtab active" onclick="showStackSubtab('containers')" data-subtab="containers">
-                    <i data-lucide="box" style="width: 14px; height: 14px;"></i> Containers
+                    <i data-lucide="box" class="sysops-icon-14"></i> Containers
                 </button>
                 <button class="stack-subtab" onclick="showStackSubtab('compose')" data-subtab="compose">
-                    <i data-lucide="file-code" style="width: 14px; height: 14px;"></i> Compose
+                    <i data-lucide="file-code" class="sysops-icon-14"></i> Compose
                 </button>
                 <button class="stack-subtab" onclick="showStackSubtab('env')" data-subtab="env">
-                    <i data-lucide="settings-2" style="width: 14px; height: 14px;"></i> Environment
+                    <i data-lucide="settings-2" class="sysops-icon-14"></i> Environment
                 </button>
                 <button class="stack-subtab" onclick="showStackSubtab('logs')" data-subtab="logs">
-                    <i data-lucide="scroll-text" style="width: 14px; height: 14px;"></i> Logs
+                    <i data-lucide="scroll-text" class="sysops-icon-14"></i> Logs
                 </button>
             </div>
 
             <!-- Containers sub-tab -->
             <div class="stack-subtab-content active" id="subtab-containers">
-                <div class="docker-actions-bar" style="margin-bottom: 16px;">
+                <div class="docker-actions-bar sysops-mb-16">
                     <button class="docker-action-btn" onclick="stackAction('up')" title="Start all containers">
-                        <i data-lucide="play" style="width: 16px; height: 16px;"></i> Start All
+                        <i data-lucide="play" class="sysops-icon-16"></i> Start All
                     </button>
                     <button class="docker-action-btn" onclick="stackAction('restart')" title="Restart all containers">
-                        <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Restart All
+                        <i data-lucide="refresh-cw" class="sysops-icon-16"></i> Restart All
                     </button>
                     <button class="docker-action-btn warning" onclick="stackAction('down')" title="Stop all containers">
-                        <i data-lucide="square" style="width: 16px; height: 16px;"></i> Stop All
+                        <i data-lucide="square" class="sysops-icon-16"></i> Stop All
                     </button>
                     <button class="docker-action-btn" onclick="stackAction('pull')" title="Pull latest images">
-                        <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pull
+                        <i data-lucide="download" class="sysops-icon-16"></i> Pull
                     </button>
                     <button class="docker-action-btn" onclick="loadStackDetail(currentStackName)" title="Refresh">
-                        <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Refresh
+                        <i data-lucide="refresh-cw" class="sysops-icon-16"></i> Refresh
                     </button>
                 </div>
                 <div class="docker-container-grid" id="stack-container-grid">
                     <div class="loading-placeholder">
-                        <i data-lucide="loader" style="width: 24px; height: 24px;"></i>
+                        <i data-lucide="loader" class="sysops-icon-24"></i>
                         Loading containers...
                     </div>
                 </div>
@@ -943,16 +938,16 @@
                     <div class="stack-header">
                         <div class="stack-info">
                             <div class="stack-meta">
-                                <span><i data-lucide="folder" style="width: 14px; height: 14px;"></i> <code id="detail-compose-path">-</code></span>
-                                <span><i data-lucide="git-branch" style="width: 14px; height: 14px;"></i> <span id="detail-services-count">-</span><span data-i18n="system_operations.services"> services</span></span>
+                                <span><i data-lucide="folder" class="sysops-icon-14"></i> <code id="detail-compose-path">-</code></span>
+                                <span><i data-lucide="git-branch" class="sysops-icon-14"></i> <span id="detail-services-count">-</span><span data-i18n="system_operations.services"> services</span></span>
                             </div>
                         </div>
                         <div class="stack-actions">
                             <button class="docker-action-btn" onclick="viewStackCompose()" title="View compose file">
-                                <i data-lucide="eye" style="width: 16px; height: 16px;"></i> View
+                                <i data-lucide="eye" class="sysops-icon-16"></i> View
                             </button>
                             <button class="docker-action-btn" onclick="editStackCompose()" title="Edit compose file">
-                                <i data-lucide="edit" style="width: 16px; height: 16px;"></i> Edit
+                                <i data-lucide="edit" class="sysops-icon-16"></i> Edit
                             </button>
                         </div>
                     </div>
@@ -973,19 +968,19 @@
             <div class="stack-subtab-content" id="subtab-logs">
                 <div class="panel">
                     <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
-                        <select id="stack-log-service" style="padding: 8px 12px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 6px; color: var(--sysops-text-primary); font-size: 0.9rem;">
+                        <select id="stack-log-service" class="sysops-select">
                             <option value=""><span data-i18n="system_operations.all_services_2">All services</span></option>
                         </select>
-                        <select id="stack-log-tail" style="padding: 8px 12px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 6px; color: var(--sysops-text-primary); font-size: 0.9rem;">
+                        <select id="stack-log-tail" class="sysops-select">
                             <option value="50"><span data-i18n="system_operations.last_50_lines">Last 50 lines</span></option>
                             <option value="100" selected><span data-i18n="system_operations.last_100_lines">Last 100 lines</span></option>
                             <option value="500"><span data-i18n="system_operations.last_500_lines">Last 500 lines</span></option>
                         </select>
                         <button class="docker-action-btn" onclick="loadStackLogs()">
-                            <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
+                            <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
                         </button>
                     </div>
-                    <pre id="stack-log-output" style="background: var(--sysops-bg-void); border: 1px solid var(--sysops-border-default); border-radius: 8px; padding: 16px; max-height: 500px; overflow-y: auto; font-size: 0.8rem; color: var(--sysops-text-secondary); font-family: var(--sysops-font-mono); white-space: pre-wrap; word-break: break-all;">Select a service and click Refresh to view logs.</pre>
+                    <pre id="stack-log-output" style="background: var(--archie-bg-void); border: 1px solid var(--archie-border-default); border-radius: 8px; padding: 16px; max-height: 500px; overflow-y: auto; font-size: 0.8rem; color: var(--archie-text-secondary); font-family: var(--archie-font-mono); white-space: pre-wrap; word-break: break-all;">Select a service and click Refresh to view logs.</pre>
                 </div>
             </div>
         </div>
@@ -994,8 +989,8 @@
     <!-- Stack Creation Wizard -->
     <div class="wizard-overlay" id="createStackWizard">
         <div class="wizard-dialog">
-            <h3 style="color: var(--sysops-accent); margin: 0 0 20px 0;">
-                <i data-lucide="plus-circle" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+            <h3 style="color: var(--archie-accent); margin: 0 0 20px 0;">
+                <i data-lucide="plus-circle" class="sysops-icon-inline-20"></i>
                 Create New Stack
             </h3>
             <div class="wizard-steps" id="wizard-steps">
@@ -1011,7 +1006,7 @@
                 <div class="wizard-field">
                     <label><span data-i18n="system_operations.stack_name_slug">Stack Name (slug)</span></label>
                     <input type="text" id="wizard-name" placeholder="e.g. plex, home-assistant" oninput="updateWizardSlug()">
-                    <div style="font-size: 0.75rem; color: var(--sysops-text-muted); margin-top: 4px;">
+                    <div style="font-size: 0.75rem; color: var(--archie-text-muted); margin-top: 4px;">
                         Directory: <code id="wizard-dir-preview">/mnt/stacks/</code>
                     </div>
                 </div>
@@ -1037,32 +1032,32 @@
                     </div>
                 </div>
             </div>
-            <div class="wizard-content" id="wizard-step-2" style="display: none;">
+            <div class="wizard-content sysops-hidden" id="wizard-step-2">
                 <div class="wizard-field">
                     <label><span data-i18n="system_operations.docker_compose_yml">docker-compose.yml</span></label>
                     <textarea id="wizard-compose" placeholder="version: '3.8'&#10;services:&#10;  app:&#10;    image: myimage:latest&#10;    ports:&#10;      - '8080:80'" spellcheck="false"></textarea>
                 </div>
             </div>
-            <div class="wizard-content" id="wizard-step-3" style="display: none;">
+            <div class="wizard-content sysops-hidden" id="wizard-step-3">
                 <div class="wizard-field">
                     <label><span data-i18n="system_operations.env_file_optional">.env file (optional)</span></label>
                     <textarea id="wizard-env" placeholder="KEY=value&#10;ANOTHER_KEY=another_value" spellcheck="false" style="min-height: 150px;"></textarea>
                 </div>
             </div>
-            <div class="wizard-content" id="wizard-step-4" style="display: none;">
-                <div style="background: var(--sysops-bg-secondary); border-radius: 8px; padding: 16px;">
-                    <h4 style="color: var(--sysops-accent); margin: 0 0 12px 0;"><span data-i18n="system_operations.review">Review</span></h4>
-                    <div id="wizard-review-content" style="font-size: 0.9rem; color: var(--sysops-text-secondary);"></div>
+            <div class="wizard-content sysops-hidden" id="wizard-step-4">
+                <div style="background: var(--archie-bg-secondary); border-radius: 8px; padding: 16px;">
+                    <h4 style="color: var(--archie-accent); margin: 0 0 12px 0;"><span data-i18n="system_operations.review">Review</span></h4>
+                    <div id="wizard-review-content" style="font-size: 0.9rem; color: var(--archie-text-secondary);"></div>
                 </div>
             </div>
             <div class="wizard-footer">
                 <button class="btn-cancel" onclick="closeCreateStackWizard()"><span data-i18n="system_operations.cancel">Cancel</span></button>
-                <div style="display: flex; gap: 8px;">
-                    <button class="docker-action-btn" id="wizard-prev-btn" onclick="wizardPrev()" style="display: none;">
-                        <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Previous
+                <div class="sysops-flex-gap-8">
+                    <button class="docker-action-btn sysops-hidden" id="wizard-prev-btn" onclick="wizardPrev()">
+                        <i data-lucide="arrow-left" class="sysops-icon-14"></i> Previous
                     </button>
                     <button class="new-stack-btn" id="wizard-next-btn" onclick="wizardNext()">
-                        Next <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i>
+                        Next <i data-lucide="arrow-right" class="sysops-icon-14"></i>
                     </button>
                 </div>
             </div>
@@ -1073,29 +1068,29 @@
     <div class="modal-overlay" id="composeModal">
         <div class="modal-dialog" style="max-width: 900px; max-height: 85vh;">
             <div class="compose-modal-header">
-                <h3 id="composeModalTitle" style="color: var(--sysops-accent); margin: 0;">
-                    <i data-lucide="file-code" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+                <h3 id="composeModalTitle" style="color: var(--archie-cyan); margin: 0;">
+                    <i data-lucide="file-code" class="sysops-icon-inline-20"></i>
                     docker-compose.yml
                 </h3>
                 <div class="compose-modal-actions">
-                    <button id="composeEditToggle" class="docker-action-btn" onclick="toggleComposeEdit()" style="display: none;">
-                        <i data-lucide="edit" style="width: 14px; height: 14px;"></i> Edit
+                    <button class="docker-action-btn sysops-hidden" id="composeEditToggle" onclick="toggleComposeEdit()">
+                        <i data-lucide="edit" class="sysops-icon-14"></i> Edit
                     </button>
-                    <button id="composeSaveBtn" class="docker-action-btn" onclick="saveComposeFile()" style="display: none;">
-                        <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save
+                    <button class="docker-action-btn sysops-hidden" id="composeSaveBtn" onclick="saveComposeFile()">
+                        <i data-lucide="save" class="sysops-icon-14"></i> Save
                     </button>
                 </div>
             </div>
             <div class="compose-content">
                 <pre id="composeViewer" class="compose-viewer"><code>Loading...</code></pre>
-                <textarea id="composeEditor" class="compose-editor" style="display: none;" spellcheck="false"></textarea>
+                <textarea id="composeEditor" class="compose-editor sysops-hidden" spellcheck="false"></textarea>
             </div>
             <div class="compose-modal-footer">
-                <span id="composeStatus" style="font-size: 0.8rem; color: var(--sysops-text-muted);"></span>
+                <span id="composeStatus" style="font-size: 0.8rem; color: var(--archie-text-muted);"></span>
                 <div>
                     <button class="btn-cancel" onclick="closeComposeModal()"><span data-i18n="system_operations.close">Close</span></button>
-                    <button id="composeApplyBtn" class="btn-confirm" onclick="applyComposeChanges()" style="display: none;">
-                        <i data-lucide="play" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+                    <button class="btn-confirm sysops-hidden" id="composeApplyBtn" onclick="applyComposeChanges()">
+                        <i data-lucide="play" class="sysops-icon-inline-14-bare"></i>
                         Apply & Restart
                     </button>
                 </div>
@@ -1107,7 +1102,7 @@
     <div id="tab-network" class="tab-content">
         <!-- Host Network Info Card (always visible) -->
         <div class="section-title">
-            <i data-lucide="server" style="width: 18px; height: 18px;"></i>
+            <i data-lucide="server" class="sysops-icon-18"></i>
             Host Network
         </div>
         <div class="panel">
@@ -1118,7 +1113,7 @@
                 </div>
                 <div class="network-stat">
                     <span class="network-label"><span data-i18n="system_operations.host_ip">Host IP</span></span>
-                    <span class="network-value mono" id="net-host-ip" style="color: var(--sysops-success);"><span data-i18n="system_operations.detecting">Detecting...</span></span>
+                    <span class="network-value mono sysops-text-green" id="net-host-ip"><span data-i18n="system_operations.detecting">Detecting...</span></span>
                 </div>
                 <div class="network-stat">
                     <span class="network-label"><span data-i18n="system_operations.container_ip">Container IP</span></span>
@@ -1134,7 +1129,7 @@
                 </div>
             </div>
             <div id="host-interfaces-section" style="margin-top: 15px; display: none;">
-                <h4 style="color: var(--sysops-accent); margin-bottom: 10px;"><span data-i18n="system_operations.host_interfaces">Host Interfaces </span><span class="host-badge"><span data-i18n="system_operations.host">HOST</span></span></h4>
+                <h4 class="sysops-text-cyan-mb"><span data-i18n="system_operations.host_interfaces">Host Interfaces </span><span class="host-badge"><span data-i18n="system_operations.host">HOST</span></span></h4>
                 <table class="data-table data-table-compact">
                     <thead>
                         <tr><th><span data-i18n="system_operations.interface">Interface</span></th><th><span data-i18n="system_operations.ip_address_2">IP Address</span></th><th><span data-i18n="system_operations.cidr">CIDR</span></th><th><span data-i18n="system_operations.note">Note</span></th></tr>
@@ -1147,23 +1142,23 @@
         <!-- Network Sub-tabs -->
         <div class="net-subtabs" id="net-subtabs">
             <button class="net-subtab active" onclick="showNetSubtab('overview')" id="net-subtab-btn-overview">
-                <i data-lucide="layout-list" style="width: 14px; height: 14px;"></i> Overview
+                <i data-lucide="layout-list" class="sysops-icon-14"></i> Overview
             </button>
             <button class="net-subtab" onclick="showNetSubtab('portmap')" id="net-subtab-btn-portmap">
-                <i data-lucide="git-branch" style="width: 14px; height: 14px;"></i> Port Map
+                <i data-lucide="git-branch" class="sysops-icon-14"></i> Port Map
             </button>
             <button class="net-subtab" onclick="showNetSubtab('topology')" id="net-subtab-btn-topology">
-                <i data-lucide="network" style="width: 14px; height: 14px;"></i> Topology
+                <i data-lucide="network" class="sysops-icon-14"></i> Topology
             </button>
             <button class="net-subtab" onclick="showNetSubtab('bandwidth')" id="net-subtab-btn-bandwidth">
-                <i data-lucide="activity" style="width: 14px; height: 14px;"></i> Bandwidth
+                <i data-lucide="activity" class="sysops-icon-14"></i> Bandwidth
             </button>
         </div>
 
         <!-- Sub-tab: Overview (default, existing content) -->
         <div id="net-subtab-overview" class="net-subtab-content active">
             <div class="section-title">
-                <i data-lucide="wifi" style="width: 18px; height: 18px;"></i>
+                <i data-lucide="wifi" class="sysops-icon-18"></i>
                 Container Network Interfaces
             </div>
             <div class="panel">
@@ -1188,7 +1183,7 @@
             </div>
 
             <div class="section-title">
-                <i data-lucide="plug" style="width: 18px; height: 18px;"></i>
+                <i data-lucide="plug" class="sysops-icon-18"></i>
                 Active Connections
             </div>
             <div class="panel">
@@ -1209,7 +1204,7 @@
             </div>
 
             <div class="section-title">
-                <i data-lucide="radio" style="width: 18px; height: 18px;"></i>
+                <i data-lucide="radio" class="sysops-icon-18"></i>
                 Listening Ports (Open Services)
             </div>
             <div class="panel">
@@ -1230,18 +1225,18 @@
             </div>
 
             <div class="section-title">
-                <i data-lucide="bar-chart-2" style="width: 18px; height: 18px;"></i>
+                <i data-lucide="bar-chart-2" class="sysops-icon-18"></i>
                 Bandwidth Summary
             </div>
             <div class="panel">
                 <div class="network-summary" id="bandwidth-summary">
                     <div class="network-stat">
                         <span class="network-label"><span data-i18n="system_operations.total_sent">Total Sent</span></span>
-                        <span class="network-value" id="bandwidth-sent" style="color: var(--sysops-accent);">--</span>
+                        <span class="network-value sysops-text-cyan" id="bandwidth-sent">--</span>
                     </div>
                     <div class="network-stat">
                         <span class="network-label"><span data-i18n="system_operations.total_received">Total Received</span></span>
-                        <span class="network-value" id="bandwidth-recv" style="color: var(--sysops-success);">--</span>
+                        <span class="network-value sysops-text-green" id="bandwidth-recv">--</span>
                     </div>
                 </div>
             </div>
@@ -1249,18 +1244,18 @@
 
         <!-- Sub-tab: Port Map -->
         <div id="net-subtab-portmap" class="net-subtab-content">
-            <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="git-branch" style="width: 18px; height: 18px;"></i>
+            <div class="section-title sysops-flex-between-center">
+                <span class="sysops-flex-center">
+                    <i data-lucide="git-branch" class="sysops-icon-18"></i>
                     Port-to-Stack Mapping
                 </span>
-                <button class="btn btn-secondary" onclick="loadPortMap()" style="font-size: 0.8rem; padding: 4px 12px;">
-                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
+                <button class="btn btn-secondary sysops-btn-sm" onclick="loadPortMap()">
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
                 </button>
             </div>
             <div id="port-map-container" class="panel">
-                <p style="color: var(--sysops-text-muted); padding: 20px; text-align: center;">
-                    <i data-lucide="loader" style="width: 16px; height: 16px;"></i> Loading port map...
+                <p class="sysops-empty-state">
+                    <i data-lucide="loader" class="sysops-icon-16"></i> Loading port map...
                 </p>
             </div>
         </div>
@@ -1268,25 +1263,25 @@
         <!-- Sub-tab: Topology -->
         <div id="net-subtab-topology" class="net-subtab-content">
             <div class="section-title">
-                <i data-lucide="network" style="width: 18px; height: 18px;"></i>
+                <i data-lucide="network" class="sysops-icon-18"></i>
                 Network Topology
             </div>
             <div id="topology-svg-container" class="topology-container">
-                <p style="color: var(--sysops-text-muted); padding: 20px; text-align: center;">
-                    <i data-lucide="loader" style="width: 16px; height: 16px;"></i> Loading topology...
+                <p class="sysops-empty-state">
+                    <i data-lucide="loader" class="sysops-icon-16"></i> Loading topology...
                 </p>
             </div>
         </div>
 
         <!-- Sub-tab: Bandwidth -->
         <div id="net-subtab-bandwidth" class="net-subtab-content">
-            <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
-                <span style="display: flex; align-items: center; gap: 8px;">
-                    <i data-lucide="activity" style="width: 18px; height: 18px;"></i>
+            <div class="section-title sysops-flex-between-center">
+                <span class="sysops-flex-center">
+                    <i data-lucide="activity" class="sysops-icon-18"></i>
                     Bandwidth Monitor
                 </span>
-                <button class="btn btn-secondary" onclick="loadBandwidthData()" style="font-size: 0.8rem; padding: 4px 12px;">
-                    <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
+                <button class="btn btn-secondary sysops-btn-sm" onclick="loadBandwidthData()">
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
                 </button>
             </div>
 
@@ -1295,57 +1290,57 @@
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div class="stat-card-title">
-                            <i data-lucide="download" style="width: 18px; height: 18px; color: var(--sysops-success);"></i>
+                            <i data-lucide="download" style="width: 18px; height: 18px; color: var(--archie-green);"></i>
                             Total Downloaded
                         </div>
                     </div>
-                    <div class="stat-value" id="total-rx-bytes" style="font-size: 1.4rem; color: var(--sysops-success);">--</div>
+                    <div class="stat-value" id="total-rx-bytes" style="font-size: 1.4rem; color: var(--archie-green);">--</div>
                     <div class="stat-label" id="total-rx-packets">-- packets</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div class="stat-card-title">
-                            <i data-lucide="upload" style="width: 18px; height: 18px; color: var(--sysops-accent);"></i>
+                            <i data-lucide="upload" style="width: 18px; height: 18px; color: var(--archie-cyan);"></i>
                             Total Uploaded
                         </div>
                     </div>
-                    <div class="stat-value" id="total-tx-bytes" style="font-size: 1.4rem; color: var(--sysops-accent);">--</div>
+                    <div class="stat-value" id="total-tx-bytes" style="font-size: 1.4rem; color: var(--archie-cyan);">--</div>
                     <div class="stat-label" id="total-tx-packets">-- packets</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div class="stat-card-title">
-                            <i data-lucide="hard-drive" style="width: 18px; height: 18px; color: var(--sysops-purple);"></i>
+                            <i data-lucide="hard-drive" style="width: 18px; height: 18px; color: var(--archie-purple);"></i>
                             Total Traffic
                         </div>
                     </div>
-                    <div class="stat-value" id="total-traffic" style="font-size: 1.4rem; color: var(--sysops-purple);">--</div>
+                    <div class="stat-value" id="total-traffic" style="font-size: 1.4rem; color: var(--archie-purple);">--</div>
                     <div class="stat-label" id="total-traffic-label"><span data-i18n="system_operations.since_last_reboot">Since last reboot</span></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-card-header">
                         <div class="stat-card-title">
-                            <i data-lucide="gauge" style="width: 18px; height: 18px; color: var(--sysops-warning);"></i>
+                            <i data-lucide="gauge" style="width: 18px; height: 18px; color: var(--archie-orange);"></i>
                             Current Rate
                         </div>
                     </div>
-                    <div class="stat-value" id="current-rate" style="font-size: 1.4rem; color: var(--sysops-warning);">--</div>
+                    <div class="stat-value" id="current-rate" style="font-size: 1.4rem; color: var(--archie-orange);">--</div>
                     <div class="stat-label" id="current-rate-label"><span data-i18n="system_operations.combined_rx_tx">Combined RX+TX</span></div>
                 </div>
             </div>
 
             <!-- Bandwidth History Chart -->
             <div class="chart-card" style="margin-bottom: 16px; height: 250px;">
-                <h3 style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <h3 class="sysops-flex-center-mb">
                     <span><span data-i18n="system_operations.bandwidth_history">Bandwidth History</span></span>
-                    <span id="bandwidth-chart-info" style="font-size: 0.75rem; color: var(--sysops-text-muted); font-weight: normal;">--</span>
+                    <span id="bandwidth-chart-info" style="font-size: 0.75rem; color: var(--archie-text-muted); font-weight: normal;">--</span>
                 </h3>
                 <canvas id="bandwidthChart"></canvas>
             </div>
 
             <div id="bandwidth-monitor-container" class="panel">
-                <p style="color: var(--sysops-text-muted); padding: 20px; text-align: center;">
-                    <i data-lucide="loader" style="width: 16px; height: 16px;"></i> Loading bandwidth data...
+                <p class="sysops-empty-state">
+                    <i data-lucide="loader" class="sysops-icon-16"></i> Loading bandwidth data...
                 </p>
             </div>
         </div>
@@ -1353,13 +1348,13 @@
 
     <!-- Tab: Firewall -->
     <div id="tab-firewall" class="tab-content">
-    <div class="section-title" style="display: flex; align-items: center; justify-content: space-between;">
-        <span style="display: flex; align-items: center; gap: 8px;">
-            <i data-lucide="shield" style="width: 18px; height: 18px;"></i>
+    <div class="section-title sysops-flex-between-center">
+        <span class="sysops-flex-center">
+            <i data-lucide="shield" class="sysops-icon-18"></i>
             UFW Firewall Management
         </span>
-        <button class="btn btn-secondary" onclick="loadFirewallData()" style="font-size: 0.8rem; padding: 4px 12px;">
-            <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
+        <button class="btn btn-secondary sysops-btn-sm" onclick="loadFirewallData()">
+            <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
         </button>
     </div>
 
@@ -1368,39 +1363,39 @@
         <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-title">
-                    <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i>
+                    <i data-lucide="shield-check" class="sysops-icon-20"></i>
                     Firewall Status
                 </div>
             </div>
-            <div class="stat-value" id="firewall-status-value" style="font-size: 1.5rem;">--</div>
+            <div class="stat-value sysops-text-lg" id="firewall-status-value">--</div>
             <div class="stat-label" id="firewall-status-label"><span data-i18n="system_operations.checking_2">Checking...</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-title">
-                    <i data-lucide="list" style="width: 20px; height: 20px;"></i>
+                    <i data-lucide="list" class="sysops-icon-20"></i>
                     Active Rules
                 </div>
             </div>
-            <div class="stat-value" id="firewall-rules-count" style="font-size: 1.5rem;">--</div>
+            <div class="stat-value sysops-text-lg" id="firewall-rules-count">--</div>
             <div class="stat-label"><span data-i18n="system_operations.total_rules_configured">Total rules configured</span></div>
         </div>
         <div class="stat-card">
             <div class="stat-card-header">
                 <div class="stat-card-title">
-                    <i data-lucide="settings" style="width: 20px; height: 20px;"></i>
+                    <i data-lucide="settings" class="sysops-icon-20"></i>
                     Controls
                 </div>
             </div>
             <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-                <button class="btn btn-success" id="firewall-enable-btn" onclick="enableFirewall()" style="font-size: 0.8rem;">
-                    <i data-lucide="power" style="width: 14px; height: 14px;"></i> Enable
+                <button class="btn btn-success sysops-text-sm" id="firewall-enable-btn" onclick="enableFirewall()">
+                    <i data-lucide="power" class="sysops-icon-14"></i> Enable
                 </button>
-                <button class="btn btn-danger" id="firewall-disable-btn" onclick="confirmDisableFirewall()" style="font-size: 0.8rem;">
-                    <i data-lucide="power-off" style="width: 14px; height: 14px;"></i> Disable
+                <button class="btn btn-danger sysops-text-sm" id="firewall-disable-btn" onclick="confirmDisableFirewall()">
+                    <i data-lucide="power-off" class="sysops-icon-14"></i> Disable
                 </button>
-                <button class="btn btn-primary" onclick="openAddRuleModal()" style="font-size: 0.8rem;">
-                    <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Rule
+                <button class="btn btn-primary sysops-text-sm" onclick="openAddRuleModal()">
+                    <i data-lucide="plus" class="sysops-icon-14"></i> Add Rule
                 </button>
             </div>
         </div>
@@ -1408,9 +1403,9 @@
 
     <!-- Firewall Rules Table -->
     <div class="section-title">
-        <i data-lucide="shield-alert" style="width: 18px; height: 18px;"></i>
+        <i data-lucide="shield-alert" class="sysops-icon-18"></i>
         Firewall Rules
-        <span id="firewall-from-config-badge" style="display: none; margin-left: 10px; font-size: 0.7rem; background: rgba(251, 191, 36, 0.2); color: var(--sysops-warning); padding: 2px 8px; border-radius: 4px;">
+        <span id="firewall-from-config-badge" style="display: none; margin-left: 10px; font-size: 0.7rem; background: rgba(251, 191, 36, 0.2); color: var(--archie-yellow); padding: 2px 8px; border-radius: 4px;">
             From Config (UFW Inactive)
         </span>
     </div>
@@ -1431,31 +1426,41 @@
                 <tr><td colspan="7" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_firewall_rules"> Loading firewall rules...</span></td></tr>
             </tbody>
         </table>
-        <div id="firewall-no-rules" style="display: none; text-align: center; padding: 30px; color: var(--sysops-text-muted);">
+        <div id="firewall-no-rules" style="display: none; text-align: center; padding: 30px; color: var(--archie-text-muted);">
             <i data-lucide="shield-off" style="width: 48px; height: 48px; opacity: 0.5;"></i>
             <p style="margin-top: 10px;"><span data-i18n="system_operations.no_firewall_rules_configured">No firewall rules configured.</span></p>
         </div>
     </div>
 
-</div><!-- /ksm-dashboard -->
+    {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+            </div><!-- /lcars-body -->
+            <div class="lcars-footer-bar"></div>
+        </div><!-- /lcars-content -->
+    </div><!-- /lcars-frame -->
+    {% else %}
+        </div><!-- /modern-body -->
+    </div><!-- /modern-frame -->
+    {% endif %}
+
+</div><!-- /sysops-container -->
 
 <!-- Firewall: Disable Confirmation Modal -->
 <div class="modal-overlay" id="firewallDisableModal">
     <div class="modal modal-sm">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-danger);">
-                <i data-lucide="alert-triangle" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-20"></i>
                 Disable Firewall?
             </h3>
             <button class="modal-close" onclick="closeFirewallDisableModal()"><span data-i18n="system_operations.times">&times;</span></button>
         </div>
         <div class="modal-body">
-            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--sysops-danger); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
-                <p style="color: var(--sysops-danger); font-weight: 600; margin-bottom: 8px;">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--archie-red); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                <p style="color: var(--archie-red); font-weight: 600; margin-bottom: 8px;">
                     <i data-lucide="shield-off" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle;"></i>
                     Warning: This will expose all ports!
                 </p>
-                <p style="color: var(--sysops-text-muted); font-size: 0.9rem; margin: 0;">
+                <p style="color: var(--archie-text-muted); font-size: 0.9rem; margin: 0;">
                     Disabling the firewall removes all protection. All ports will be accessible from any network.
                 </p>
             </div>
@@ -1463,7 +1468,7 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeFirewallDisableModal()"><span data-i18n="system_operations.cancel_2">Cancel</span></button>
             <button class="btn btn-danger" onclick="disableFirewall()">
-                <i data-lucide="power-off" style="width: 14px; height: 14px;"></i> Disable Firewall
+                <i data-lucide="power-off" class="sysops-icon-14"></i> Disable Firewall
             </button>
         </div>
     </div>
@@ -1471,10 +1476,10 @@
 
 <!-- Firewall: Add Rule Modal -->
 <div class="modal-overlay" id="firewallAddRuleModal">
-    <div class="modal" style="max-width: 450px;">
+    <div class="modal sysops-max-w-450">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-accent);">
-                <i data-lucide="plus-circle" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="plus-circle" class="sysops-icon-inline-20"></i>
                 Add Firewall Rule
             </h3>
             <button class="modal-close" onclick="closeAddRuleModal()"><span data-i18n="system_operations.times_2">&times;</span></button>
@@ -1483,7 +1488,7 @@
             <div class="form-group">
                 <label class="form-label"><span data-i18n="system_operations.port_number">Port Number</span></label>
                 <input type="number" id="firewall-port-input" class="form-input" placeholder="e.g. 8080" min="1" max="65535">
-                <small style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.valid_range_1_65535">Valid range: 1-65535</span></small>
+                <small class="sysops-text-muted"><span data-i18n="system_operations.valid_range_1_65535">Valid range: 1-65535</span></small>
             </div>
             <div class="form-group">
                 <label class="form-label"><span data-i18n="system_operations.protocol_2">Protocol</span></label>
@@ -1499,9 +1504,9 @@
                     <option value="deny"><span data-i18n="system_operations.deny_block_traffic">Deny (block traffic)</span></option>
                 </select>
             </div>
-            <div id="firewall-add-rule-warning" style="display: none; background: rgba(251, 191, 36, 0.1); border: 1px solid var(--sysops-warning); border-radius: 8px; padding: 10px; margin-top: 10px;">
-                <p style="color: var(--sysops-warning); font-size: 0.85rem; margin: 0;">
-                    <i data-lucide="alert-triangle" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+            <div id="firewall-add-rule-warning" style="display: none; background: rgba(251, 191, 36, 0.1); border: 1px solid var(--archie-yellow); border-radius: 8px; padding: 10px; margin-top: 10px;">
+                <p style="color: var(--archie-yellow); font-size: 0.85rem; margin: 0;">
+                    <i data-lucide="alert-triangle" class="sysops-icon-inline-14-bare"></i>
                     <span id="firewall-add-rule-warning-text"></span>
                 </p>
             </div>
@@ -1509,7 +1514,7 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeAddRuleModal()"><span data-i18n="system_operations.cancel_3">Cancel</span></button>
             <button class="btn btn-primary" onclick="addFirewallRule()">
-                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Rule
+                <i data-lucide="plus" class="sysops-icon-14"></i> Add Rule
             </button>
         </div>
     </div>
@@ -1517,10 +1522,10 @@
 
 <!-- Firewall: Edit Rule Modal -->
 <div class="modal-overlay" id="firewallEditRuleModal">
-    <div class="modal" style="max-width: 450px;">
+    <div class="modal sysops-max-w-450">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-accent);">
-                <i data-lucide="edit" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="edit" class="sysops-icon-inline-20"></i>
                 Edit Firewall Rule
             </h3>
             <button class="modal-close" onclick="closeEditRuleModal()"><span data-i18n="system_operations.times_3">&times;</span></button>
@@ -1531,7 +1536,7 @@
             <div class="form-group">
                 <label class="form-label"><span data-i18n="system_operations.port_number_2">Port Number</span></label>
                 <input type="number" id="firewall-edit-port-input" class="form-input" placeholder="e.g. 8080" min="1" max="65535">
-                <small style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.valid_range_1_65535_2">Valid range: 1-65535</span></small>
+                <small class="sysops-text-muted"><span data-i18n="system_operations.valid_range_1_65535_2">Valid range: 1-65535</span></small>
             </div>
             <div class="form-group">
                 <label class="form-label"><span data-i18n="system_operations.protocol_3">Protocol</span></label>
@@ -1551,7 +1556,7 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeEditRuleModal()"><span data-i18n="system_operations.cancel_4">Cancel</span></button>
             <button class="btn btn-primary" onclick="updateFirewallRule()">
-                <i data-lucide="save" style="width: 14px; height: 14px;"></i> Save Changes
+                <i data-lucide="save" class="sysops-icon-14"></i> Save Changes
             </button>
         </div>
     </div>
@@ -1561,26 +1566,72 @@
 <div class="modal-overlay" id="firewallDeleteModal">
     <div class="modal modal-sm">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-danger);">
-                <i data-lucide="trash-2" style="width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 8px;"></i>
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="trash-2" class="sysops-icon-inline-20"></i>
                 Delete Rule?
             </h3>
             <button class="modal-close" onclick="closeDeleteRuleModal()"><span data-i18n="system_operations.times_4">&times;</span></button>
         </div>
         <div class="modal-body">
-            <p style="color: var(--sysops-text-muted);"><span data-i18n="system_operations.are_you_sure_you_want_to_delete_this_firewall_rule">Are you sure you want to delete this firewall rule?</span></p>
-            <div style="background: var(--sysops-bg-surface); border-radius: 8px; padding: 12px; margin-top: 10px; font-family: monospace;">
+            <p class="sysops-text-muted"><span data-i18n="system_operations.are_you_sure_you_want_to_delete_this_firewall_rule">Are you sure you want to delete this firewall rule?</span></p>
+            <div style="background: var(--archie-surface); border-radius: 8px; padding: 12px; margin-top: 10px; font-family: monospace;">
                 <span id="firewall-delete-rule-details"><span data-i18n="system_operations.rule">Rule #--</span></span>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeDeleteRuleModal()"><span data-i18n="system_operations.cancel_5">Cancel</span></button>
             <button class="btn btn-danger" onclick="deleteFirewallRule()">
-                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete Rule
+                <i data-lucide="trash-2" class="sysops-icon-14"></i> Delete Rule
             </button>
         </div>
     </div>
 </div>
+
+    <!-- ============ COMPLIANCE TAB ============ -->
+    <div id="tab-compliance" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="shield-check" class="sysops-icon-20"></i>
+                <span>Compliance Scanner</span>
+            </h2>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="runComplianceScan()" id="scanBtn">
+                    <i data-lucide="play" class="sysops-icon-14"></i> Run Scan
+                </button>
+                <button class="btn btn-ghost" data-tier-required="business" onclick="exportCompliancePDF()">
+                    <i data-lucide="file-text" class="sysops-icon-14"></i> Export PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Score Overview -->
+        <div id="compliance-score" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Overall Score</div>
+                <div id="compliance-score-value" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-accent);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Passed</div>
+                <div id="compliance-passed" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-green);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Failed</div>
+                <div id="compliance-failed" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-red);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Last Scan</div>
+                <div id="compliance-last-scan" style="font-size: 1rem; font-weight: 600; color: var(--archie-text-secondary);">Never</div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div id="compliance-results" style="margin-top: 16px;">
+            <div style="text-align: center; padding: 40px; color: var(--archie-text-muted);">
+                <i data-lucide="shield-question" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+                <p style="margin-top: 10px;">No scan results yet. Click "Run Scan" to start.</p>
+            </div>
+        </div>
+    </div>
 
 <!-- Confirmation Modal - higher z-index to appear above other modals -->
 <div class="modal-overlay" id="confirmModal" style="z-index: 10001;">
@@ -1601,16 +1652,16 @@
 
 <!-- Pre-flight Check Modal -->
 <div class="modal-overlay" id="preflightModal">
-    <div class="modal" style="max-width: 500px;">
+    <div class="modal sysops-max-w-500">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-warning);">
-                <i data-lucide="alert-triangle" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-orange">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-20"></i>
                 Pre-flight Check
             </h3>
             <button class="modal-close" onclick="closePreflightModal()"><span data-i18n="system_operations.times_6">&times;</span></button>
         </div>
         <div class="modal-body">
-            <p style="color: var(--sysops-text-secondary); margin-bottom: 12px;">
+            <p style="color: var(--archie-text-secondary); margin-bottom: 12px;">
                 The following conditions were detected:
             </p>
             <div class="preflight-warnings" id="preflightWarnings">
@@ -1620,7 +1671,7 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closePreflightModal()"><span data-i18n="system_operations.cancel_7">Cancel</span></button>
             <button class="btn btn-warning" id="preflightProceedBtn" onclick="proceedAfterPreflight()">
-                <i data-lucide="chevron-right" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="chevron-right" class="sysops-icon-inline-14"></i>
                 Proceed Anyway
             </button>
         </div>
@@ -1631,8 +1682,8 @@
 <div class="modal-overlay" id="lvmExtendModal">
     <div class="modal" style="max-width: 600px;">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-success);">
-                <i data-lucide="hard-drive" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-green">
+                <i data-lucide="hard-drive" class="sysops-icon-inline-20"></i>
                 Extend Logical Volume
             </h3>
             <button class="modal-close" onclick="closeLvmExtendModal()"><span data-i18n="system_operations.times_7">&times;</span></button>
@@ -1640,44 +1691,44 @@
 
         <div class="modal-body" id="lvmExtendContent">
             <!-- Current Status -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.logical_volume">Logical Volume</span></span>
-                        <div class="mono" id="extendLvName" style="color: var(--sysops-success); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.logical_volume">Logical Volume</span></span>
+                        <div class="mono sysops-text-green-lg" id="extendLvName">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.current_size">Current Size</span></span>
-                        <div id="extendLvSize" style="font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_size">Current Size</span></span>
+                        <div id="extendLvSize" class="sysops-text-md">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.volume_group">Volume Group</span></span>
-                        <div class="mono" id="extendVgName" style="color: var(--sysops-accent);">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.volume_group">Volume Group</span></span>
+                        <div class="mono sysops-text-cyan" id="extendVgName">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.vg_free_space">VG Free Space</span></span>
-                        <div id="extendVgFree" style="font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.vg_free_space">VG Free Space</span></span>
+                        <div id="extendVgFree" class="sysops-text-md">-</div>
                     </div>
                 </div>
             </div>
 
             <!-- No Space Warning -->
-            <div id="lvmNoSpaceWarning" style="display: none; background: rgba(255,107,107,0.1); border: 1px solid var(--sysops-danger); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-triangle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-danger);"></i>
-                <strong style="color: var(--sysops-danger); margin-left: 6px;"><span data-i18n="system_operations.no_free_space_in_volume_group">No Free Space in Volume Group</span></strong>
-                <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: var(--sysops-text-secondary);">
+            <div id="lvmNoSpaceWarning" class="sysops-alert-danger-hidden">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.no_free_space_in_volume_group">No Free Space in Volume Group</span></strong>
+                <p class="sysops-subtitle-secondary">
                     To extend this LV, you need to first add space to the volume group. See "Add New Physical Volume" below.
                 </p>
             </div>
 
             <!-- Extension Options (shown when space available) -->
-            <div id="lvmExtendOptions" style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div id="lvmExtendOptions" class="sysops-mb-16">
+                <label class="sysops-label">
                     Extend by (GB):
                 </label>
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <div class="sysops-flex-gap-10">
                     <input type="number" id="extendSizeInput" min="1" step="1" value="10"
-                           style="flex: 1; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem;">
+                           style="flex: 1; padding: 10px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-text-primary); font-size: 1rem;">
                     <button onclick="setExtendMax()" class="action-btn" style="padding: 10px 16px;">
                         Use All (<span id="extendMaxLabel">0</span> GB)
                     </button>
@@ -1685,37 +1736,37 @@
             </div>
 
             <!-- Commands Section -->
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Commands to run on host (as root):
                 </label>
-                <div style="background: #1a1a2e; padding: 12px; border-radius: 6px; font-family: var(--sysops-font-mono); font-size: 0.85rem; position: relative;">
-                    <pre id="extendCommands" style="margin: 0; white-space: pre-wrap; color: var(--sysops-success);"># Commands will appear here</pre>
-                    <button onclick="copyExtendCommands()" style="position: absolute; top: 8px; right: 8px; padding: 4px 8px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-accent); cursor: pointer; font-size: 0.75rem;">
+                <div class="sysops-code-block">
+                    <pre id="extendCommands" style="margin: 0; white-space: pre-wrap; color: var(--archie-green);"># Commands will appear here</pre>
+                    <button onclick="copyExtendCommands()" style="position: absolute; top: 8px; right: 8px; padding: 4px 8px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-cyan); cursor: pointer; font-size: 0.75rem;">
                         <i data-lucide="copy" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> Copy
                     </button>
                 </div>
             </div>
 
             <!-- Add New PV Section -->
-            <details style="margin-bottom: 16px;">
-                <summary style="cursor: pointer; color: var(--sysops-accent); font-size: 0.9rem; padding: 8px 0;">
+            <details class="sysops-mb-16">
+                <summary style="cursor: pointer; color: var(--archie-cyan); font-size: 0.9rem; padding: 8px 0;">
                     <i data-lucide="plus-circle" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:6px;"></i>
                     Add New Physical Volume (expand VG)
                 </summary>
-                <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-top: 8px;">
-                    <p style="font-size: 0.85rem; color: var(--sysops-text-secondary); margin-bottom: 12px;">
+                <div style="background: var(--archie-bg-tertiary); padding: 12px; border-radius: 6px; margin-top: 8px;">
+                    <p style="font-size: 0.85rem; color: var(--archie-text-secondary); margin-bottom: 12px;">
                         To add more space to your volume group, you need a new disk or partition. Steps:
                     </p>
-                    <ol style="font-size: 0.85rem; color: var(--sysops-text-secondary); padding-left: 20px; margin: 0;">
-                        <li style="margin-bottom: 6px;"><span data-i18n="system_operations.add_a_new_disk_or_create_a_new_partition">Add a new disk or create a new partition</span></li>
-                        <li style="margin-bottom: 6px;">Initialize as PV: <code style="background: #1a1a2e; padding: 2px 6px; border-radius: 3px;">sudo pvcreate /dev/sdX</code></li>
-                        <li style="margin-bottom: 6px;">Add to VG: <code style="background: #1a1a2e; padding: 2px 6px; border-radius: 3px;">sudo vgextend <span id="addPvVgName">ubuntu-vg</span> /dev/sdX</code></li>
+                    <ol style="font-size: 0.85rem; color: var(--archie-text-secondary); padding-left: 20px; margin: 0;">
+                        <li class="sysops-mb-6"><span data-i18n="system_operations.add_a_new_disk_or_create_a_new_partition">Add a new disk or create a new partition</span></li>
+                        <li class="sysops-mb-6">Initialize as PV: <code class="sysops-code-inline">sudo pvcreate /dev/sdX</code></li>
+                        <li class="sysops-mb-6">Add to VG: <code class="sysops-code-inline">sudo vgextend <span id="addPvVgName">ubuntu-vg</span> /dev/sdX</code></li>
                         <li><span data-i18n="system_operations.then_return_here_to_extend_the_lv">Then return here to extend the LV</span></li>
                     </ol>
                     <div style="margin-top: 12px; padding: 8px; background: rgba(0,255,255,0.1); border-radius: 4px;">
-                        <i data-lucide="info" style="width:14px; height:14px; display:inline-block; vertical-align:middle; color: var(--sysops-accent);"></i>
-                        <span style="font-size: 0.8rem; color: var(--sysops-accent); margin-left: 6px;">
+                        <i data-lucide="info" style="width:14px; height:14px; display:inline-block; vertical-align:middle; color: var(--archie-cyan);"></i>
+                        <span style="font-size: 0.8rem; color: var(--archie-cyan); margin-left: 6px;">
                             If your disk has unallocated space, you can grow the existing partition with <code>growpart</code> or <code>fdisk</code>, then run <code>pvresize /dev/sdaX</code>
                         </span>
                     </div>
@@ -1726,15 +1777,15 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeLvmExtendModal()"><span data-i18n="system_operations.close_2">Close</span></button>
             <button class="btn btn-primary" id="executeLvmExtendBtn" onclick="executeLvmExtend()">
-                <i data-lucide="play" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="play" class="sysops-icon-inline-14"></i>
                 Execute on Host
             </button>
-            <button class="btn btn-primary" id="executeLvmExtendAllBtn" onclick="executeLvmExtendAll()" style="background: var(--sysops-warning); border-color: var(--sysops-warning);">
-                <i data-lucide="maximize-2" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+            <button class="btn btn-primary" id="executeLvmExtendAllBtn" onclick="executeLvmExtendAll()" style="background: var(--archie-orange); border-color: var(--archie-orange);">
+                <i data-lucide="maximize-2" class="sysops-icon-inline-14"></i>
                 Use All Free Space
             </button>
             <button class="btn btn-primary" id="refreshAfterExtend" onclick="refreshAfterLvmExtend()">
-                <i data-lucide="refresh-cw" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="refresh-cw" class="sysops-icon-inline-14"></i>
                 Refresh Status
             </button>
         </div>
@@ -1745,8 +1796,8 @@
 <div class="modal-overlay" id="lvmShrinkModal">
     <div class="modal" style="max-width: 550px;">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-warning);">
-                <i data-lucide="minimize-2" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-orange">
+                <i data-lucide="minimize-2" class="sysops-icon-inline-20"></i>
                 Shrink Logical Volume
             </h3>
             <button class="modal-close" onclick="closeLvmShrinkModal()"><span data-i18n="system_operations.times_8">&times;</span></button>
@@ -1754,71 +1805,71 @@
 
         <div class="modal-body">
             <!-- Warning Banner -->
-            <div style="background: rgba(255,170,0,0.15); border: 1px solid var(--sysops-warning); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-triangle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-warning);"></i>
-                <strong style="color: var(--sysops-warning); margin-left: 6px;"><span data-i18n="system_operations.data_safety_warning">Data Safety Warning</span></strong>
-                <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: var(--sysops-text-secondary);">
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.data_safety_warning">Data Safety Warning</span></strong>
+                <p class="sysops-subtitle-secondary-085">
                     Shrinking requires unmounting the volume temporarily. Ensure no applications are using it.
                     A 10% safety buffer is enforced above used space.
                 </p>
             </div>
 
             <!-- Current Status -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.logical_volume_2">Logical Volume</span></span>
-                        <div class="mono" id="shrinkLvName" style="color: var(--sysops-success); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.logical_volume_2">Logical Volume</span></span>
+                        <div class="mono sysops-text-green-lg" id="shrinkLvName">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.current_size_2">Current Size</span></span>
-                        <div id="shrinkLvSize" style="font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_size_2">Current Size</span></span>
+                        <div id="shrinkLvSize" class="sysops-text-md">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.used_space">Used Space</span></span>
-                        <div id="shrinkLvUsed" style="font-size: 1.1rem; color: var(--sysops-accent);">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.used_space">Used Space</span></span>
+                        <div id="shrinkLvUsed" style="font-size: 1.1rem; color: var(--archie-cyan);">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.minimum_safe_size">Minimum Safe Size</span></span>
-                        <div id="shrinkMinSize" style="font-size: 1.1rem; color: var(--sysops-warning);">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.minimum_safe_size">Minimum Safe Size</span></span>
+                        <div id="shrinkMinSize" style="font-size: 1.1rem; color: var(--archie-orange);">-</div>
                     </div>
                 </div>
             </div>
 
             <!-- XFS Warning (hidden by default) -->
-            <div id="shrinkXfsWarning" style="display: none; background: rgba(255,107,107,0.1); border: 1px solid var(--sysops-danger); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="x-circle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-danger);"></i>
-                <strong style="color: var(--sysops-danger); margin-left: 6px;"><span data-i18n="system_operations.cannot_shrink_xfs">Cannot Shrink XFS</span></strong>
-                <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: var(--sysops-text-secondary);">
+            <div id="shrinkXfsWarning" class="sysops-alert-danger-hidden">
+                <i data-lucide="x-circle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.cannot_shrink_xfs">Cannot Shrink XFS</span></strong>
+                <p class="sysops-subtitle-secondary">
                     XFS filesystems cannot be shrunk - this is a fundamental limitation of XFS. Only ext4 filesystems support shrinking.
                 </p>
             </div>
 
             <!-- Root Warning (hidden by default) -->
-            <div id="shrinkRootWarning" style="display: none; background: rgba(255,107,107,0.1); border: 1px solid var(--sysops-danger); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="x-circle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-danger);"></i>
-                <strong style="color: var(--sysops-danger); margin-left: 6px;"><span data-i18n="system_operations.cannot_shrink_root_filesystem">Cannot Shrink Root Filesystem</span></strong>
-                <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: var(--sysops-text-secondary);">
+            <div id="shrinkRootWarning" class="sysops-alert-danger-hidden">
+                <i data-lucide="x-circle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.cannot_shrink_root_filesystem">Cannot Shrink Root Filesystem</span></strong>
+                <p class="sysops-subtitle-secondary">
                     The root filesystem cannot be shrunk while the system is running. This would require booting from a live USB.
                 </p>
             </div>
 
             <!-- Size Input -->
             <div id="shrinkSizeInputArea">
-                <label style="color: var(--sysops-text-muted); font-size: 0.8rem; display: block; margin-bottom: 6px;"><span data-i18n="system_operations.new_size_gb">New Size (GB):</span></label>
-                <div style="display: flex; gap: 10px; align-items: center;">
+                <label class="sysops-label-muted"><span data-i18n="system_operations.new_size_gb">New Size (GB):</span></label>
+                <div class="sysops-flex-gap-10">
                     <input type="number" id="shrinkTargetSize" min="1" step="1" placeholder="Enter size"
-                           style="flex: 1; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem;">
-                    <span style="color: var(--sysops-text-muted);">GB</span>
+                           style="flex: 1; padding: 10px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-text-primary); font-size: 1rem;">
+                    <span class="sysops-text-muted">GB</span>
                 </div>
-                <div id="shrinkSizeHint" style="margin-top: 8px; font-size: 0.8rem; color: var(--sysops-text-muted);"></div>
+                <div id="shrinkSizeHint" style="margin-top: 8px; font-size: 0.8rem; color: var(--archie-text-muted);"></div>
             </div>
         </div>
 
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeLvmShrinkModal()"><span data-i18n="system_operations.cancel_8">Cancel</span></button>
             <button class="btn btn-warning" id="executeLvmShrinkBtn" onclick="executeLvmShrink()">
-                <i data-lucide="minimize-2" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="minimize-2" class="sysops-icon-inline-14"></i>
                 Shrink Volume
             </button>
         </div>
@@ -1829,8 +1880,8 @@
 <div class="modal-overlay" id="convertToLvmModal">
     <div class="modal" style="max-width: 550px;">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-purple);">
-                <i data-lucide="layers" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="layers" class="sysops-icon-inline-20"></i>
                 Convert to LVM
             </h3>
             <button class="modal-close" onclick="closeConvertToLvmModal()"><span data-i18n="system_operations.times_9">&times;</span></button>
@@ -1838,18 +1889,18 @@
 
         <div class="modal-body">
             <!-- Warning Banner -->
-            <div style="background: rgba(255,107,107,0.15); border: 1px solid var(--sysops-danger); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-triangle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-danger);"></i>
-                <strong style="color: var(--sysops-danger); margin-left: 6px;"><span data-i18n="system_operations.data_loss_warning">Data Loss Warning</span></strong>
-                <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: var(--sysops-text-secondary);">
+            <div style="background: rgba(255,107,107,0.15); border: 1px solid var(--archie-red); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.data_loss_warning">Data Loss Warning</span></strong>
+                <p class="sysops-subtitle-secondary-085">
                     Converting to LVM will <strong><span data-i18n="system_operations.erase_all_data">ERASE ALL DATA</span></strong> on this partition. Make sure you have backups!
                 </p>
             </div>
 
             <!-- Benefits Info -->
-            <div style="background: rgba(139,92,246,0.15); border: 1px solid var(--sysops-purple); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <strong style="color: var(--sysops-purple);"><span data-i18n="system_operations.why_lvm">Why LVM?</span></strong>
-                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--sysops-text-secondary);">
+            <div style="background: rgba(139,92,246,0.15); border: 1px solid var(--archie-purple); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <strong class="sysops-text-purple"><span data-i18n="system_operations.why_lvm">Why LVM?</span></strong>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--archie-text-secondary);">
                     <li><span data-i18n="system_operations.extend_volumes_without_unmounting">Extend volumes without unmounting</span></li>
                     <li><span data-i18n="system_operations.shrink_volumes_when_needed">Shrink volumes when needed</span></li>
                     <li><span data-i18n="system_operations.rename_volumes_easily">Rename volumes easily</span></li>
@@ -1858,14 +1909,14 @@
             </div>
 
             <!-- Current Info -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.device_2">Device</span></span>
-                        <div class="mono" id="convertDevice" style="color: var(--sysops-accent); font-size: 1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_2">Device</span></span>
+                        <div class="mono" id="convertDevice" style="color: var(--archie-cyan); font-size: 1rem;">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.size_4">Size</span></span>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_4">Size</span></span>
                         <div id="convertSize" style="font-size: 1rem;">-</div>
                     </div>
                 </div>
@@ -1874,21 +1925,21 @@
             <!-- LVM Names -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
                 <div>
-                    <label style="color: var(--sysops-text-muted); font-size: 0.8rem; display: block; margin-bottom: 6px;"><span data-i18n="system_operations.volume_group_name">Volume Group Name:</span></label>
+                    <label class="sysops-label-muted"><span data-i18n="system_operations.volume_group_name">Volume Group Name:</span></label>
                     <input type="text" id="convertVgName" placeholder="e.g., data-vg"
-                           style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; font-family: var(--sysops-font-mono); box-sizing: border-box;">
+                           class="sysops-input-mono">
                 </div>
                 <div>
-                    <label style="color: var(--sysops-text-muted); font-size: 0.8rem; display: block; margin-bottom: 6px;"><span data-i18n="system_operations.logical_volume_name">Logical Volume Name:</span></label>
+                    <label class="sysops-label-muted"><span data-i18n="system_operations.logical_volume_name">Logical Volume Name:</span></label>
                     <input type="text" id="convertLvName" placeholder="e.g., data-lv"
-                           style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; font-family: var(--sysops-font-mono); box-sizing: border-box;">
+                           class="sysops-input-mono">
                 </div>
             </div>
 
             <!-- Filesystem -->
             <div class="form-group">
-                <label style="color: var(--sysops-text-muted); font-size: 0.8rem; display: block; margin-bottom: 6px;"><span data-i18n="system_operations.filesystem">Filesystem:</span></label>
-                <select id="convertFstype" style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                <label class="sysops-label-muted"><span data-i18n="system_operations.filesystem">Filesystem:</span></label>
+                <select id="convertFstype" class="sysops-input">
                     <option value="ext4"><span data-i18n="system_operations.ext4_recommended">ext4 (Recommended)</span></option>
                     <option value="xfs"><span data-i18n="system_operations.xfs">xfs</span></option>
                     <option value="btrfs"><span data-i18n="system_operations.btrfs">btrfs</span></option>
@@ -1899,7 +1950,7 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeConvertToLvmModal()"><span data-i18n="system_operations.cancel_9">Cancel</span></button>
             <button class="btn btn-danger" onclick="executeConvertToLvm()">
-                <i data-lucide="zap" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="zap" class="sysops-icon-inline-14"></i>
                 Convert to LVM
             </button>
         </div>
@@ -1908,10 +1959,10 @@
 
 <!-- Change Label Modal (for regular partitions) -->
 <div class="modal-overlay" id="changeLabelModal">
-    <div class="modal" style="max-width: 450px;">
+    <div class="modal sysops-max-w-450">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-accent);">
-                <i data-lucide="tag" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="tag" class="sysops-icon-inline-20"></i>
                 Change Partition Label
             </h3>
             <button class="modal-close" onclick="closeChangeLabelModal()"><span data-i18n="system_operations.times_10">&times;</span></button>
@@ -1919,14 +1970,14 @@
 
         <div class="modal-body">
             <!-- Current Info -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.device_3">Device</span></span>
-                        <div class="mono" id="labelDevice" style="color: var(--sysops-success); font-size: 1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_3">Device</span></span>
+                        <div class="mono" id="labelDevice" style="color: var(--archie-green); font-size: 1rem;">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.current_label">Current Label</span></span>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_label">Current Label</span></span>
                         <div id="labelCurrent" style="font-size: 1rem;">-</div>
                     </div>
                 </div>
@@ -1934,17 +1985,17 @@
 
             <!-- New Label Input -->
             <div class="form-group">
-                <label style="color: var(--sysops-text-muted); font-size: 0.8rem; display: block; margin-bottom: 6px;"><span data-i18n="system_operations.new_label">New Label:</span></label>
+                <label class="sysops-label-muted"><span data-i18n="system_operations.new_label">New Label:</span></label>
                 <input type="text" id="labelNewName" placeholder="Enter new label" maxlength="16"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
-                <span style="font-size: 0.75rem; color: var(--sysops-text-muted); margin-top: 4px; display: block;"><span data-i18n="system_operations.max_16_characters_for_ext4">Max 16 characters for ext4</span></span>
+                       class="sysops-input">
+                <span style="font-size: 0.75rem; color: var(--archie-text-muted); margin-top: 4px; display: block;"><span data-i18n="system_operations.max_16_characters_for_ext4">Max 16 characters for ext4</span></span>
             </div>
         </div>
 
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeChangeLabelModal()"><span data-i18n="system_operations.cancel_10">Cancel</span></button>
             <button class="btn btn-primary" onclick="executeChangeLabel()">
-                <i data-lucide="check" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="check" class="sysops-icon-inline-14"></i>
                 Change Label
             </button>
         </div>
@@ -1953,10 +2004,10 @@
 
 <!-- LVM Rename Modal -->
 <div class="modal-overlay" id="lvmRenameModal">
-    <div class="modal" style="max-width: 500px;">
+    <div class="modal sysops-max-w-500">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-accent);">
-                <i data-lucide="pencil" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="pencil" class="sysops-icon-inline-20"></i>
                 Rename Logical Volume
             </h3>
             <button class="modal-close" onclick="closeLvmRenameModal()"><span data-i18n="system_operations.times_11">&times;</span></button>
@@ -1964,42 +2015,42 @@
 
         <div class="modal-body">
             <!-- Warning Banner -->
-            <div style="background: rgba(255,170,0,0.15); border: 1px solid var(--sysops-warning); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-triangle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-warning);"></i>
-                <strong style="color: var(--sysops-warning); margin-left: 6px;"><span data-i18n="system_operations.caution">Caution</span></strong>
-                <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: var(--sysops-text-secondary);">
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.caution">Caution</span></strong>
+                <p class="sysops-subtitle-secondary-085">
                     Renaming will automatically update /etc/fstab if needed. Any scripts or configs referencing the old name will need manual updates.
                 </p>
             </div>
 
             <!-- Current Info -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.volume_group_2">Volume Group</span></span>
-                        <div class="mono" id="renameVgName" style="color: var(--sysops-accent); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.volume_group_2">Volume Group</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="renameVgName">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.current_lv_name">Current LV Name</span></span>
-                        <div class="mono" id="renameCurrentLvName" style="color: var(--sysops-success); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_lv_name">Current LV Name</span></span>
+                        <div class="mono sysops-text-green-lg" id="renameCurrentLvName">-</div>
                     </div>
                 </div>
             </div>
 
             <!-- New Name Input -->
             <div class="form-group">
-                <label style="color: var(--sysops-text-muted); font-size: 0.8rem; display: block; margin-bottom: 6px;"><span data-i18n="system_operations.new_lv_name">New LV Name:</span></label>
+                <label class="sysops-label-muted"><span data-i18n="system_operations.new_lv_name">New LV Name:</span></label>
                 <input type="text" id="renameNewLvName" placeholder="Enter new name (e.g., data-lv)"
                        pattern="[a-zA-Z0-9_-]+"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; font-family: var(--sysops-font-mono); box-sizing: border-box;">
-                <span style="font-size: 0.75rem; color: var(--sysops-text-muted); margin-top: 4px; display: block;"><span data-i18n="system_operations.only_letters_numbers_hyphens_and_underscores_allow">Only letters, numbers, hyphens, and underscores allowed</span></span>
+                       class="sysops-input-mono">
+                <span style="font-size: 0.75rem; color: var(--archie-text-muted); margin-top: 4px; display: block;"><span data-i18n="system_operations.only_letters_numbers_hyphens_and_underscores_allow">Only letters, numbers, hyphens, and underscores allowed</span></span>
             </div>
         </div>
 
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeLvmRenameModal()"><span data-i18n="system_operations.cancel_11">Cancel</span></button>
             <button class="btn btn-primary" onclick="executeLvmRename()">
-                <i data-lucide="check" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="check" class="sysops-icon-inline-14"></i>
                 Rename
             </button>
         </div>
@@ -2010,21 +2061,21 @@
 <div class="modal-overlay" id="reauthModal">
     <div class="modal modal-sm">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-warning);">
-                <i data-lucide="shield" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-orange">
+                <i data-lucide="shield" class="sysops-icon-inline-20"></i>
                 Re-Authentication Required
             </h3>
             <button class="modal-close" onclick="closeReauthModal()"><span data-i18n="system_operations.times_12">&times;</span></button>
         </div>
         <div class="modal-body">
-            <p id="reauthMessage" style="color: var(--sysops-text-secondary); margin-bottom: 16px;">
+            <p id="reauthMessage" style="color: var(--archie-text-secondary); margin-bottom: 16px;">
                 This operation requires password verification to proceed.
             </p>
-            <label style="color: var(--sysops-text-muted); font-size: 0.8rem; display: block; margin-bottom: 6px;"><span data-i18n="system_operations.enter_your_password">Enter your password:</span></label>
+            <label class="sysops-label-muted"><span data-i18n="system_operations.enter_your_password">Enter your password:</span></label>
             <input type="password" id="reauthPassword" placeholder="Password"
-                   style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;"
+                   class="sysops-input"
                    onkeydown="if(event.key==='Enter')submitReauth()">
-            <div id="reauthError" style="display: none; margin-top: 10px; padding: 8px; background: rgba(255,107,107,0.1); border: 1px solid var(--sysops-danger); border-radius: 4px; color: var(--sysops-danger); font-size: 0.85rem;"></div>
+            <div id="reauthError" style="display: none; margin-top: 10px; padding: 8px; background: rgba(255,107,107,0.1); border: 1px solid var(--archie-red); border-radius: 4px; color: var(--archie-red); font-size: 0.85rem;"></div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeReauthModal()"><span data-i18n="system_operations.cancel_12">Cancel</span></button>
@@ -2035,10 +2086,10 @@
 
 <!-- Format Partition Modal -->
 <div class="modal-overlay" id="formatModal">
-    <div class="modal" style="max-width: 500px;">
+    <div class="modal sysops-max-w-500">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-danger);">
-                <i data-lucide="hard-drive" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="hard-drive" class="sysops-icon-inline-20"></i>
                 Format Partition
             </h3>
             <button class="modal-close" onclick="closeFormatModal()"><span data-i18n="system_operations.times_13">&times;</span></button>
@@ -2046,39 +2097,39 @@
 
         <div class="modal-body">
             <!-- Warning Banner -->
-            <div style="background: rgba(255,107,107,0.15); border: 1px solid var(--sysops-danger); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-triangle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-danger);"></i>
-                <strong style="color: var(--sysops-danger); margin-left: 6px;"><span data-i18n="system_operations.warning_this_will_erase_all_data">WARNING: This will ERASE ALL DATA</span></strong>
+            <div style="background: rgba(255,107,107,0.15); border: 1px solid var(--archie-red); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.warning_this_will_erase_all_data">WARNING: This will ERASE ALL DATA</span></strong>
             </div>
 
             <!-- Partition Info -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.device_4">Device</span></span>
-                        <div class="mono" id="formatDevice" style="color: var(--sysops-accent); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_4">Device</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="formatDevice">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.size_5">Size</span></span>
-                        <div id="formatSize" style="font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_5">Size</span></span>
+                        <div id="formatSize" class="sysops-text-md">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.current_filesystem">Current Filesystem</span></span>
-                        <div id="formatCurrentFs" style="color: var(--sysops-warning);">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_filesystem">Current Filesystem</span></span>
+                        <div id="formatCurrentFs" class="sysops-text-orange">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.label">Label</span></span>
-                        <div id="formatCurrentLabel" style="color: var(--sysops-text-secondary);">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.label">Label</span></span>
+                        <div id="formatCurrentLabel" class="sysops-text-secondary">-</div>
                     </div>
                 </div>
             </div>
 
             <!-- Format Options -->
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     New Filesystem Type:
                 </label>
-                <select id="formatFsType" onchange="updateFormatCommand()" style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem;">
+                <select id="formatFsType" onchange="updateFormatCommand()" class="sysops-input-plain">
                     <option value="ext4"><span data-i18n="system_operations.ext4_linux_recommended">ext4 (Linux - recommended)</span></option>
                     <option value="xfs"><span data-i18n="system_operations.xfs_linux_high_performance">xfs (Linux - high performance)</span></option>
                     <option value="btrfs"><span data-i18n="system_operations.btrfs_linux_advanced_features">btrfs (Linux - advanced features)</span></option>
@@ -2087,21 +2138,21 @@
                 </select>
             </div>
 
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Volume Label (optional):
                 </label>
                 <input type="text" id="formatLabel" placeholder="e.g., Data, Backup" oninput="updateFormatCommand()"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                       class="sysops-input">
             </div>
 
             <!-- Command Preview -->
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Command to execute:
                 </label>
-                <div style="background: #1a1a2e; padding: 12px; border-radius: 6px; font-family: var(--sysops-font-mono); font-size: 0.85rem;">
-                    <code id="formatCommand" style="color: var(--sysops-danger);">sudo mkfs.ext4 /dev/xxx</code>
+                <div class="sysops-code-block-flat">
+                    <code id="formatCommand" class="sysops-text-red">sudo mkfs.ext4 /dev/xxx</code>
                 </div>
             </div>
         </div>
@@ -2109,7 +2160,7 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeFormatModal()"><span data-i18n="system_operations.cancel_13">Cancel</span></button>
             <button class="btn btn-danger" onclick="executeFormat()">
-                <i data-lucide="alert-triangle" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-14"></i>
                 Format (Requires Re-auth)
             </button>
         </div>
@@ -2118,10 +2169,10 @@
 
 <!-- Wipe Drive Modal -->
 <div class="modal-overlay" id="wipeModal">
-    <div class="modal" style="max-width: 500px;">
+    <div class="modal sysops-max-w-500">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-danger);">
-                <i data-lucide="trash-2" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="trash-2" class="sysops-icon-inline-20"></i>
                 Wipe Drive
             </h3>
             <button class="modal-close" onclick="closeWipeModal()"><span data-i18n="system_operations.times_14">&times;</span></button>
@@ -2129,49 +2180,49 @@
 
         <div class="modal-body">
             <!-- Warning Banner -->
-            <div style="background: rgba(255,0,0,0.15); border: 1px solid var(--sysops-danger); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-octagon" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-danger);"></i>
-                <strong style="color: var(--sysops-danger); margin-left: 6px;"><span data-i18n="system_operations.warning_this_will_permanently_delete_all_data">WARNING: This will permanently delete ALL data!</span></strong>
+            <div style="background: rgba(255,0,0,0.15); border: 1px solid var(--archie-red); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <i data-lucide="alert-octagon" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.warning_this_will_permanently_delete_all_data">WARNING: This will permanently delete ALL data!</span></strong>
             </div>
 
             <!-- Drive Info -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.device_5">Device</span></span>
-                        <div class="mono" id="wipeDevice" style="color: var(--sysops-danger); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_5">Device</span></span>
+                        <div class="mono" id="wipeDevice" style="color: var(--archie-red); font-size: 1.1rem;">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.size_6">Size</span></span>
-                        <div id="wipeSize" style="font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_6">Size</span></span>
+                        <div id="wipeSize" class="sysops-text-md">-</div>
                     </div>
                     <div style="grid-column: span 2;">
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.info">Info</span></span>
-                        <div id="wipeInfo" style="color: var(--sysops-text-secondary);">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.info">Info</span></span>
+                        <div id="wipeInfo" class="sysops-text-secondary">-</div>
                     </div>
                 </div>
             </div>
 
             <!-- Wipe Options -->
-            <div style="margin-bottom: 16px;">
-                <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--sysops-bg-secondary); border-radius: 6px; cursor: pointer; margin-bottom: 8px;">
-                    <input type="checkbox" id="wipeLvm" checked style="width: 18px; height: 18px;">
+            <div class="sysops-mb-16">
+                <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--archie-bg-secondary); border-radius: 6px; cursor: pointer; margin-bottom: 8px;">
+                    <input type="checkbox" id="wipeLvm" checked class="sysops-icon-18">
                     <div>
-                        <strong style="color: var(--sysops-text-primary);"><span data-i18n="system_operations.remove_lvm_structures">Remove LVM structures</span></strong>
-                        <span style="display: block; font-size: 0.8rem; color: var(--sysops-text-muted);"><span data-i18n="system_operations.remove_lv_vg_and_pv_from_this_device">Remove LV, VG, and PV from this device</span></span>
+                        <strong style="color: var(--archie-text-primary);"><span data-i18n="system_operations.remove_lvm_structures">Remove LVM structures</span></strong>
+                        <span style="display: block; font-size: 0.8rem; color: var(--archie-text-muted);"><span data-i18n="system_operations.remove_lv_vg_and_pv_from_this_device">Remove LV, VG, and PV from this device</span></span>
                     </div>
                 </label>
-                <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--sysops-bg-secondary); border-radius: 6px; cursor: pointer;">
-                    <input type="checkbox" id="wipePartitionTable" style="width: 18px; height: 18px;">
+                <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--archie-bg-secondary); border-radius: 6px; cursor: pointer;">
+                    <input type="checkbox" id="wipePartitionTable" class="sysops-icon-18">
                     <div>
-                        <strong style="color: var(--sysops-text-primary);"><span data-i18n="system_operations.wipe_partition_table">Wipe partition table</span></strong>
-                        <span style="display: block; font-size: 0.8rem; color: var(--sysops-text-muted);"><span data-i18n="system_operations.completely_reset_drive_whole_drives_only">Completely reset drive (whole drives only)</span></span>
+                        <strong style="color: var(--archie-text-primary);"><span data-i18n="system_operations.wipe_partition_table">Wipe partition table</span></strong>
+                        <span style="display: block; font-size: 0.8rem; color: var(--archie-text-muted);"><span data-i18n="system_operations.completely_reset_drive_whole_drives_only">Completely reset drive (whole drives only)</span></span>
                     </div>
                 </label>
             </div>
 
             <!-- What happens -->
-            <div style="font-size: 0.85rem; color: var(--sysops-text-secondary);">
+            <div style="font-size: 0.85rem; color: var(--archie-text-secondary);">
                 <p style="margin: 0 0 4px 0;"><strong><span data-i18n="system_operations.this_will">This will:</span></strong></p>
                 <ul style="margin: 0; padding-left: 20px;">
                     <li><span data-i18n="system_operations.unmount_any_mounted_filesystems">Unmount any mounted filesystems</span></li>
@@ -2184,7 +2235,7 @@
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeWipeModal()"><span data-i18n="system_operations.cancel_14">Cancel</span></button>
             <button class="btn btn-danger" onclick="executeWipe()">
-                <i data-lucide="trash-2" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="trash-2" class="sysops-icon-inline-14"></i>
                 Wipe (Requires Re-auth)
             </button>
         </div>
@@ -2195,8 +2246,8 @@
 <div class="modal-overlay" id="prepareLvmModal">
     <div class="modal" style="max-width: 520px;">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-purple);">
-                <i data-lucide="layers" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="layers" class="sysops-icon-inline-20"></i>
                 Prepare Drive as LVM
             </h3>
             <button class="modal-close" onclick="closePrepareLvmModal()"><span data-i18n="system_operations.times_15">&times;</span></button>
@@ -2204,31 +2255,31 @@
 
         <div class="modal-body">
             <!-- Warning Banner -->
-            <div style="background: rgba(255,170,0,0.15); border: 1px solid var(--sysops-warning); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-triangle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-warning);"></i>
-                <strong style="color: var(--sysops-warning); margin-left: 6px;"><span data-i18n="system_operations.this_will_erase_the_entire_drive">This will ERASE the entire drive</span></strong>
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.this_will_erase_the_entire_drive">This will ERASE the entire drive</span></strong>
             </div>
 
             <!-- Drive Info -->
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.drive">Drive</span></span>
-                        <div class="mono" id="prepareLvmDevice" style="color: var(--sysops-accent); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.drive">Drive</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="prepareLvmDevice">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.size_7">Size</span></span>
-                        <div id="prepareLvmSize" style="font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_7">Size</span></span>
+                        <div id="prepareLvmSize" class="sysops-text-md">-</div>
                     </div>
                     <div style="grid-column: span 2;">
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.model">Model</span></span>
-                        <div id="prepareLvmModel" style="color: var(--sysops-text-secondary);">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.model">Model</span></span>
+                        <div id="prepareLvmModel" class="sysops-text-secondary">-</div>
                     </div>
                 </div>
             </div>
 
             <!-- Description -->
-            <div style="margin-bottom: 16px; color: var(--sysops-text-secondary); font-size: 0.9rem; line-height: 1.5;">
+            <div style="margin-bottom: 16px; color: var(--archie-text-secondary); font-size: 0.9rem; line-height: 1.5;">
                 <p style="margin: 0 0 8px 0;"><span data-i18n="system_operations.this_operation_will">This operation will:</span></p>
                 <ol style="margin: 0; padding-left: 20px;">
                     <li><span data-i18n="system_operations.create_gpt_partition_table_and_single_partition">Create GPT partition table and single partition</span></li>
@@ -2239,45 +2290,45 @@
             </div>
 
             <!-- VG Name -->
-            <div style="margin-bottom: 12px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 6px;">
+            <div class="sysops-mb-12">
+                <label class="sysops-label-secondary">
                     Volume Group Name:
                 </label>
-                <input type="text" id="prepareLvmVgName" placeholder="e.g., data-vg" style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                <input type="text" id="prepareLvmVgName" placeholder="e.g., data-vg" class="sysops-input">
             </div>
 
             <!-- LV Name -->
-            <div style="margin-bottom: 12px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 6px;">
+            <div class="sysops-mb-12">
+                <label class="sysops-label-secondary">
                     Logical Volume Name:
                 </label>
-                <input type="text" id="prepareLvmLvName" placeholder="e.g., data-lv" style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                <input type="text" id="prepareLvmLvName" placeholder="e.g., data-lv" class="sysops-input">
             </div>
 
             <!-- Filesystem Choice -->
-            <div style="margin-bottom: 12px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 6px;">
+            <div class="sysops-mb-12">
+                <label class="sysops-label-secondary">
                     Filesystem:
                 </label>
-                <select id="prepareLvmFs" style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem;">
+                <select id="prepareLvmFs" class="sysops-input-plain">
                     <option value="ext4"><span data-i18n="system_operations.ext4_recommended_2">ext4 (recommended)</span></option>
                     <option value="xfs"><span data-i18n="system_operations.xfs_high_performance">xfs (high performance)</span></option>
                 </select>
             </div>
 
             <!-- Mount Point -->
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 6px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label-secondary">
                     Mount Point (optional):
                 </label>
-                <input type="text" id="prepareLvmMountpoint" placeholder="e.g., /mnt/data" style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                <input type="text" id="prepareLvmMountpoint" placeholder="e.g., /mnt/data" class="sysops-input">
             </div>
         </div>
 
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closePrepareLvmModal()"><span data-i18n="system_operations.cancel_15">Cancel</span></button>
             <button class="btn btn-warning" onclick="executePrepareLvm()">
-                <i data-lucide="layers" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="layers" class="sysops-icon-inline-14"></i>
                 Prepare as LVM
             </button>
         </div>
@@ -2289,7 +2340,7 @@
     <div class="modal" style="max-width: 480px;">
         <div class="modal-header">
             <h3 class="modal-title" id="partitionDetailsTitle">
-                <i data-lucide="hard-drive" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+                <i data-lucide="hard-drive" class="sysops-icon-inline-20"></i>
                 <span id="partitionDetailsName"><span data-i18n="system_operations.partition_details">Partition Details</span></span>
             </h3>
             <button class="modal-close" onclick="closePartitionDetailsModal()"><span data-i18n="system_operations.times_16">&times;</span></button>
@@ -2305,26 +2356,26 @@
 
 <!-- Mount Modal -->
 <div class="modal-overlay" id="mountModal">
-    <div class="modal" style="max-width: 450px;">
+    <div class="modal sysops-max-w-450">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-accent);">
-                <i data-lucide="arrow-down-to-line" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="arrow-down-to-line" class="sysops-icon-inline-20"></i>
                 Mount Device
             </h3>
             <button class="modal-close" onclick="closeMountModal()"><span data-i18n="system_operations.times_17">&times;</span></button>
         </div>
         <div class="modal-body">
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.device_6">Device</span></span>
-                <div class="mono" id="mountDevice" style="color: var(--sysops-accent); font-size: 1.1rem;">-</div>
+            <div class="sysops-panel">
+                <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_6">Device</span></span>
+                <div class="mono sysops-text-cyan-lg" id="mountDevice">-</div>
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Mount Point:
                 </label>
                 <input type="text" id="mountMountpoint" placeholder="/mnt/data"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
-                <span style="color: var(--sysops-text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
                     Must be an absolute path (e.g., /mnt/data, /media/backup)
                 </span>
             </div>
@@ -2338,60 +2389,60 @@
 
 <!-- Create LV Modal -->
 <div class="modal-overlay" id="createLvModal">
-    <div class="modal" style="max-width: 500px;">
+    <div class="modal sysops-max-w-500">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-purple);">
-                <i data-lucide="plus" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="plus" class="sysops-icon-inline-20"></i>
                 Create Logical Volume
             </h3>
             <button class="modal-close" onclick="closeCreateLvModal()"><span data-i18n="system_operations.times_18">&times;</span></button>
         </div>
         <div class="modal-body">
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.volume_group_3">Volume Group</span></span>
-                        <div class="mono" id="createLvVgName" style="color: var(--sysops-accent); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.volume_group_3">Volume Group</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="createLvVgName">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.free_space">Free Space</span></span>
-                        <div id="createLvFreeSpace" style="color: var(--sysops-success); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.free_space">Free Space</span></span>
+                        <div id="createLvFreeSpace" class="sysops-text-green-lg">-</div>
                     </div>
                 </div>
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     LV Name:
                 </label>
                 <input type="text" id="createLvName" placeholder="data-lv"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
-                <span style="color: var(--sysops-text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
                     Letters, numbers, hyphens, and underscores only
                 </span>
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Size (GB):
                 </label>
                 <input type="number" id="createLvSize" min="1" placeholder="10"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                       class="sysops-input">
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Filesystem:
                 </label>
-                <select id="createLvFsType" style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem;">
+                <select id="createLvFsType" class="sysops-input-plain">
                     <option value="ext4"><span data-i18n="system_operations.ext4_recommended_3">ext4 (recommended)</span></option>
                     <option value="xfs"><span data-i18n="system_operations.xfs_2">xfs</span></option>
                     <option value="btrfs"><span data-i18n="system_operations.btrfs_2">btrfs</span></option>
                 </select>
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Mount Point (optional):
                 </label>
                 <input type="text" id="createLvMountpoint" placeholder="/mnt/data"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                       class="sysops-input">
             </div>
         </div>
         <div class="modal-footer">
@@ -2403,90 +2454,90 @@
 
 <!-- Create VG Modal -->
 <div class="modal-overlay" id="createVgModal">
-    <div class="modal" style="max-width: 500px;">
+    <div class="modal sysops-max-w-500">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-accent);">
-                <i data-lucide="database" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="database" class="sysops-icon-inline-20"></i>
                 Create Volume Group
             </h3>
             <button class="modal-close" onclick="closeCreateVgModal()"><span data-i18n="system_operations.times_19">&times;</span></button>
         </div>
         <div class="modal-body">
-            <div style="background: rgba(255,170,0,0.15); border: 1px solid var(--sysops-warning); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 8px; color: var(--sysops-warning);">
-                    <i data-lucide="alert-triangle" style="width:18px; height:18px;"></i>
+            <div class="sysops-alert-warning">
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--archie-orange);">
+                    <i data-lucide="alert-triangle" class="sysops-icon-18"></i>
                     <strong><span data-i18n="system_operations.dangerous_operation">DANGEROUS OPERATION</span></strong>
                 </div>
-                <p style="color: var(--sysops-text-secondary); margin: 8px 0 0 0; font-size: 0.85rem;">
+                <p style="color: var(--archie-text-secondary); margin: 8px 0 0 0; font-size: 0.85rem;">
                     This will convert the device to a physical volume and create a new volume group.
                     Any existing data on the device will be lost.
                 </p>
             </div>
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.physical_volume_device">Physical Volume Device</span></span>
-                <div class="mono" id="createVgPvDevice" style="color: var(--sysops-accent); font-size: 1.1rem;">-</div>
+            <div class="sysops-panel">
+                <span class="sysops-text-muted-sm"><span data-i18n="system_operations.physical_volume_device">Physical Volume Device</span></span>
+                <div class="mono sysops-text-cyan-lg" id="createVgPvDevice">-</div>
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     VG Name:
                 </label>
                 <input type="text" id="createVgName" placeholder="data-vg"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
-                <span style="color: var(--sysops-text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
                     Letters, numbers, hyphens, and underscores only
                 </span>
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeCreateVgModal()"><span data-i18n="system_operations.cancel_18">Cancel</span></button>
-            <button class="btn btn-primary" onclick="executeCreateVg()" style="background: var(--sysops-warning);"><span data-i18n="system_operations.create_vg">Create VG</span></button>
+            <button class="btn btn-primary" onclick="executeCreateVg()" style="background: var(--archie-orange);"><span data-i18n="system_operations.create_vg">Create VG</span></button>
         </div>
     </div>
 </div>
 
 <!-- LVM Snapshot Modal -->
 <div class="modal-overlay" id="snapshotModal">
-    <div class="modal" style="max-width: 500px;">
+    <div class="modal sysops-max-w-500">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-purple);">
-                <i data-lucide="copy" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="copy" class="sysops-icon-inline-20"></i>
                 Create LVM Snapshot
             </h3>
             <button class="modal-close" onclick="closeSnapshotModal()"><span data-i18n="system_operations.times_20">&times;</span></button>
         </div>
         <div class="modal-body">
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.source_lv">Source LV</span></span>
-                        <div class="mono" id="snapshotSourceLv" style="color: var(--sysops-accent); font-size: 1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.source_lv">Source LV</span></span>
+                        <div class="mono" id="snapshotSourceLv" style="color: var(--archie-cyan); font-size: 1rem;">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.vg_free_space_2">VG Free Space</span></span>
-                        <div id="snapshotVgFree" style="color: var(--sysops-success); font-size: 1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.vg_free_space_2">VG Free Space</span></span>
+                        <div id="snapshotVgFree" style="color: var(--archie-green); font-size: 1rem;">-</div>
                     </div>
                 </div>
             </div>
-            <div style="background: var(--sysops-accent-alpha-10); border: 1px solid var(--sysops-accent); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <p style="color: var(--sysops-text-secondary); margin: 0; font-size: 0.85rem;">
+            <div style="background: var(--archie-blue-alpha-10); border: 1px solid var(--archie-cyan); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <p style="color: var(--archie-text-secondary); margin: 0; font-size: 0.85rem;">
                     <strong><span data-i18n="system_operations.lvm_snapshots">LVM Snapshots</span></strong> are copy-on-write backups. The snapshot captures the state of the LV
                     at creation time. Changes made after are tracked separately. Useful for backups.
                 </p>
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Snapshot Name:
                 </label>
                 <input type="text" id="snapshotName" placeholder="backup-20260131"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                       class="sysops-input">
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Snapshot Size (GB):
                 </label>
                 <input type="number" id="snapshotSize" min="1" placeholder="10"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
-                <span style="color: var(--sysops-text-muted); font-size: 0.8rem; margin-top: 4px; display: block;">
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
                     Size should be enough to hold expected changes while snapshot is active
                 </span>
             </div>
@@ -2500,43 +2551,43 @@
 
 <!-- Create Partition Modal -->
 <div class="modal-overlay" id="createPartitionModal">
-    <div class="modal" style="max-width: 450px;">
+    <div class="modal sysops-max-w-450">
         <div class="modal-header">
-            <h3 class="modal-title" style="color: var(--sysops-purple);">
-                <i data-lucide="plus-circle" style="width:20px; height:20px; display:inline-block; vertical-align:middle; margin-right:8px;"></i>
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="plus-circle" class="sysops-icon-inline-20"></i>
                 Create Partition
             </h3>
             <button class="modal-close" onclick="closeCreatePartitionModal()"><span data-i18n="system_operations.times_21">&times;</span></button>
         </div>
         <div class="modal-body">
-            <div style="background: rgba(255,170,0,0.15); border: 1px solid var(--sysops-warning); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <i data-lucide="alert-triangle" style="width:16px; height:16px; display:inline-block; vertical-align:middle; color: var(--sysops-warning);"></i>
-                <strong style="color: var(--sysops-warning); margin-left: 6px;"><span data-i18n="system_operations.modifies_partition_table">Modifies partition table</span></strong>
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.modifies_partition_table">Modifies partition table</span></strong>
             </div>
-            <div style="background: var(--sysops-bg-tertiary); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.device_7">Device</span></span>
-                        <div class="mono" id="createPartitionDevice" style="color: var(--sysops-accent); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_7">Device</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="createPartitionDevice">-</div>
                     </div>
                     <div>
-                        <span style="color: var(--sysops-text-muted); font-size: 0.8rem;"><span data-i18n="system_operations.unallocated">Unallocated</span></span>
-                        <div id="createPartitionFreeSpace" style="color: var(--sysops-purple); font-size: 1.1rem;">-</div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.unallocated">Unallocated</span></span>
+                        <div id="createPartitionFreeSpace" style="color: var(--archie-purple); font-size: 1.1rem;">-</div>
                     </div>
                 </div>
             </div>
-            <div style="margin-bottom: 16px;">
-                <label style="color: var(--sysops-text-secondary); font-size: 0.9rem; display: block; margin-bottom: 8px;">
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
                     Partition Size (GB):
                 </label>
                 <input type="number" id="createPartitionSize" min="1" placeholder="100"
-                       style="width: 100%; padding: 10px; background: var(--sysops-bg-tertiary); border: 1px solid var(--sysops-border-default); border-radius: 4px; color: var(--sysops-text-primary); font-size: 1rem; box-sizing: border-box;">
+                       class="sysops-input">
             </div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeCreatePartitionModal()"><span data-i18n="system_operations.cancel_20">Cancel</span></button>
             <button class="btn btn-warning" onclick="executeCreatePartition()">
-                <i data-lucide="plus-circle" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+                <i data-lucide="plus-circle" class="sysops-icon-inline-14"></i>
                 Create (Requires Re-auth)
             </button>
         </div>
@@ -2554,140 +2605,14 @@
         <div class="loading-message" id="loadingMessage"><span data-i18n="system_operations.please_wait_while_the_operation_completes">Please wait while the operation completes</span></div>
         <div class="loading-progress" id="loadingProgress"></div>
         <button class="btn btn-ghost" id="loadingCancelBtn" onclick="cancelLoadingOverlay()" style="margin-top: 20px; display: none;">
-            <i data-lucide="x" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:4px;"></i>
+            <i data-lucide="x" class="sysops-icon-inline-14"></i>
             Cancel / Close
         </button>
     </div>
 </div>
 
-            </div><!-- /lcars-body -->
-            <!-- Footer Bar -->
-            <div class="lcars-footer-bar"></div>
-        </div><!-- /lcars-content -->
-    </div><!-- /lcars-frame -->
-</div><!-- /ksm-dashboard -->
-
-
-{% endblock %}
-
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+<!-- Load Chart.js synchronously right before main script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="{{ url_for('static', filename='js/system-operations.js') }}"></script>
-<script>
-/* Compliance Summary Bar */
-async function loadComplianceSummary() {
-    const scoreEl = document.getElementById('complianceScore');
-    const packsEl = document.getElementById('compliancePacks');
-    if (!scoreEl) return;
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scores');
-        if (!resp.ok) {
-            scoreEl.textContent = '--';
-            scoreEl.className = 'compliance-score score-none';
-            packsEl.textContent = 'No scans yet';
-            packsEl.style.color = '#64748b';
-            packsEl.style.fontSize = '11px';
-            return;
-        }
-        const data = await resp.json();
-        if (!data.success) {
-            scoreEl.textContent = '--';
-            scoreEl.className = 'compliance-score score-none';
-            packsEl.textContent = 'No scans yet';
-            packsEl.style.color = '#64748b';
-            packsEl.style.fontSize = '11px';
-            return;
-        }
-        const score = data.score != null ? Math.round(data.score) : null;
-        if (score != null) {
-            scoreEl.textContent = score + '%';
-            scoreEl.className = 'compliance-score ' + (score >= 90 ? 'score-green' : score >= 70 ? 'score-amber' : 'score-red');
-        } else {
-            scoreEl.textContent = '--';
-            scoreEl.className = 'compliance-score score-none';
-        }
-        while (packsEl.firstChild) packsEl.removeChild(packsEl.firstChild);
-        packsEl.style.color = '';
-        packsEl.style.fontSize = '';
-        const packScores = data.pack_scores || {};
-        for (const [packId, info] of Object.entries(packScores)) {
-            const ps = Math.round(info.score);
-            const cls = ps >= 90 ? 'badge-green' : ps >= 70 ? 'badge-amber' : 'badge-red';
-            const badge = document.createElement('span');
-            badge.className = 'compliance-pack-badge ' + cls;
-            badge.textContent = (info.name || packId) + ' ' + ps + '%';
-            badge.title = info.passed + '/' + info.total + ' passed';
-            packsEl.appendChild(badge);
-        }
-        if (Object.keys(packScores).length === 0 && data.packs) {
-            for (const [key, val] of Object.entries(data.packs)) {
-                const ps = Math.round(val);
-                const cls = ps >= 90 ? 'badge-green' : ps >= 70 ? 'badge-amber' : 'badge-red';
-                const badge = document.createElement('span');
-                badge.className = 'compliance-pack-badge ' + cls;
-                badge.textContent = key + ' ' + ps + '%';
-                packsEl.appendChild(badge);
-            }
-        }
-        /* Report + PDF links (business tier) */
-        if (data.scan_id) {
-            var bar = document.getElementById('complianceSummaryBar');
-            if (bar) {
-                var oldLinks = bar.querySelectorAll('.compliance-report-link');
-                oldLinks.forEach(function(el) { el.remove(); });
 
-                var reportLink = document.createElement('a');
-                reportLink.href = '/dashboard/compliance/report/' + data.scan_id;
-                reportLink.target = '_blank';
-                reportLink.textContent = 'Report';
-                reportLink.className = 'compliance-report-link';
-                reportLink.style.cssText = 'margin-left:8px;color:#8b5cf6;font-size:11px;text-decoration:none;border:1px solid rgba(139,92,246,0.3);padding:2px 8px;border-radius:4px;';
-
-                var pdfLink = document.createElement('a');
-                pdfLink.href = '/dashboard/api/compliance/report/' + data.scan_id + '/pdf';
-                pdfLink.textContent = 'PDF';
-                pdfLink.className = 'compliance-report-link';
-                pdfLink.style.cssText = 'margin-left:4px;color:#f59e0b;font-size:11px;text-decoration:none;border:1px solid rgba(245,158,11,0.3);padding:2px 8px;border-radius:4px;';
-
-                bar.appendChild(reportLink);
-                bar.appendChild(pdfLink);
-            }
-        }
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    } catch (e) {
-        console.error('Compliance summary load failed:', e);
-        scoreEl.textContent = '--';
-        scoreEl.className = 'compliance-score score-none';
-    }
-}
-
-async function triggerComplianceScan() {
-    const btn = document.getElementById('complianceScanBtn');
-    if (!btn) return;
-    btn.disabled = true;
-    const oldContent = btn.textContent;
-    btn.textContent = 'Scanning...';
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' } });
-        if (!resp.ok) throw new Error('Scan request failed');
-        await new Promise(r => setTimeout(r, 1000));
-        await loadComplianceSummary();
-    } catch (e) {
-        console.error('Compliance scan failed:', e);
-    } finally {
-        btn.disabled = false;
-        btn.textContent = '';
-        const icon = document.createElement('i');
-        icon.setAttribute('data-lucide', 'shield-check');
-        icon.style.width = '14px';
-        icon.style.height = '14px';
-        btn.appendChild(icon);
-        btn.appendChild(document.createTextNode(' Run Scan'));
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() { loadComplianceSummary(); });
-</script>
+<script src="/static/js/system-operations.js"></script>
 {% endblock %}

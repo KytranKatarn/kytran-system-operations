@@ -1,31 +1,105 @@
+// ArchieTime stub — standalone replacement for platform's archie-time.js
+if (typeof ArchieTime === 'undefined') {
+    window.ArchieTime = {
+        format(isoStr, style) {
+            try {
+                const d = new Date(isoStr);
+                if (isNaN(d)) return isoStr || '—';
+                if (style === 'short') return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                if (style === 'datetime') return d.toLocaleString();
+                return d.toLocaleString();
+            } catch { return isoStr || '—'; }
+        },
+        time(isoStr) {
+            try { return new Date(isoStr).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+            catch { return isoStr || '—'; }
+        }
+    };
+}
+
+// Tier gating — frosted tab teasers
+var TAB_TEASERS = {
+    storage:    { icon: 'hard-drive',    title: 'Storage Management',    features: ['Interactive disk map with LVM management', 'SMART health monitoring', 'Mount/unmount and format operations'] },
+    hardware:   { icon: 'server',        title: 'Hardware Inventory',     features: ['CPU, GPU, and memory details', 'PCI expansion slot mapping', 'SATA port status and upgrade potential'] },
+    memory:     { icon: 'memory-stick',  title: 'Memory Configuration',  features: ['DIMM slot inventory with serials', 'Memory controller details', 'Upgrade capacity calculator'] },
+    processes:  { icon: 'cpu',           title: 'Process Manager',        features: ['Live process table with CPU/memory', 'Process kill controls', 'Systemd service management'] },
+    docker:     { icon: 'container',     title: 'Docker & Stack Manager', features: ['Container health monitoring', 'Stack creation and management', 'Resource usage tracking'] },
+    network:    { icon: 'network',       title: 'Network Monitor',        features: ['Interface status and bandwidth', 'Active connections and port map', 'Docker network topology'] },
+    firewall:   { icon: 'shield',        title: 'Firewall Management',    features: ['UFW rule management', 'Enable/disable firewall', 'Port allow/deny controls'] }
+};
+
+function buildTeaserOverlay(teaser) {
+    var overlay = document.createElement('div');
+    overlay.className = 'tier-locked-overlay';
+
+    var card = document.createElement('div');
+    card.className = 'tier-locked-card';
+
+    var iconDiv = document.createElement('div');
+    iconDiv.className = 'tier-locked-icon';
+    var iconEl = document.createElement('i');
+    iconEl.setAttribute('data-lucide', teaser.icon);
+    iconEl.style.cssText = 'width:48px;height:48px;';
+    iconDiv.appendChild(iconEl);
+    card.appendChild(iconDiv);
+
+    var titleEl = document.createElement('h3');
+    titleEl.className = 'tier-locked-title';
+    titleEl.textContent = teaser.title;
+    card.appendChild(titleEl);
+
+    var ul = document.createElement('ul');
+    ul.className = 'tier-locked-features';
+    teaser.features.forEach(function(f) {
+        var li = document.createElement('li');
+        li.textContent = f;
+        ul.appendChild(li);
+    });
+    card.appendChild(ul);
+
+    var cta = document.createElement('a');
+    cta.href = '/settings';
+    cta.className = 'tier-locked-cta';
+    cta.textContent = 'Unlock with Pro \u2014 $29/mo';
+    card.appendChild(cta);
+
+    var signin = document.createElement('span');
+    signin.className = 'tier-locked-signin';
+    signin.textContent = 'Already subscribed? ';
+    var signinLink = document.createElement('a');
+    signinLink.href = '/auth/kytran/login';
+    signinLink.textContent = 'Connect with Kytran Empowerment';
+    signin.appendChild(signinLink);
+    card.appendChild(signin);
+
+    overlay.appendChild(card);
+    return overlay;
+}
+
+function applyTierGating() {
+    if (typeof window.KSM_TIER_AT_LEAST === 'function' && window.KSM_TIER_AT_LEAST('pro')) return;
+
+    Object.keys(TAB_TEASERS).forEach(function(tabName) {
+        var tabContent = document.getElementById('tab-' + tabName);
+        if (!tabContent) return;
+        if (tabContent.querySelector('.tier-locked-overlay')) return;
+
+        tabContent.classList.add('tier-tab-wrapper');
+        tabContent.appendChild(buildTeaserOverlay(TAB_TEASERS[tabName]));
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    document.querySelectorAll('[data-tier-required]').forEach(function(el) {
+        if (typeof window.KSM_TIER_AT_LEAST === 'function' && !window.KSM_TIER_AT_LEAST(el.dataset.tierRequired)) {
+            el.classList.add('tier-action-locked');
+        }
+    });
+}
+
 // Verify Chart.js loaded
 if (typeof Chart === 'undefined') {
     console.error('Chart.js failed to load from primary CDN');
-}
-
-// Standalone shim: ArchieTime (platform uses archie-time.js for timezone formatting)
-if (typeof ArchieTime === 'undefined') {
-    var ArchieTime = {
-        format: function(date, opts) {
-            if (!date) return '--';
-            try {
-                const d = new Date(date);
-                if (isNaN(d.getTime())) return String(date);
-                return d.toLocaleString();
-            } catch(e) { return String(date); }
-        },
-        formatShort: function(date) {
-            if (!date) return '--';
-            try {
-                const d = new Date(date);
-                return d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
-            } catch(e) { return String(date); }
-        },
-        formatDate: function(date) {
-            if (!date) return '--';
-            try { return new Date(date).toLocaleDateString(); } catch(e) { return String(date); }
-        }
-    };
 }
 
 // State
@@ -527,6 +601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     startAutoRefresh();
+    applyTierGating();
     console.log('System Operations initialized');
 });
 
@@ -599,6 +674,11 @@ function initTabs() {
             } else {
                 // Reset when leaving so returning re-fetches fresh data
                 firewallTabLoaded = false;
+            }
+
+            // Load compliance data when entering the tab
+            if (btn.dataset.tab === 'compliance') {
+                loadComplianceResults();
             }
 
             lucide.createIcons();
@@ -1499,16 +1579,16 @@ async function loadDisks() {
     try {
         const res = await fetch('/dashboard/api/disks');
         const json = await res.json();
-        if (json.success && json.data) {
+        if (json.success) {
             // Only render container data if host monitor hasn't provided better data
             if (!hostStorageLoaded) {
-                if (json.data.partitions) renderPartitions(json.data.partitions);
-                if (json.data.raid) renderRaid(json.data.raid);
-                if (json.data.lvm) renderLVM(json.data.lvm);
+                renderPartitions(json.data.partitions || []);
+                renderRaid(json.data.raid);
+                renderLVM(json.data.lvm);
             }
         }
     } catch (e) {
-        // Disk rendering is non-critical — don't spam console
+        console.error('Disks error:', e);
     }
 }
 
@@ -8982,337 +9062,145 @@ async function deleteFirewallRule() {
     }
 }
 
-
 // ============================================================================
-// Compliance Tab
+// COMPLIANCE SCANNER TAB
 // ============================================================================
 
-let complianceHistoryChart = null;
-let complianceLatestScanId = null;
-let complianceAllResults = [];
+async function loadComplianceResults() {
+    try {
+        var res = await fetch('/dashboard/api/compliance/latest');
+        if (!res.ok) return;
+        var data = await res.json();
+        if (!data.success) return;
 
-/**
- * Sanitize a string for safe insertion into HTML.
- * All values are escaped via textContent to prevent XSS.
- */
-function escapeHtmlCompliance(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = String(str);
-    return div.innerHTML;
-}
+        var scan = data.scan || {};
+        var scoreEl = document.getElementById('compliance-score-value');
+        var passedEl = document.getElementById('compliance-passed');
+        var failedEl = document.getElementById('compliance-failed');
+        var lastScanEl = document.getElementById('compliance-last-scan');
 
-/**
- * Build a stat-card element safely using DOM APIs (no innerHTML with user data).
- */
-function _buildPackCard(name, score, passed, total) {
-    const card = document.createElement('div');
-    card.className = 'stat-card';
+        if (scoreEl) scoreEl.textContent = (scan.score || 0).toFixed(1) + '%';
+        if (passedEl) passedEl.textContent = scan.passed || 0;
+        if (failedEl) failedEl.textContent = scan.failed || 0;
+        if (lastScanEl && scan.completed_at) {
+            lastScanEl.textContent = typeof ArchieTime !== 'undefined'
+                ? ArchieTime.format(scan.completed_at, 'short')
+                : new Date(scan.completed_at).toLocaleString();
+        }
 
-    const header = document.createElement('div');
-    header.className = 'stat-card-header';
-    const title = document.createElement('div');
-    title.className = 'stat-card-title';
-    title.style.fontSize = '0.8rem';
-    title.textContent = name;
-    header.appendChild(title);
-    card.appendChild(header);
+        // Render results table
+        var results = data.results || [];
+        var container = document.getElementById('compliance-results');
+        if (!container || results.length === 0) return;
 
-    const color = score >= 90 ? 'var(--archie-green)' : score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
-    const val = document.createElement('div');
-    val.className = 'stat-value';
-    val.style.cssText = 'font-size:1.5rem; color:' + color;
-    val.textContent = score + '%';
-    card.appendChild(val);
+        var table = document.createElement('table');
+        table.className = 'data-table';
 
-    const lbl = document.createElement('div');
-    lbl.className = 'stat-label';
-    lbl.textContent = passed + '/' + total + ' passed';
-    card.appendChild(lbl);
+        var thead = document.createElement('thead');
+        var headerRow = document.createElement('tr');
+        ['Rule', 'Pack', 'Severity', 'Status', 'Action'].forEach(function(h) {
+            var th = document.createElement('th');
+            th.textContent = h;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
 
-    return card;
+        var tbody = document.createElement('tbody');
+        results.forEach(function(r) {
+            var tr = document.createElement('tr');
+
+            var tdRule = document.createElement('td');
+            tdRule.textContent = r.rule_id || '';
+            tr.appendChild(tdRule);
+
+            var tdPack = document.createElement('td');
+            tdPack.textContent = r.pack_id || '';
+            tr.appendChild(tdPack);
+
+            var tdSev = document.createElement('td');
+            var sevBadge = document.createElement('span');
+            sevBadge.className = 'badge badge-' + (r.severity === 'high' ? 'danger' : r.severity === 'medium' ? 'warning' : 'info');
+            sevBadge.textContent = (r.severity || 'low').toUpperCase();
+            tdSev.appendChild(sevBadge);
+            tr.appendChild(tdSev);
+
+            var tdStatus = document.createElement('td');
+            var statusBadge = document.createElement('span');
+            statusBadge.className = 'badge badge-' + (r.status === 'pass' ? 'success' : 'danger');
+            statusBadge.textContent = (r.status || '').toUpperCase();
+            tdStatus.appendChild(statusBadge);
+            tr.appendChild(tdStatus);
+
+            var tdAction = document.createElement('td');
+            if (r.status === 'fail') {
+                var fixBtn = document.createElement('button');
+                fixBtn.className = 'btn btn-sm btn-warning';
+                fixBtn.setAttribute('data-tier-required', 'pro');
+                fixBtn.textContent = 'Fix';
+                fixBtn.onclick = function() { fixComplianceIssue(r.scan_id, r.rule_id, r.pack_id); };
+                tdAction.appendChild(fixBtn);
+            }
+            tr.appendChild(tdAction);
+
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+
+        container.textContent = '';
+        container.appendChild(table);
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        applyTierGating();
+    } catch (e) {
+        console.error('Compliance load error:', e);
+    }
 }
 
 async function runComplianceScan() {
-    const btn = document.getElementById('complianceScanBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'Scanning...'; }
-    showToast('info', 'Compliance scan started... this may take 10-30 seconds.');
-
+    var btn = document.getElementById('scanBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Scanning...';
+    }
     try {
-        const resp = await fetch('/dashboard/api/compliance/scan', {
-            method: 'POST', headers: {'Content-Type': 'application/json'}, body: '{}'
-        });
-        const data = await resp.json();
+        var res = await fetch('/dashboard/api/compliance/scan', { method: 'POST' });
+        var data = await res.json();
         if (data.success) {
-            showToast('success', 'Scan complete: ' + data.score + '% (' + data.passed + '/' + data.total + ' passed)');
-            loadComplianceScores();
-            loadScanHistory();
+            if (typeof showToast === 'function') showToast('success', 'Scan complete: ' + (data.score || 0).toFixed(1) + '%');
+            loadComplianceResults();
         } else {
-            showToast('error', data.error || 'Scan failed');
+            if (typeof showToast === 'function') showToast('error', data.error || 'Scan failed');
         }
     } catch (e) {
-        showToast('error', 'Scan error: ' + e.message);
+        if (typeof showToast === 'function') showToast('error', 'Scan request failed');
     } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Run Scan'; }
-    }
-}
-
-async function loadComplianceScores() {
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scores');
-        const data = await resp.json();
-        if (!data.success || !data.data) return;
-
-        const d = data.data;
-        complianceLatestScanId = d.scan_id || d.latest_scan_id;
-
-        // Overall score
-        const scoreEl = document.getElementById('compliance-overall-score');
-        const labelEl = document.getElementById('compliance-overall-label');
-        if (scoreEl) {
-            scoreEl.textContent = d.score != null ? d.score.toFixed(1) + '%' : '--';
-            scoreEl.style.color = d.score >= 90 ? 'var(--archie-green)' : d.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Run Scan';
         }
-        if (labelEl) labelEl.textContent = (d.passed || 0) + '/' + (d.total_rules || 0) + ' passed' + (d.last_scan ? ' | Last: ' + new Date(d.last_scan).toLocaleString() : '');
-
-        // Counts
-        const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val != null ? val : '--'; };
-        setVal('compliance-passed', d.passed);
-        setVal('compliance-failed', d.failed);
-        setVal('compliance-errors', d.errors);
-
-        // Pack scores — built with safe DOM APIs
-        const packContainer = document.getElementById('compliance-pack-scores');
-        if (packContainer && d.pack_scores) {
-            packContainer.replaceChildren();
-            for (const [packId, pack] of Object.entries(d.pack_scores)) {
-                packContainer.appendChild(_buildPackCard(pack.name, pack.score, pack.passed, pack.total));
-            }
-        }
-
-        // SOC 2 scores
-        renderSoc2Scores(d.soc2);
-
-        // Load findings
-        if (complianceLatestScanId) loadComplianceResults(complianceLatestScanId);
-
-    } catch (e) {
-        console.error('Failed to load compliance scores:', e);
     }
 }
 
-function renderSoc2Scores(soc2) {
-    const container = document.getElementById('compliance-soc2-container');
-    if (!container || !soc2) return;
-
-    const criteriaColors = {
-        'Security': '#ef4444', 'Availability': '#22d3ee', 'Processing Integrity': '#fbbf24',
-        'Confidentiality': '#8b5cf6', 'Privacy': '#f472b6'
-    };
-
-    // Build SOC2 display safely using DOM APIs
-    container.replaceChildren();
-
-    // Overall SOC2 score header
-    const headerDiv = document.createElement('div');
-    headerDiv.style.cssText = 'display:flex; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap;';
-    const overallScore = document.createElement('div');
-    overallScore.style.cssText = 'font-size:1.8rem; font-weight:700;';
-    overallScore.style.color = soc2.score >= 90 ? 'var(--archie-green)' : soc2.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
-    overallScore.textContent = soc2.score != null ? soc2.score.toFixed(1) + '%' : '--';
-    headerDiv.appendChild(overallScore);
-    const overallLabel = document.createElement('div');
-    overallLabel.style.cssText = 'color:var(--archie-text-muted); font-size:0.85rem;';
-    overallLabel.textContent = 'SOC 2 Overall';
-    headerDiv.appendChild(overallLabel);
-    container.appendChild(headerDiv);
-
-    // Criteria grid
-    const grid = document.createElement('div');
-    grid.className = 'stats-grid';
-    grid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
-    for (const [name, info] of Object.entries(soc2.criteria || {})) {
-        const color = criteriaColors[name] || '#888';
-        const card = document.createElement('div');
-        card.className = 'stat-card';
-        card.style.borderLeft = '3px solid ' + color;
-
-        const ch = document.createElement('div');
-        ch.className = 'stat-card-header';
-        const ct = document.createElement('div');
-        ct.className = 'stat-card-title';
-        ct.style.fontSize = '0.8rem';
-        ct.textContent = name;
-        ch.appendChild(ct);
-        card.appendChild(ch);
-
-        const scoreColor = info.score >= 90 ? 'var(--archie-green)' : info.score >= 70 ? 'var(--archie-yellow)' : 'var(--archie-red)';
-        const sv = document.createElement('div');
-        sv.className = 'stat-value';
-        sv.style.cssText = 'font-size:1.3rem; color:' + (info.score != null ? scoreColor : 'var(--archie-text-muted)');
-        sv.textContent = info.score != null ? info.score.toFixed(1) + '%' : 'N/A';
-        card.appendChild(sv);
-
-        const sl = document.createElement('div');
-        sl.className = 'stat-label';
-        sl.textContent = info.passed + '/' + info.total + ' controls';
-        card.appendChild(sl);
-
-        grid.appendChild(card);
-    }
-    container.appendChild(grid);
-}
-
-async function loadComplianceResults(scanId) {
+async function fixComplianceIssue(scanId, ruleId, packId) {
     try {
-        const resp = await fetch('/dashboard/api/compliance/scans/' + encodeURIComponent(scanId));
-        const data = await resp.json();
-        if (!data.success) return;
-
-        complianceAllResults = data.results || [];
-        filterComplianceFindings();
-    } catch (e) {
-        console.error('Failed to load compliance results:', e);
-    }
-}
-
-function filterComplianceFindings() {
-    const severity = document.getElementById('compliance-filter-severity')?.value || '';
-    const status = document.getElementById('compliance-filter-status')?.value || '';
-
-    let filtered = complianceAllResults;
-    if (severity) filtered = filtered.filter(r => r.severity === severity);
-    if (status) filtered = filtered.filter(r => r.status === status);
-
-    const tbody = document.getElementById('compliance-findings-body');
-    if (!tbody) return;
-
-    // Clear existing rows safely
-    tbody.replaceChildren();
-
-    if (filtered.length === 0) {
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 5;
-        td.style.cssText = 'text-align:center; color:var(--archie-text-muted); padding:20px;';
-        td.textContent = 'No findings match the selected filters';
-        tr.appendChild(td);
-        tbody.appendChild(tr);
-        return;
-    }
-
-    const severityColors = { critical: '#ef4444', high: '#f97316', medium: '#fbbf24', low: '#22d3ee' };
-    const statusIcons = { pass: '\u2713', fail: '\u2717', error: '!' };
-
-    filtered.slice(0, 200).forEach(r => {
-        const tr = document.createElement('tr');
-
-        const tdRule = document.createElement('td');
-        tdRule.className = 'mono';
-        tdRule.style.fontSize = '0.8rem';
-        tdRule.textContent = r.rule_id;
-        tr.appendChild(tdRule);
-
-        const tdSev = document.createElement('td');
-        const sevSpan = document.createElement('span');
-        sevSpan.style.cssText = 'text-transform:uppercase; font-size:0.75rem; font-weight:600; color:' + (severityColors[r.severity] || '#888');
-        sevSpan.textContent = r.severity;
-        tdSev.appendChild(sevSpan);
-        tr.appendChild(tdSev);
-
-        const tdStatus = document.createElement('td');
-        const statSpan = document.createElement('span');
-        statSpan.style.fontWeight = '600';
-        statSpan.style.color = r.status === 'pass' ? 'var(--archie-green)' : r.status === 'fail' ? 'var(--archie-red)' : 'var(--archie-yellow)';
-        statSpan.textContent = (statusIcons[r.status] || '?') + ' ' + r.status.toUpperCase();
-        tdStatus.appendChild(statSpan);
-        tr.appendChild(tdStatus);
-
-        const tdPack = document.createElement('td');
-        tdPack.style.fontSize = '0.8rem';
-        tdPack.textContent = r.pack_id;
-        tr.appendChild(tdPack);
-
-        const detail = r.status === 'pass' ? (r.actual_value || 'OK') : (r.details || r.actual_value || '');
-        const tdDetail = document.createElement('td');
-        tdDetail.style.cssText = 'font-size:0.8rem; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
-        tdDetail.title = detail;
-        tdDetail.textContent = detail.substring(0, 100);
-        tr.appendChild(tdDetail);
-
-        tbody.appendChild(tr);
-    });
-}
-
-async function loadScanHistory() {
-    try {
-        const resp = await fetch('/dashboard/api/compliance/scans?limit=20');
-        const data = await resp.json();
-        if (!data.success || !data.scans || data.scans.length === 0) return;
-
-        const scans = data.scans.reverse();
-        const labels = scans.map(s => s.completed_at ? new Date(s.completed_at).toLocaleDateString() : '...');
-        const scores = scans.map(s => s.score || 0);
-
-        const ctx = document.getElementById('complianceHistoryChart');
-        if (!ctx) return;
-
-        if (complianceHistoryChart) complianceHistoryChart.destroy();
-
-        complianceHistoryChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Compliance Score %',
-                    data: scores,
-                    borderColor: '#22d3ee',
-                    backgroundColor: 'rgba(34, 211, 238, 0.1)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    pointBackgroundColor: scores.map(s => s >= 90 ? '#10b981' : s >= 70 ? '#fbbf24' : '#ef4444'),
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { min: 0, max: 100, ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                    x: { ticks: { color: '#888', maxRotation: 45 }, grid: { display: false } }
-                }
-            }
+        var res = await fetch('/dashboard/api/compliance/fix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scan_id: scanId, rule_id: ruleId, pack_id: packId })
         });
-    } catch (e) {
-        console.error('Failed to load scan history:', e);
-    }
-}
-
-async function collectEvidence() {
-    showToast('info', 'Collecting SOC 2 evidence artifacts...');
-    try {
-        const resp = await fetch('/dashboard/api/compliance/evidence/collect', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ scan_id: complianceLatestScanId })
-        });
-        const data = await resp.json();
+        var data = await res.json();
         if (data.success) {
-            showToast('success', 'Collected ' + data.collected + ' evidence artifacts');
+            if (typeof showToast === 'function') showToast('success', 'Fix applied for ' + ruleId);
+            loadComplianceResults();
         } else {
-            showToast('error', data.error || 'Evidence collection failed');
+            if (typeof showToast === 'function') showToast('error', data.error || 'Fix failed');
         }
     } catch (e) {
-        showToast('error', 'Evidence error: ' + e.message);
+        if (typeof showToast === 'function') showToast('error', 'Fix request failed');
     }
 }
 
-// Auto-load compliance data when tab is activated
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.tab-btn[data-tab="compliance"]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            loadComplianceScores();
-            loadScanHistory();
-        });
-    });
-});
+function exportCompliancePDF() {
+    window.open('/dashboard/api/compliance/export/pdf', '_blank');
+}
