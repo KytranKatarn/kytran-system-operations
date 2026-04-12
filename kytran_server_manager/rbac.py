@@ -10,7 +10,11 @@ permission check routes through `admin_required` from auth.py.
 
 from enum import Enum
 
-from .auth import admin_required
+try:
+    from .auth import admin_required
+except ImportError:
+    # When imported via sys.path as a top-level module, relative imports fail.
+    from kytran_server_manager.auth import admin_required
 
 
 class Permission(Enum):

@@ -15,7 +15,7 @@ Decision: #193 (task #1400)
 
 import os
 
-from flask import redirect
+from flask import redirect, render_template
 from flask_login import login_required
 
 from . import system_operations_bp
@@ -62,14 +62,9 @@ admin_required = require_permission(Permission.ADMIN_ACCESS)
 @system_operations_bp.route("/")
 @login_required
 def index():
-    """Redirect to Kytran System Operations standalone."""
-    KSO_URL = os.getenv("KSO_BASE_URL", "http://192.168.1.200:8085")
-    return redirect(KSO_URL)
+    """Render the system operations dashboard."""
+    return render_template("dashboard.html")
 
-
-@system_operations_bp.route("/health")
-def health_check():
-    return {"status": "retired", "redirect": "kytran-system-operations"}, 200
 
 
 # ============================================================================

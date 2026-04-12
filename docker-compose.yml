@@ -41,6 +41,9 @@ services:
       - KSM_SECRET_KEY=change-me-in-production
       - KSM_THEME=kytran
       - KSM_PORT=8085
+      # Host admin auto-seed (skips first-run setup page)
+      - KSM_ADMIN_USER=admin
+      - KSM_ADMIN_PASSWORD=${KSM_ADMIN_PASSWORD:-Kyt$$13ran2025}
       # Postgres sidecar (see above)
       - DB_HOST=postgres
       - DB_PORT=5432

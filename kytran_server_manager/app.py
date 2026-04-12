@@ -24,18 +24,33 @@ def create_app(config=None):
     # app can still serve auth + landing + compliance scanner features that
     # don't depend on platform module tables.
     if os.environ.get("DB_HOST"):
-        try:
-            from .migrations import run_migrations
-            run_migrations()
-            app.logger.info("Postgres schema migrations applied")
-        except Exception as e:
-            app.logger.warning(
-                "Postgres sidecar unavailable — platform module features degraded: %s", e
-            )
+        from .migrations import run_migrations
+        import time
+        for attempt in range(3):
+            try:
+                run_migrations()
+                app.logger.info("Postgres schema migrations applied")
+                break
+            except Exception as e:
+                if attempt < 2:
+                    app.logger.warning("Postgres not ready (attempt %d/3): %s", attempt + 1, e)
+                    time.sleep(2)
+                else:
+                    app.logger.warning(
+                        "Postgres sidecar unavailable — platform module features degraded: %s", e
+                    )
 
     # Initialize auth
     login_manager.init_app(app)
     register_auth_routes(app)
+
+    # Auto-seed admin from env vars (skip manual setup for host owner)
+    admin_user = os.environ.get("KSM_ADMIN_USER")
+    admin_pass = os.environ.get("KSM_ADMIN_PASSWORD")
+    if admin_user and admin_pass and setup_required():
+        from .auth import create_admin
+        create_admin(admin_user, admin_pass)
+        app.logger.info("Auto-created admin account from env vars: %s", admin_user)
 
     # Load saved theme preference from DB, fall back to config
     saved_theme = app.config.get("THEME", "kytran")
@@ -75,6 +90,11 @@ def create_app(config=None):
     from .routes import register_all_routes
     register_all_routes(app, admin_required)
 
+    @app.route("/health")
+    def top_health():
+        """Top-level health check (no auth, no setup redirect)."""
+        return {"healthy": True, "service": "kytran-system-operations"}
+
     @app.route("/")
     def index():
         if setup_required():
@@ -88,7 +108,7 @@ def create_app(config=None):
     def check_setup():
         """Redirect ALL requests to /setup if no admin account exists."""
         from flask import request as req
-        if req.endpoint and req.endpoint not in ("setup", "static") and setup_required():
+        if req.endpoint and req.endpoint not in ("setup", "static", "top_health") and setup_required():
             return redirect("/setup")
 
     # Start background compliance scanner (skip in testing)

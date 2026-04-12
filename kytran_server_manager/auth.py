@@ -84,7 +84,7 @@ def register_auth_routes(app):
     @app.route("/")
     def splash():
         if current_user.is_authenticated:
-            return redirect(url_for("sysops.index"))
+            return redirect(url_for("system_operations.index"))
         return render_template("landing.html")
 
     @app.route("/login", methods=["GET", "POST"])
