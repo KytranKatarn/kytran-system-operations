@@ -6,9 +6,10 @@
     .tab-nav {
         display: flex;
         flex-wrap: wrap;
-        gap: var(--archie-space-1);
+        justify-content: center;
+        gap: var(--archie-space-2);
         background: var(--archie-bg-secondary);
-        padding: var(--archie-space-2);
+        padding: var(--archie-space-3);
         border-radius: var(--archie-radius-lg);
         border: 1px solid var(--archie-border-default);
         margin-bottom: var(--archie-space-5);
@@ -119,6 +120,8 @@
         --frame-color: #ef4444;
         --frame-rgb: 239, 68, 68;
         --lcars-accent-rgb: 239, 68, 68;
+        max-width: 1200px;
+        margin: 0 auto;
     }
     .sysops-container .lcars-frame,
     .sysops-container .lcars-frame * {
