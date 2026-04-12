@@ -142,7 +142,9 @@ CREATE TABLE IF NOT EXISTS docker_stacks (
     color VARCHAR(20),
     compose_directory TEXT,
     is_system BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    auto_start BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS storage_mounts (
