@@ -237,7 +237,7 @@ def register_auth_routes(app):
         if not is_hub_configured():
             return jsonify({
                 "error": "SSO not yet configured",
-                "message": "Sign in with Kytran requires ARCHIE hub connection. Use local login.",
+                "message": "Connect with Kytran Empowerment requires hub connection. Use local login.",
             }), 501
 
         # SSO requires pro tier (only check if already logged in)
@@ -247,7 +247,7 @@ def register_auth_routes(app):
             if not tier_at_least(tier, "pro"):
                 return render_template("upgrade_required.html",
                     required_tier="pro", current_tier=tier,
-                    feature="Sign in with Kytran (SSO)",
+                    feature="Connect with Kytran Empowerment (SSO)",
                     tier_prices={"pro": 29, "business": 49, "enterprise": 99}), 403
 
         hub_url = app.config["ARCHIE_HUB_URL"].rstrip("/")

@@ -68,7 +68,7 @@ function buildTeaserOverlay(teaser) {
     signin.textContent = 'Already subscribed? ';
     var signinLink = document.createElement('a');
     signinLink.href = '/auth/kytran/login';
-    signinLink.textContent = 'Sign in with Kytran';
+    signinLink.textContent = 'Connect with Kytran Empowerment';
     signin.appendChild(signinLink);
     card.appendChild(signin);
 
