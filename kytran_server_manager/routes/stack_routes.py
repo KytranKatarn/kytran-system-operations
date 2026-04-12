@@ -19,6 +19,8 @@ from .helpers import (
 
 
 def register_stack_routes(bp, admin_required_decorator):
+    from ..middleware.tier_gate import require_tier
+
     @bp.route("/api/stack/compose", methods=["GET"])
     @login_required
     @admin_required_decorator
@@ -85,6 +87,7 @@ def register_stack_routes(bp, admin_required_decorator):
     @bp.route("/api/stack/compose", methods=["PUT"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_save_compose():
         """Save docker-compose.yml content"""
         try:
@@ -186,6 +189,7 @@ def register_stack_routes(bp, admin_required_decorator):
     @bp.route("/api/stack/env", methods=["PUT"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_save_env():
         """Save environment file content"""
         try:
@@ -346,6 +350,7 @@ def register_stack_routes(bp, admin_required_decorator):
     @bp.route("/api/stacks", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_create_stack():
         """Create a new Docker stack"""
         conn = None
@@ -588,6 +593,7 @@ def register_stack_routes(bp, admin_required_decorator):
     @bp.route("/api/stacks/<stack_name>", methods=["DELETE"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_delete_stack(stack_name):
         """Delete a Docker stack"""
         try:
@@ -704,6 +710,7 @@ def register_stack_routes(bp, admin_required_decorator):
     @bp.route("/api/stacks/<stack_name>/action", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_stack_action(stack_name):
         """Execute a docker compose action on a stack (up/down/restart/pull)"""
         try:
@@ -936,6 +943,7 @@ def register_stack_routes(bp, admin_required_decorator):
     @bp.route("/api/stacks/<stack_name>/compose", methods=["PUT"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_save_stack_compose(stack_name):
         """Save docker-compose.yml content for a stack"""
         try:
@@ -1103,6 +1111,7 @@ def register_stack_routes(bp, admin_required_decorator):
     @bp.route("/api/stacks/<stack_name>/env", methods=["PUT"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_save_stack_env(stack_name):
         """Save an environment file for a stack"""
         try:

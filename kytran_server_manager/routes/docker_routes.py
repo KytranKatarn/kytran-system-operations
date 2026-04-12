@@ -17,6 +17,8 @@ from .system_service import get_system_service
 
 
 def register_docker_routes(bp, admin_required_decorator):
+    from ..middleware.tier_gate import require_tier
+
     @bp.route("/api/docker")
     @login_required
     @admin_required_decorator
@@ -173,6 +175,7 @@ def register_docker_routes(bp, admin_required_decorator):
     @bp.route("/api/docker/<container_id>/action", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_docker_action(container_id):
         """Perform action on a Docker container"""
         try:
@@ -213,6 +216,7 @@ def register_docker_routes(bp, admin_required_decorator):
     @bp.route("/api/docker/compose", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_docker_compose():
         """Execute docker-compose commands"""
         try:

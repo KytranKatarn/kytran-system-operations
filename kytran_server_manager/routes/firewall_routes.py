@@ -58,6 +58,7 @@ def parse_ufw_rules(output):
 
 def register_firewall_routes(bp, admin_required_decorator):
     """Register firewall-related routes on the given blueprint."""
+    from ..middleware.tier_gate import require_tier
 
     @bp.route("/api/firewall/status")
     @login_required
@@ -155,6 +156,7 @@ def register_firewall_routes(bp, admin_required_decorator):
     @bp.route("/api/firewall/enable", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_firewall_enable():
         """Enable UFW firewall"""
         try:
@@ -209,6 +211,7 @@ def register_firewall_routes(bp, admin_required_decorator):
     @bp.route("/api/firewall/disable", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_firewall_disable():
         """Disable UFW firewall"""
         try:
@@ -263,6 +266,7 @@ def register_firewall_routes(bp, admin_required_decorator):
     @bp.route("/api/firewall/allow", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_firewall_allow():
         """Allow a port through the firewall"""
         try:
@@ -344,6 +348,7 @@ def register_firewall_routes(bp, admin_required_decorator):
     @bp.route("/api/firewall/deny", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_firewall_deny():
         """Deny a port through the firewall"""
         try:

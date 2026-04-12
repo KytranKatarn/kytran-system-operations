@@ -8,6 +8,8 @@ from psycopg2.extras import RealDictCursor
 
 
 def register_process_routes(bp, admin_required_decorator):
+    from ..middleware.tier_gate import require_tier
+
     @bp.route("/api/processes")
     @login_required
     @admin_required_decorator
@@ -76,6 +78,7 @@ def register_process_routes(bp, admin_required_decorator):
     @bp.route("/api/process/<int:pid>/kill", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_kill_process(pid):
         """Kill a process"""
         try:
@@ -128,6 +131,7 @@ def register_process_routes(bp, admin_required_decorator):
     @bp.route("/api/service/<service_name>/action", methods=["POST"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_service_action(service_name):
         """Perform action on a systemd service"""
         try:
