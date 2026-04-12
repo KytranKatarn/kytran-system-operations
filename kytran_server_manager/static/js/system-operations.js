@@ -17,6 +17,86 @@ if (typeof ArchieTime === 'undefined') {
     };
 }
 
+// Tier gating — frosted tab teasers
+var TAB_TEASERS = {
+    storage:    { icon: 'hard-drive',    title: 'Storage Management',    features: ['Interactive disk map with LVM management', 'SMART health monitoring', 'Mount/unmount and format operations'] },
+    hardware:   { icon: 'server',        title: 'Hardware Inventory',     features: ['CPU, GPU, and memory details', 'PCI expansion slot mapping', 'SATA port status and upgrade potential'] },
+    memory:     { icon: 'memory-stick',  title: 'Memory Configuration',  features: ['DIMM slot inventory with serials', 'Memory controller details', 'Upgrade capacity calculator'] },
+    processes:  { icon: 'cpu',           title: 'Process Manager',        features: ['Live process table with CPU/memory', 'Process kill controls', 'Systemd service management'] },
+    docker:     { icon: 'container',     title: 'Docker & Stack Manager', features: ['Container health monitoring', 'Stack creation and management', 'Resource usage tracking'] },
+    network:    { icon: 'network',       title: 'Network Monitor',        features: ['Interface status and bandwidth', 'Active connections and port map', 'Docker network topology'] },
+    firewall:   { icon: 'shield',        title: 'Firewall Management',    features: ['UFW rule management', 'Enable/disable firewall', 'Port allow/deny controls'] }
+};
+
+function buildTeaserOverlay(teaser) {
+    var overlay = document.createElement('div');
+    overlay.className = 'tier-locked-overlay';
+
+    var card = document.createElement('div');
+    card.className = 'tier-locked-card';
+
+    var iconDiv = document.createElement('div');
+    iconDiv.className = 'tier-locked-icon';
+    var iconEl = document.createElement('i');
+    iconEl.setAttribute('data-lucide', teaser.icon);
+    iconEl.style.cssText = 'width:48px;height:48px;';
+    iconDiv.appendChild(iconEl);
+    card.appendChild(iconDiv);
+
+    var titleEl = document.createElement('h3');
+    titleEl.className = 'tier-locked-title';
+    titleEl.textContent = teaser.title;
+    card.appendChild(titleEl);
+
+    var ul = document.createElement('ul');
+    ul.className = 'tier-locked-features';
+    teaser.features.forEach(function(f) {
+        var li = document.createElement('li');
+        li.textContent = f;
+        ul.appendChild(li);
+    });
+    card.appendChild(ul);
+
+    var cta = document.createElement('a');
+    cta.href = '/settings';
+    cta.className = 'tier-locked-cta';
+    cta.textContent = 'Unlock with Pro \u2014 $29/mo';
+    card.appendChild(cta);
+
+    var signin = document.createElement('span');
+    signin.className = 'tier-locked-signin';
+    signin.textContent = 'Already subscribed? ';
+    var signinLink = document.createElement('a');
+    signinLink.href = '/auth/kytran/login';
+    signinLink.textContent = 'Sign in with Kytran';
+    signin.appendChild(signinLink);
+    card.appendChild(signin);
+
+    overlay.appendChild(card);
+    return overlay;
+}
+
+function applyTierGating() {
+    if (typeof window.KSM_TIER_AT_LEAST === 'function' && window.KSM_TIER_AT_LEAST('pro')) return;
+
+    Object.keys(TAB_TEASERS).forEach(function(tabName) {
+        var tabContent = document.getElementById('tab-' + tabName);
+        if (!tabContent) return;
+        if (tabContent.querySelector('.tier-locked-overlay')) return;
+
+        tabContent.classList.add('tier-tab-wrapper');
+        tabContent.appendChild(buildTeaserOverlay(TAB_TEASERS[tabName]));
+    });
+
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+
+    document.querySelectorAll('[data-tier-required]').forEach(function(el) {
+        if (typeof window.KSM_TIER_AT_LEAST === 'function' && !window.KSM_TIER_AT_LEAST(el.dataset.tierRequired)) {
+            el.classList.add('tier-action-locked');
+        }
+    });
+}
+
 // Verify Chart.js loaded
 if (typeof Chart === 'undefined') {
     console.error('Chart.js failed to load from primary CDN');
@@ -521,6 +601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     startAutoRefresh();
+    applyTierGating();
     console.log('System Operations initialized');
 });
 
