@@ -676,6 +676,11 @@ function initTabs() {
                 firewallTabLoaded = false;
             }
 
+            // Load compliance data when entering the tab
+            if (btn.dataset.tab === 'compliance') {
+                loadComplianceResults();
+            }
+
             lucide.createIcons();
         });
     });
@@ -9055,4 +9060,147 @@ async function deleteFirewallRule() {
     } catch (e) {
         showToast('error', 'Error deleting rule: ' + e.message);
     }
+}
+
+// ============================================================================
+// COMPLIANCE SCANNER TAB
+// ============================================================================
+
+async function loadComplianceResults() {
+    try {
+        var res = await fetch('/dashboard/api/compliance/latest');
+        if (!res.ok) return;
+        var data = await res.json();
+        if (!data.success) return;
+
+        var scan = data.scan || {};
+        var scoreEl = document.getElementById('compliance-score-value');
+        var passedEl = document.getElementById('compliance-passed');
+        var failedEl = document.getElementById('compliance-failed');
+        var lastScanEl = document.getElementById('compliance-last-scan');
+
+        if (scoreEl) scoreEl.textContent = (scan.score || 0).toFixed(1) + '%';
+        if (passedEl) passedEl.textContent = scan.passed || 0;
+        if (failedEl) failedEl.textContent = scan.failed || 0;
+        if (lastScanEl && scan.completed_at) {
+            lastScanEl.textContent = typeof ArchieTime !== 'undefined'
+                ? ArchieTime.format(scan.completed_at, 'short')
+                : new Date(scan.completed_at).toLocaleString();
+        }
+
+        // Render results table
+        var results = data.results || [];
+        var container = document.getElementById('compliance-results');
+        if (!container || results.length === 0) return;
+
+        var table = document.createElement('table');
+        table.className = 'data-table';
+
+        var thead = document.createElement('thead');
+        var headerRow = document.createElement('tr');
+        ['Rule', 'Pack', 'Severity', 'Status', 'Action'].forEach(function(h) {
+            var th = document.createElement('th');
+            th.textContent = h;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        var tbody = document.createElement('tbody');
+        results.forEach(function(r) {
+            var tr = document.createElement('tr');
+
+            var tdRule = document.createElement('td');
+            tdRule.textContent = r.rule_id || '';
+            tr.appendChild(tdRule);
+
+            var tdPack = document.createElement('td');
+            tdPack.textContent = r.pack_id || '';
+            tr.appendChild(tdPack);
+
+            var tdSev = document.createElement('td');
+            var sevBadge = document.createElement('span');
+            sevBadge.className = 'badge badge-' + (r.severity === 'high' ? 'danger' : r.severity === 'medium' ? 'warning' : 'info');
+            sevBadge.textContent = (r.severity || 'low').toUpperCase();
+            tdSev.appendChild(sevBadge);
+            tr.appendChild(tdSev);
+
+            var tdStatus = document.createElement('td');
+            var statusBadge = document.createElement('span');
+            statusBadge.className = 'badge badge-' + (r.status === 'pass' ? 'success' : 'danger');
+            statusBadge.textContent = (r.status || '').toUpperCase();
+            tdStatus.appendChild(statusBadge);
+            tr.appendChild(tdStatus);
+
+            var tdAction = document.createElement('td');
+            if (r.status === 'fail') {
+                var fixBtn = document.createElement('button');
+                fixBtn.className = 'btn btn-sm btn-warning';
+                fixBtn.setAttribute('data-tier-required', 'pro');
+                fixBtn.textContent = 'Fix';
+                fixBtn.onclick = function() { fixComplianceIssue(r.scan_id, r.rule_id, r.pack_id); };
+                tdAction.appendChild(fixBtn);
+            }
+            tr.appendChild(tdAction);
+
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+
+        container.textContent = '';
+        container.appendChild(table);
+
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        applyTierGating();
+    } catch (e) {
+        console.error('Compliance load error:', e);
+    }
+}
+
+async function runComplianceScan() {
+    var btn = document.getElementById('scanBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Scanning...';
+    }
+    try {
+        var res = await fetch('/dashboard/api/compliance/scan', { method: 'POST' });
+        var data = await res.json();
+        if (data.success) {
+            if (typeof showToast === 'function') showToast('success', 'Scan complete: ' + (data.score || 0).toFixed(1) + '%');
+            loadComplianceResults();
+        } else {
+            if (typeof showToast === 'function') showToast('error', data.error || 'Scan failed');
+        }
+    } catch (e) {
+        if (typeof showToast === 'function') showToast('error', 'Scan request failed');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Run Scan';
+        }
+    }
+}
+
+async function fixComplianceIssue(scanId, ruleId, packId) {
+    try {
+        var res = await fetch('/dashboard/api/compliance/fix', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scan_id: scanId, rule_id: ruleId, pack_id: packId })
+        });
+        var data = await res.json();
+        if (data.success) {
+            if (typeof showToast === 'function') showToast('success', 'Fix applied for ' + ruleId);
+            loadComplianceResults();
+        } else {
+            if (typeof showToast === 'function') showToast('error', data.error || 'Fix failed');
+        }
+    } catch (e) {
+        if (typeof showToast === 'function') showToast('error', 'Fix request failed');
+    }
+}
+
+function exportCompliancePDF() {
+    window.open('/dashboard/api/compliance/export/pdf', '_blank');
 }

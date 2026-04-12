@@ -116,6 +116,10 @@
             <i data-lucide="shield" class="sysops-icon-16"></i>
             Firewall
         </button>
+        <button class="tab-btn" data-tab="compliance">
+            <i data-lucide="shield-check" class="sysops-icon-16"></i>
+            Compliance
+        </button>
     </div>
 
     <!-- Tab: Dashboard -->
@@ -1582,6 +1586,52 @@
         </div>
     </div>
 </div>
+
+    <!-- ============ COMPLIANCE TAB ============ -->
+    <div id="tab-compliance" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="shield-check" class="sysops-icon-20"></i>
+                <span>Compliance Scanner</span>
+            </h2>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="runComplianceScan()" id="scanBtn">
+                    <i data-lucide="play" class="sysops-icon-14"></i> Run Scan
+                </button>
+                <button class="btn btn-ghost" data-tier-required="business" onclick="exportCompliancePDF()">
+                    <i data-lucide="file-text" class="sysops-icon-14"></i> Export PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Score Overview -->
+        <div id="compliance-score" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Overall Score</div>
+                <div id="compliance-score-value" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-accent);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Passed</div>
+                <div id="compliance-passed" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-green);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Failed</div>
+                <div id="compliance-failed" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-red);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Last Scan</div>
+                <div id="compliance-last-scan" style="font-size: 1rem; font-weight: 600; color: var(--archie-text-secondary);">Never</div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div id="compliance-results" style="margin-top: 16px;">
+            <div style="text-align: center; padding: 40px; color: var(--archie-text-muted);">
+                <i data-lucide="shield-question" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+                <p style="margin-top: 10px;">No scan results yet. Click "Run Scan" to start.</p>
+            </div>
+        </div>
+    </div>
 
 <!-- Confirmation Modal - higher z-index to appear above other modals -->
 <div class="modal-overlay" id="confirmModal" style="z-index: 10001;">
