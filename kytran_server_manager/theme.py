@@ -147,4 +147,7 @@ def init_theme(app):
 
     @app.context_processor
     def inject_sysops_theme():
-        return {"sysops_theme": theme}
+        # Reload theme dynamically so switching takes effect without restart
+        current_name = os.environ.get("SYSOPS_THEME", DEFAULT_THEME)
+        current_theme = load_theme(current_name)
+        return {"sysops_theme": current_theme}

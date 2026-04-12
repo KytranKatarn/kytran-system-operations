@@ -110,6 +110,43 @@
 
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
+    /* --- Modern Frame (Kytran/non-LCARS themes) --- */
+    .modern-frame {
+        width: 100%;
+    }
+    .modern-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 24px;
+        background: var(--archie-bg-secondary);
+        border: 1px solid var(--archie-border-default);
+        border-radius: var(--sysops-border-radius, 8px);
+        margin-bottom: 20px;
+    }
+    .modern-title {
+        font-family: var(--sysops-font-heading, 'Inter'), sans-serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--archie-accent);
+        margin: 0;
+        letter-spacing: 0.5px;
+    }
+    .modern-badge {
+        font-family: var(--sysops-font-mono, 'JetBrains Mono'), monospace;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--archie-text-muted);
+        background: var(--archie-bg-tertiary);
+        padding: 4px 12px;
+        border-radius: var(--archie-radius-full);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .modern-body {
+        padding: 0;
+    }
+
     /* --- End Shared Components --- */
 
     .sysops-container {

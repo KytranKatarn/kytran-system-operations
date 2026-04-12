@@ -6,8 +6,10 @@
 {% block styles %}
 <link rel="stylesheet" href="/static/css/components.css">
 <link rel="stylesheet" href="/static/css/lcars-panels.css">
+{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
 <link rel="stylesheet" href="/static/css/lcars-frames.css">
 <link rel="stylesheet" href="/static/css/admin-ops.css">
+{% endif %}
 <link rel="stylesheet" href="/static/css/system-operations.css">
 {% endblock %}
 
@@ -23,8 +25,8 @@
         {'url': url_for('system_operations.index'), 'endpoint_prefix': 'system_operations', 'icon': 'server', 'label': 'System Ops', 'title': 'System Operations'}
     ] %}
 
+    {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
     <div class="lcars-frame">
-        <!-- LEFT SIDEBAR -->
         <div class="lcars-sidebar">
             <div class="lcars-elbow-top"></div>
             <div class="lcars-seg sysops-seg-red"></div>
@@ -34,11 +36,9 @@
             <div class="lcars-seg-fill"></div>
             <div class="lcars-elbow-bottom"></div>
         </div>
-
-        <!-- RIGHT CONTENT -->
         <div class="lcars-content">
             <div class="lcars-bar">
-                <span class="lcars-bar-title" data-i18n="system_operations.system_operations">SYSTEM OPERATIONS</span>
+                <span class="lcars-bar-title">SYSTEM OPERATIONS</span>
                 <div class="lcars-bar-spacer"></div>
                 <div class="lcars-pips">
                     <span class="lcars-pip sysops-pip-20"></span>
@@ -47,8 +47,15 @@
                 </div>
                 <span class="lcars-bar-status">SYS OPS</span>
             </div>
-
             <div class="lcars-body">
+    {% else %}
+    <div class="modern-frame">
+        <div class="modern-header">
+            <h2 class="modern-title">{{ sysops_theme.product_name if sysops_theme else 'System Operations' }}</h2>
+            <span class="modern-badge">{{ sysops_theme.product_short if sysops_theme else 'KSM' }}</span>
+        </div>
+        <div class="modern-body">
+    {% endif %}
                 <!-- Controls -->
                 <div class="header-controls sysops-header-controls">
                     <div class="auto-refresh-toggle">
@@ -1421,10 +1428,16 @@
         </div>
     </div>
 
+    {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
             </div><!-- /lcars-body -->
             <div class="lcars-footer-bar"></div>
         </div><!-- /lcars-content -->
     </div><!-- /lcars-frame -->
+    {% else %}
+        </div><!-- /modern-body -->
+    </div><!-- /modern-frame -->
+    {% endif %}
+
 </div><!-- /sysops-container -->
 
 <!-- Firewall: Disable Confirmation Modal -->
