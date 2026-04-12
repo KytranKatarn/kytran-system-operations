@@ -159,11 +159,18 @@
     -webkit-backdrop-filter: blur(8px);
     background: rgba(10, 10, 26, 0.85);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
+    padding-top: 80px;
     z-index: 50;
     border-radius: var(--sysops-border-radius, 8px);
     animation: fadeIn 0.3s ease-out;
+    overflow: hidden;
+}
+
+.tier-locked-overlay .tier-locked-card {
+    position: sticky;
+    top: 80px;
 }
 
 .tier-locked-card {
