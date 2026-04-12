@@ -9,7 +9,10 @@ from flask_login import current_user
 from psycopg2.extras import Json
 import psycopg2
 import os
-from database import _get_db_password
+try:
+    from database import _get_db_password
+except ImportError:
+    from kytran_server_manager.database import _get_db_password
 import json as json_lib
 import time as time_mod
 
@@ -44,12 +47,12 @@ def load_host_monitor_data():
 
 
 def get_db():
-    """Get database connection"""
+    """Get database connection for platform module routes (Postgres sidecar)."""
     return psycopg2.connect(
-        host=os.getenv("DB_HOST", "archie_database"),
+        host=os.getenv("DB_HOST", "postgres"),
         port=os.getenv("DB_PORT", "5432"),
-        database=os.getenv("DB_NAME", "archie"),
-        user=os.getenv("DB_USER", "archie"),
+        database=os.getenv("DB_NAME", "sysops"),
+        user=os.getenv("DB_USER", "sysops"),
         password=_get_db_password(),
     )
 

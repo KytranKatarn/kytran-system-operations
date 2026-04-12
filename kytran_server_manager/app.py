@@ -108,7 +108,9 @@ def create_app(config=None):
     def check_setup():
         """Redirect ALL requests to /setup if no admin account exists."""
         from flask import request as req
-        if req.endpoint and req.endpoint not in ("setup", "static", "top_health") and setup_required():
+        excluded = ("setup", "static", "top_health", "login", "logout", "splash",
+                    "sso_login", "sso_callback", "sso_status", "kytran_login", "kytran_callback")
+        if req.endpoint and req.endpoint not in excluded and setup_required():
             return redirect("/setup")
 
     # Start background compliance scanner (skip in testing)
