@@ -19,6 +19,10 @@ services:
     mem_limit: 512m
     cpus: 1.0
     pids_limit: 200
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run/postgresql
     security_opt:
       - no-new-privileges:true
 
@@ -41,13 +45,13 @@ services:
     secrets:
       - db_password
     environment:
-      - KSM_SECRET_KEY=change-me-in-production
+      - KSM_SECRET_KEY=${KSM_SECRET_KEY}
       - KSM_THEME=kytran
       - KSM_PORT=8085
       - ARCHIE_BASE_DIR=/data
       # Host admin auto-seed (skips first-run setup page)
       - KSM_ADMIN_USER=admin
-      - KSM_ADMIN_PASSWORD=${KSM_ADMIN_PASSWORD:-Kyt$$13ran2025}
+      - KSM_ADMIN_PASSWORD=${KSM_ADMIN_PASSWORD}
       # Postgres sidecar (see above)
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -69,6 +73,10 @@ services:
     mem_limit: 1g
     cpus: 2.0
     pids_limit: 200
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
     security_opt:
       - no-new-privileges:true
 

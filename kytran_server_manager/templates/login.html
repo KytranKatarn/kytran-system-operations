@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Login - {{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}{% endblock %}
+{% block title %}Login - {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
 {% block styles %}
 {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/lcars-frames.css') }}">
@@ -156,7 +156,7 @@
 <div class="login-wrapper">
     <div class="login-card">
         <div class="login-header">
-            <h1>{{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}</h1>
+            <h1>{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}</h1>
             <p>Sign in to manage your server</p>
         </div>
         <div class="login-body">

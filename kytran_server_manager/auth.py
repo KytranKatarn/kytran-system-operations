@@ -2,6 +2,7 @@
 import logging
 import os
 import bcrypt
+from urllib.parse import urlparse
 from flask import request, redirect, render_template, flash, jsonify, url_for
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from functools import wraps
@@ -35,13 +36,6 @@ class User(UserMixin):
 @login_manager.user_loader
 def load_user(user_id):
     db = get_db()
-    # Ensure columns exist
-    for col in ["display_name TEXT", "email TEXT", "sso_provider TEXT DEFAULT NULL"]:
-        try:
-            db.execute(f"ALTER TABLE users ADD COLUMN {col}")
-            db.commit()
-        except Exception:
-            pass
     row = db.execute("SELECT id, username, role, display_name, email, sso_provider FROM users WHERE id = ?", (user_id,)).fetchone()
     db.close()
     if row:
@@ -113,7 +107,10 @@ def register_auth_routes(app):
                     from .services.subscription_service import get_user_tier, set_user_tier
                     if get_user_tier(user.id) == "free":
                         set_user_tier(user.id, "pro")
-                return redirect(request.args.get("next", "/"))
+                next_url = request.args.get("next", "/")
+                if urlparse(next_url).netloc:
+                    next_url = "/"
+                return redirect(next_url)
             flash("Invalid credentials", "error")
         sso_enabled = is_hub_configured()
         return render_template("login.html", sso_enabled=sso_enabled)
@@ -194,16 +191,6 @@ def register_auth_routes(app):
         display_name = request.form.get("display_name", "").strip()
         email = request.form.get("email", "").strip()
         db = get_db()
-        try:
-            db.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
-            db.commit()
-        except Exception:
-            pass
-        try:
-            db.execute("ALTER TABLE users ADD COLUMN email TEXT")
-            db.commit()
-        except Exception:
-            pass
         db.execute("UPDATE users SET display_name = ?, email = ? WHERE id = ?",
                    (display_name or None, email or None, current_user.id))
         db.commit()
@@ -340,15 +327,6 @@ def register_auth_routes(app):
         if row:
             user = User(row["id"], row["username"], row["role"])
         else:
-            # Ensure sso_provider column exists
-            try:
-                db.execute(
-                    "ALTER TABLE users ADD COLUMN sso_provider TEXT DEFAULT NULL"
-                )
-                db.commit()
-            except Exception:
-                pass  # Column already exists
-
             # Create new user from SSO (empty password_hash — authenticates via ARCHIE)
             db.execute(
                 "INSERT INTO users (username, password_hash, role, sso_provider) VALUES (?, '', 'user', 'archie')",
@@ -386,13 +364,6 @@ def register_auth_routes(app):
 
         db = get_db()
         username = userinfo.get("username", "")
-
-        # Ensure sso_provider column exists
-        try:
-            db.execute("ALTER TABLE users ADD COLUMN sso_provider TEXT DEFAULT NULL")
-            db.commit()
-        except Exception:
-            pass  # Column already exists
 
         row = db.execute(
             "SELECT id, username, role FROM users WHERE username = ? AND sso_provider = 'kytran'",

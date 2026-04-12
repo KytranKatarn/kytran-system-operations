@@ -430,6 +430,7 @@ def register_firewall_routes(bp, admin_required_decorator):
     @bp.route("/api/firewall/update", methods=["PUT"])
     @login_required
     @admin_required_decorator
+    @require_tier("pro")
     def api_firewall_update():
         """Update an existing firewall rule"""
         try:

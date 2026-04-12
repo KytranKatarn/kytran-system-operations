@@ -188,6 +188,11 @@ def init_db(path):
     conn.execute("CREATE INDEX IF NOT EXISTS idx_evidence_scan ON compliance_evidence(scan_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_evidence_soc2 ON compliance_evidence(soc2_mapping)")
     # Migrations — add columns that may be missing from older DBs
+    for col in ["display_name TEXT", "email TEXT", "sso_provider TEXT DEFAULT NULL"]:
+        try:
+            conn.execute(f"ALTER TABLE users ADD COLUMN {col}")
+        except Exception:
+            pass  # Column already exists
     try:
         conn.execute("ALTER TABLE docker_stacks ADD COLUMN color TEXT DEFAULT '#2563eb'")
     except Exception:
