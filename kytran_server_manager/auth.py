@@ -20,33 +20,32 @@ kytran_auth = KytranAuth()
 
 
 class User(UserMixin):
-    def __init__(self, id, username, role, display_name=None, email=None):
+    def __init__(self, id, username, role, display_name=None, email=None, sso_provider=None):
         self.id = id
         self.username = username
         self.role = role
         self.is_admin = role == "admin"
         self.display_name = display_name or username
         self.email = email
+        self.sso_provider = sso_provider
+        self.is_sso = sso_provider is not None and sso_provider != ""
+        self.is_local = not self.is_sso
 
 
 @login_manager.user_loader
 def load_user(user_id):
     db = get_db()
-    # Ensure display_name and email columns exist
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
-        db.commit()
-    except Exception:
-        pass
-    try:
-        db.execute("ALTER TABLE users ADD COLUMN email TEXT")
-        db.commit()
-    except Exception:
-        pass
-    row = db.execute("SELECT id, username, role, display_name, email FROM users WHERE id = ?", (user_id,)).fetchone()
+    # Ensure columns exist
+    for col in ["display_name TEXT", "email TEXT", "sso_provider TEXT DEFAULT NULL"]:
+        try:
+            db.execute(f"ALTER TABLE users ADD COLUMN {col}")
+            db.commit()
+        except Exception:
+            pass
+    row = db.execute("SELECT id, username, role, display_name, email, sso_provider FROM users WHERE id = ?", (user_id,)).fetchone()
     db.close()
     if row:
-        return User(row["id"], row["username"], row["role"], row["display_name"], row["email"])
+        return User(row["id"], row["username"], row["role"], row["display_name"], row["email"], row["sso_provider"])
     return None
 
 
