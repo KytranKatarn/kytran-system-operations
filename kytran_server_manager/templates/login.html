@@ -1,7 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Login - {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
+{% block title %}Login - {{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}{% endblock %}
 {% block styles %}
+{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/lcars-frames.css') }}">
+{% endif %}
 <style>
     .login-wrapper {
         display: flex;
@@ -9,129 +11,192 @@
         justify-content: center;
         min-height: calc(100vh - 60px);
         padding: 20px;
-        --frame-color: #2563eb;
-        --frame-rgb: 37, 99, 235;
     }
-    .login-wrapper .lcars-frame {
-        max-width: 480px;
+    .login-card {
+        max-width: 440px;
         width: 100%;
+        background: var(--archie-bg-secondary);
+        border: 1px solid var(--archie-border-default);
+        border-radius: var(--sysops-border-radius, 8px);
+        overflow: hidden;
     }
-    .login-wrapper .lcars-body {
-        padding: 32px 24px;
-    }
-    .login-wrapper .ksm-auth-card h1 {
-        font-family: 'Orbitron', 'Antonio', sans-serif;
-        font-size: 1.1rem;
-        letter-spacing: 2px;
-        text-transform: uppercase;
-        color: var(--sysops-accent, #00e5ff);
-        margin: 0 0 24px 0;
+    .login-header {
+        padding: 28px 32px 20px;
         text-align: center;
+        border-bottom: 1px solid var(--archie-border-default);
     }
-    .login-wrapper .ksm-form-group {
+    .login-header h1 {
+        font-family: var(--sysops-font-heading, 'Inter'), sans-serif;
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--archie-accent);
+        margin: 0;
+        letter-spacing: 1px;
+    }
+    .login-header p {
+        color: var(--archie-text-muted);
+        font-size: 0.85rem;
+        margin: 8px 0 0;
+    }
+    .login-body {
+        padding: 28px 32px;
+    }
+    .login-form-group {
         margin-bottom: 16px;
     }
-    .login-wrapper .ksm-form-group label {
+    .login-form-group label {
         display: block;
         font-size: 0.75rem;
         letter-spacing: 1px;
         text-transform: uppercase;
-        color: var(--sysops-text-muted, #808080);
+        color: var(--archie-text-muted);
         margin-bottom: 6px;
-        font-family: var(--sysops-font-mono, 'IBM Plex Mono', monospace);
+        font-family: var(--archie-font-mono);
     }
-    .login-wrapper .ksm-form-group input {
+    .login-form-group input {
         width: 100%;
-        padding: 10px 12px;
-        background: var(--sysops-bg-tertiary, #2a2a3e);
-        border: 1px solid var(--sysops-border-default, #2a2a3e);
-        border-radius: 4px;
-        color: var(--sysops-text-primary, #e0e0e0);
+        padding: 11px 14px;
+        background: var(--archie-bg-tertiary);
+        border: 1px solid var(--archie-border-default);
+        border-radius: var(--archie-radius-md);
+        color: var(--archie-text-primary);
         font-size: 0.95rem;
-        font-family: var(--sysops-font-mono, 'IBM Plex Mono', monospace);
+        font-family: var(--archie-font-mono);
         box-sizing: border-box;
         transition: border-color 0.2s;
     }
-    .login-wrapper .ksm-form-group input:focus {
+    .login-form-group input:focus {
         outline: none;
-        border-color: var(--sysops-accent, #2563eb);
-        box-shadow: 0 0 8px rgba(var(--frame-rgb), 0.3);
+        border-color: var(--archie-accent);
+        box-shadow: 0 0 8px rgba(var(--archie-accent-rgb, 37,99,235), 0.3);
     }
-    .login-wrapper .ksm-btn-primary {
+    .login-btn {
         width: 100%;
         padding: 12px;
-        margin-top: 8px;
-        background: var(--frame-color);
+        margin-top: 4px;
+        background: var(--archie-accent);
         border: none;
-        border-radius: 6px;
-        color: var(--sysops-bg-primary, #0a0a1a);
-        font-family: 'Antonio', sans-serif;
+        border-radius: var(--archie-radius-md);
+        color: var(--archie-bg-primary);
+        font-family: var(--archie-font-mono);
         font-size: 0.9rem;
         font-weight: 600;
-        letter-spacing: 2px;
+        letter-spacing: 1px;
         text-transform: uppercase;
         cursor: pointer;
-        transition: background 0.2s, box-shadow 0.2s;
+        transition: filter 0.2s;
+        text-decoration: none;
+        display: block;
+        text-align: center;
     }
-    .login-wrapper .ksm-btn-primary:hover {
-        background: var(--sysops-accent-bright, #4df0ff);
-        box-shadow: 0 0 16px rgba(var(--frame-rgb), 0.4);
+    .login-btn:hover {
+        filter: brightness(1.15);
     }
+    .login-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 24px 0;
+        color: var(--archie-text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .login-divider::before,
+    .login-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--archie-border-default);
+    }
+    .login-btn-sso {
+        width: 100%;
+        padding: 12px;
+        background: transparent;
+        border: 1px solid var(--archie-accent);
+        border-radius: var(--archie-radius-md);
+        color: var(--archie-accent);
+        font-family: var(--archie-font-mono);
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: background 0.2s;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .login-btn-sso:hover {
+        background: var(--archie-accent-alpha-10);
+    }
+    .login-footer {
+        padding: 16px 32px;
+        text-align: center;
+        border-top: 1px solid var(--archie-border-default);
+    }
+    .login-footer a {
+        color: var(--archie-accent);
+        text-decoration: none;
+        font-size: 0.8rem;
+    }
+    {% if sysops_theme and sysops_theme.get('flashes') %}
+    .flash-msg {
+        padding: 12px 16px;
+        margin-bottom: 16px;
+        border-radius: var(--archie-radius-md);
+        font-size: 0.85rem;
+    }
+    {% endif %}
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="login-wrapper">
-    <div class="lcars-frame lcars-frame--tablet frame-build">
-        <!-- Left Sidebar -->
-        <div class="lcars-sidebar">
-            <div class="lcars-elbow-top"></div>
-            <div class="lcars-seg" style="--seg-color: #2563eb"></div>
-            <div class="lcars-seg" style="--seg-color: #00e5ff"></div>
-            <div class="lcars-seg" style="--seg-color: #1d4ed8"></div>
-            <div class="lcars-seg-light" style="--seg-color: #00e5ff"></div>
-            <div class="lcars-seg-fill"></div>
-            <div class="lcars-elbow-bottom"></div>
+    <div class="login-card">
+        <div class="login-header">
+            <h1>{{ sysops_theme.product_name if sysops_theme else 'Kytran Server Manager' }}</h1>
+            <p>Sign in to manage your server</p>
         </div>
-        <!-- Right Content Column -->
-        <div class="lcars-content">
-            <!-- Header Bar -->
-            <div class="lcars-bar">
-                <span class="lcars-bar-title">SYSTEM ACCESS</span>
-                <div class="lcars-bar-spacer"></div>
-                <div class="lcars-pips">
-                    <div class="lcars-pip" style="width: 20px"></div>
-                    <div class="lcars-pip" style="width: 12px"></div>
-                    <div class="lcars-pip" style="width: 28px"></div>
-                </div>
-                <span class="lcars-bar-status">AUTH</span>
+        <div class="login-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div style="padding: 10px 14px; margin-bottom: 16px; border-radius: 6px; font-size: 0.85rem;
+                        background: {{ 'rgba(239,68,68,0.15)' if category == 'error' else 'rgba(34,197,94,0.15)' }};
+                        color: {{ '#ef4444' if category == 'error' else '#22c55e' }};">
+                {{ message }}
             </div>
-            <!-- Content Body -->
-            <div class="lcars-body">
-                <div class="ksm-auth-card">
-                    <h1><i class="fas fa-server"></i> {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}</h1>
-                    <form method="POST">
-                        <div class="ksm-form-group">
-                            <label for="username">Username</label>
-                            <input type="text" id="username" name="username" required autofocus>
-                        </div>
-                        <div class="ksm-form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" name="password" required>
-                        </div>
-                        <button type="submit" class="ksm-btn ksm-btn-primary">Sign In</button>
-                    </form>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {# Local Login Form #}
+            <form method="POST">
+                <div class="login-form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required autofocus>
                 </div>
-                {# SSO button hidden until ARCHIE OAuth provider is built
-                <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px solid rgba(var(--frame-rgb),0.2);">
-                    <a href="/auth/kytran/login" class="ksm-btn ksm-btn-primary" style="display:inline-block;text-decoration:none;width:auto;padding:10px 24px;background:#8b5cf6;margin-top:0;">
-                        <i class="fas fa-shield-alt"></i> Connect with Kytran Empowerment
-                    </a>
+                <div class="login-form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
                 </div>
-                #}
-            </div><!-- /lcars-body -->
-            <!-- Footer Bar -->
-            <div class="lcars-footer-bar"></div>
-        </div><!-- /lcars-content -->
-    </div><!-- /lcars-frame -->
+                <button type="submit" class="login-btn">Sign In</button>
+            </form>
+
+            {# Divider #}
+            <div class="login-divider">or</div>
+
+            {# Kytran Empowerment SSO #}
+            <a href="/auth/kytran/login" class="login-btn-sso">
+                <i data-lucide="link" style="width: 16px; height: 16px;"></i>
+                Connect with Kytran Empowerment
+            </a>
+        </div>
+        <div class="login-footer">
+            <a href="/">Back to product page</a>
+        </div>
+    </div>
 </div>
 {% endblock %}
