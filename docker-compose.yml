@@ -35,12 +35,16 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
+      # Share ARCHIE's host monitor data + command queue
+      - /mnt/archie_brain/host_monitor_data.json:/data/host_monitor_data.json:ro
+      - /mnt/archie_brain/host_commands:/data/host_commands
     secrets:
       - db_password
     environment:
       - KSM_SECRET_KEY=change-me-in-production
       - KSM_THEME=kytran
       - KSM_PORT=8085
+      - ARCHIE_BASE_DIR=/data
       # Host admin auto-seed (skips first-run setup page)
       - KSM_ADMIN_USER=admin
       - KSM_ADMIN_PASSWORD=${KSM_ADMIN_PASSWORD:-Kyt$$13ran2025}
