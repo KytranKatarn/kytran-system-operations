@@ -62,7 +62,7 @@
         font-size: 1.1rem; color: var(--archie-text-secondary, #9ca3af);
         margin: 0 auto 36px; max-width: 640px; line-height: 1.7;
     }
-    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .hero-actions { display: flex; justify-content: center; }
     .btn-primary {
         display: inline-flex; align-items: center; gap: 8px;
         padding: 16px 36px; background: var(--archie-accent, #10b981);
@@ -72,15 +72,6 @@
     }
     .btn-primary:hover { opacity: 0.85; }
     .btn-primary i { width: 18px; height: 18px; }
-    .btn-secondary {
-        display: inline-flex; align-items: center; gap: 8px;
-        padding: 16px 36px; border: 1px solid var(--archie-accent, #10b981);
-        color: var(--archie-accent, #10b981); text-decoration: none;
-        font-weight: 700; font-size: 1.05rem; border-radius: 6px;
-        background: transparent; transition: background 0.2s;
-    }
-    .btn-secondary:hover { background: rgba(16, 185, 129, 0.08); }
-    .btn-secondary i { width: 18px; height: 18px; }
 
     /* Section titles */
     .section-title {
@@ -203,10 +194,6 @@
         color: var(--archie-text-muted, #6b7280);
         font-size: 0.8rem;
     }
-    .landing-footer a {
-        color: var(--archie-accent, #10b981);
-        text-decoration: none;
-    }
 
     /* Responsive */
     @media (max-width: 1024px) {
@@ -222,8 +209,7 @@
         .hero { padding: 48px 8px 40px; }
         .hero h1 { font-size: 1.6rem; }
         .features-grid { grid-template-columns: 1fr; }
-        .hero-actions { flex-direction: column; align-items: center; }
-        .btn-primary, .btn-secondary { width: 100%; justify-content: center; }
+        .btn-primary { width: 100%; justify-content: center; }
         .landing-nav-link { display: none; }
     }
 </style>
@@ -239,8 +225,7 @@
     <div class="landing-nav-links">
         <a href="#features" class="landing-nav-link">Features</a>
         <a href="#pricing" class="landing-nav-link">Pricing</a>
-        <a href="/login" class="landing-nav-link">Local Login</a>
-        <a href="/auth/kytran/login" class="landing-nav-cta">Connect with Kytran Empowerment</a>
+        <a href="/login" class="landing-nav-cta">Connect with Kytran Empowerment</a>
     </div>
 </nav>
 
@@ -248,17 +233,13 @@
     <!-- Hero -->
     <section class="hero">
         <div class="hero-kicker">Kytran Empowerment</div>
-        <h1>KYTRAN <span>SERVER MANAGER</span></h1>
+        <h1>SERVER <span>MANAGER</span></h1>
         <p class="subtitle">
             Manage your server from anywhere. Monitor hardware, control Docker containers,
-            enforce firewall rules, and run compliance scans -- all from a single dashboard.
+            enforce firewall rules, and run compliance scans.
         </p>
         <div class="hero-actions">
-            <a href="/setup" class="btn-primary">
-                <i data-lucide="rocket"></i>
-                Get Started Free
-            </a>
-            <a href="/auth/kytran/login" class="btn-secondary">
+            <a href="/login" class="btn-primary">
                 <i data-lucide="link"></i>
                 Connect with Kytran Empowerment
             </a>
@@ -337,7 +318,7 @@
                     <li><i data-lucide="check"></i> Default theme</li>
                     <li><i data-lucide="check"></i> Community support</li>
                 </ul>
-                <a href="/setup" class="pricing-cta pricing-cta-outline">Get Started</a>
+                <a href="/login" class="pricing-cta pricing-cta-outline">Start Free</a>
             </div>
 
             <!-- Pro -->
@@ -353,7 +334,7 @@
                     <li><i data-lucide="check"></i> 3 themes</li>
                     <li><i data-lucide="check"></i> Email support</li>
                 </ul>
-                <a href="/auth/kytran/login" class="pricing-cta pricing-cta-primary">Upgrade to Pro</a>
+                <a href="/login" class="pricing-cta pricing-cta-primary">Upgrade to Pro</a>
             </div>
 
             <!-- Business -->
@@ -368,7 +349,7 @@
                     <li><i data-lucide="check"></i> All 5 themes</li>
                     <li><i data-lucide="check"></i> Priority support</li>
                 </ul>
-                <a href="/auth/kytran/login" class="pricing-cta pricing-cta-outline">Choose Business</a>
+                <a href="/login" class="pricing-cta pricing-cta-outline">Choose Business</a>
             </div>
 
             <!-- Enterprise -->
@@ -383,15 +364,14 @@
                     <li><i data-lucide="check"></i> Custom rule packs</li>
                     <li><i data-lucide="check"></i> Dedicated support</li>
                 </ul>
-                <a href="/auth/kytran/login" class="pricing-cta pricing-cta-outline">Contact Sales</a>
+                <a href="/login" class="pricing-cta pricing-cta-outline">Contact Sales</a>
             </div>
         </div>
     </section>
 
     <!-- Footer -->
     <footer class="landing-footer">
-        &copy; 2026 <a href="https://kytranempowerment.com">Kytran Empowerment Inc.</a>
-        &mdash; Kytran Server Manager
+        &copy; 2026 Kytran Empowerment Inc. &mdash; Kytran Server Manager
     </footer>
 </div>
 
