@@ -150,4 +150,16 @@ def init_theme(app):
         # Reload theme dynamically so switching takes effect without restart
         current_name = os.environ.get("SYSOPS_THEME", DEFAULT_THEME)
         current_theme = load_theme(current_name)
-        return {"sysops_theme": current_theme}
+
+        from flask_login import current_user
+        from .services.subscription_service import get_user_tier, tier_at_least
+
+        user_tier = "free"
+        if current_user and current_user.is_authenticated:
+            user_tier = get_user_tier(current_user.id)
+
+        return {
+            "sysops_theme": current_theme,
+            "user_tier": user_tier,
+            "user_tier_at_least": lambda min_tier: tier_at_least(user_tier, min_tier),
+        }
