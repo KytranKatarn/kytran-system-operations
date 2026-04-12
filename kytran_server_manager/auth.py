@@ -64,7 +64,11 @@ def create_admin(username, password):
     db.execute("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')",
                (username, pw_hash))
     db.commit()
+    row = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
     db.close()
+    if row:
+        from .services.subscription_service import set_user_tier
+        set_user_tier(row["id"], "pro")
 
 
 def verify_password(username, password):
@@ -93,6 +97,10 @@ def register_auth_routes(app):
             user = verify_password(request.form["username"], request.form["password"])
             if user:
                 login_user(user)
+                if user.is_admin:
+                    from .services.subscription_service import get_user_tier, set_user_tier
+                    if get_user_tier(user.id) == "free":
+                        set_user_tier(user.id, "pro")
                 return redirect(request.args.get("next", "/"))
             flash("Invalid credentials", "error")
         sso_enabled = is_hub_configured()
