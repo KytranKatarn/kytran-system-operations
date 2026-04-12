@@ -1,13 +1,115 @@
-    /* ===== A.R.C.H.I.E. System Operations Theme ===== */
-    /*
-     * DESIGN SYSTEM COMPLIANCE NOTES:
-     * - Tab styles: Use design system classes from components.css (tab-nav, tab-btn, tab-content)
-     * - Modal styles: Already using design system classes (modal-overlay, modal, modal-header/body/footer)
-     * - Button styles: Consider migrating .action-btn to .btn .btn-sm .btn-success/warning/danger
-     * - Form styles: Consider migrating .wizard-field to .form-group .form-label .form-input
-     *
-     * CUSTOM STYLES (keep): Storage visualization, treemap, charts, docker/stack management
-     */
+    /* ===== Kytran System Operations Theme ===== */
+
+    /* --- Shared Component Styles (ported from platform components.css) --- */
+
+    /* Tabs */
+    .tab-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--archie-space-1);
+        background: var(--archie-bg-secondary);
+        padding: var(--archie-space-2);
+        border-radius: var(--archie-radius-lg);
+        border: 1px solid var(--archie-border-default);
+        margin-bottom: var(--archie-space-5);
+    }
+    .tab-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--archie-space-2);
+        padding: var(--archie-space-2-5) var(--archie-space-4);
+        font-family: var(--archie-font-mono);
+        font-size: var(--archie-text-sm);
+        color: var(--archie-text-muted);
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: var(--archie-radius-md);
+        cursor: pointer;
+        transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+        white-space: nowrap;
+    }
+    .tab-btn:hover {
+        color: var(--archie-accent);
+        background: var(--archie-accent-alpha-10);
+    }
+    .tab-btn.active {
+        color: var(--archie-bg-primary);
+        background: var(--archie-accent);
+        border-color: var(--archie-accent);
+    }
+    .tab-btn-icon { font-size: 1.1em; }
+    .tab-btn-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 var(--archie-space-1);
+        font-size: var(--archie-text-xs);
+        font-weight: var(--archie-font-semibold);
+        background: var(--archie-bg-tertiary);
+        border-radius: var(--archie-radius-full);
+    }
+    .tab-btn.active .tab-btn-count { background: rgba(0,0,0,0.2); }
+    .tab-content { display: none; animation: fadeIn 200ms ease-out; }
+    .tab-content.active { display: block; }
+    .tab-panels { position: relative; }
+
+    /* Badges */
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--archie-space-1);
+        padding: 2px 8px;
+        font-size: var(--archie-text-xs);
+        font-weight: var(--archie-font-semibold);
+        border-radius: var(--archie-radius-full);
+        background: var(--archie-bg-tertiary);
+        color: var(--archie-text-secondary);
+    }
+    .badge-success { background: rgba(34,197,94,0.15); color: #22c55e; }
+    .badge-warning { background: rgba(245,158,11,0.15); color: #f59e0b; }
+    .badge-danger { background: rgba(239,68,68,0.15); color: #ef4444; }
+    .badge-info { background: rgba(0,229,255,0.15); color: #00e5ff; }
+
+    /* Modals */
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.7);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+        background: var(--archie-bg-secondary);
+        border: 1px solid var(--archie-border-default);
+        border-radius: var(--archie-radius-lg);
+        max-width: 600px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    .modal-header {
+        padding: var(--archie-space-4);
+        border-bottom: 1px solid var(--archie-border-default);
+        font-family: var(--archie-font-heading);
+        color: var(--archie-accent);
+    }
+    .modal-body { padding: var(--archie-space-4); }
+    .modal-footer {
+        padding: var(--archie-space-4);
+        border-top: 1px solid var(--archie-border-default);
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--archie-space-2);
+    }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* --- End Shared Components --- */
 
     .sysops-container {
         padding: 20px;
