@@ -73,12 +73,50 @@ def load_theme(theme_name=None):
 
 def generate_theme_css(theme):
     lines = [":root {"]
-    for key, value in theme.get("colors", {}).items():
+    colors = theme.get("colors", {})
+    fonts = theme.get("fonts", {})
+    layout = theme.get("layout", {})
+
+    # Standalone --sysops-* tokens
+    for key, value in colors.items():
         lines.append(f"  --sysops-{key.replace('_', '-')}: {value};")
-    for key, value in theme.get("fonts", {}).items():
+    for key, value in fonts.items():
         lines.append(f"  --sysops-font-{key}: '{value}', sans-serif;")
-    for key, value in theme.get("layout", {}).items():
+    for key, value in layout.items():
         lines.append(f"  --sysops-{key.replace('_', '-')}: {value};")
+
+    # Platform-compatible --archie-* aliases (for shared CSS like components.css)
+    lines.append("")
+    lines.append("  /* Platform CSS compatibility aliases */")
+    for key, value in colors.items():
+        lines.append(f"  --archie-{key.replace('_', '-')}: {value};")
+    for key, value in fonts.items():
+        lines.append(f"  --archie-font-{key}: '{value}', sans-serif;")
+    accent_rgb = colors.get("accent_rgb", "0, 229, 255")
+    lines.append(f"  --archie-accent-alpha-10: rgba({accent_rgb}, 0.1);")
+    lines.append(f"  --archie-accent-alpha-20: rgba({accent_rgb}, 0.2);")
+    lines.append(f"  --archie-cyan: {colors.get('accent', '#00e5ff')};")
+
+    # Spacing, radius, typography tokens
+    lines.append("  --archie-space-1: 4px;")
+    lines.append("  --archie-space-2: 8px;")
+    lines.append("  --archie-space-2-5: 10px;")
+    lines.append("  --archie-space-3: 12px;")
+    lines.append("  --archie-space-4: 16px;")
+    lines.append("  --archie-space-5: 20px;")
+    lines.append("  --archie-space-6: 24px;")
+    lines.append("  --archie-radius-sm: 4px;")
+    lines.append("  --archie-radius-md: 8px;")
+    lines.append("  --archie-radius-lg: 12px;")
+    lines.append("  --archie-radius-full: 9999px;")
+    lines.append("  --archie-text-xs: 0.75rem;")
+    lines.append("  --archie-text-sm: 0.875rem;")
+    lines.append("  --archie-text-base: 1rem;")
+    lines.append("  --archie-font-semibold: 600;")
+    lines.append("  --archie-transition-fast: 150ms ease;")
+    lines.append("  --archie-duration-normal: 200ms;")
+    lines.append("  --archie-ease-out: ease-out;")
+
     lines.append("}")
     return "\n".join(lines)
 
