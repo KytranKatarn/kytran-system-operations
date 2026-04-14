@@ -1,0 +1,2643 @@
+{% extends "base.html" %}
+
+{% block title %}{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
+{% block module_name %}system-operations{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="/static/css/components.css">
+<link rel="stylesheet" href="/static/css/lcars-panels.css">
+{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+<link rel="stylesheet" href="/static/css/lcars-frames.css">
+<link rel="stylesheet" href="/static/css/admin-ops.css">
+{% endif %}
+<link rel="stylesheet" href="/static/css/system-operations.css">
+{% endblock %}
+
+{% block content %}
+<div class="sysops-container" data-module="system-operations">
+    {# Category Navigation — Admin Tools #}
+    {% set cat_accent = "#f97316" %}
+    {% set cat_accent_rgb = "249,115,22" %}
+    {% set cat_accent_light = "#ea580c" %}
+    {% set cat_label = "ADMIN TOOLS" %}
+    {% set cat_icon = "settings-2" %}
+    {% set cat_modules = [
+        {'url': url_for('system_operations.index'), 'endpoint_prefix': 'system_operations', 'icon': 'server', 'label': 'System Ops', 'title': 'System Operations'}
+    ] %}
+
+    {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+    <div class="lcars-frame">
+        <div class="lcars-sidebar">
+            <div class="lcars-elbow-top"></div>
+            <div class="lcars-seg sysops-seg-red"></div>
+            <div class="lcars-seg sysops-seg-amber"></div>
+            <div class="lcars-seg sysops-seg-red"></div>
+            <div class="lcars-seg sysops-seg-danger"></div>
+            <div class="lcars-seg-fill"></div>
+            <div class="lcars-elbow-bottom"></div>
+        </div>
+        <div class="lcars-content">
+            <div class="lcars-bar">
+                <span class="lcars-bar-title">SYSTEM OPERATIONS</span>
+                <div class="lcars-bar-spacer"></div>
+                <div class="lcars-pips">
+                    <span class="lcars-pip sysops-pip-20"></span>
+                    <span class="lcars-pip sysops-pip-35"></span>
+                    <span class="lcars-pip sysops-pip-14"></span>
+                </div>
+                <span class="lcars-bar-status">SYS OPS</span>
+            </div>
+            <div class="lcars-body">
+    {% else %}
+    <div class="modern-frame">
+        <div class="modern-header">
+            <h2 class="modern-title">{{ sysops_theme.product_name if sysops_theme else 'System Operations' }}</h2>
+            <span class="modern-badge">{{ sysops_theme.product_short if sysops_theme else 'KSO' }}</span>
+        </div>
+        <div class="modern-body">
+    {% endif %}
+                <!-- Controls -->
+                <div class="header-controls sysops-header-controls">
+                    <div class="auto-refresh-toggle">
+                        <input type="checkbox" id="autoRefresh" checked>
+                        <label for="autoRefresh"><span data-i18n="system_operations.auto_refresh_5s">Auto-refresh (5s)</span></label>
+                    </div>
+                    <div class="live-indicator sysops-hidden" id="liveIndicator">
+                        <span class="dot"></span>
+                        <span><span data-i18n="system_operations.live">LIVE</span></span>
+                    </div>
+                    <button class="refresh-btn" onclick="refreshAll()">
+                        <i data-lucide="refresh-cw" class="sysops-icon-14"></i>
+                        Refresh
+                    </button>
+                </div>
+
+                <!-- Activity Status Bar -->
+                <div class="activity-status-bar" id="activityStatusBar">
+                    <div class="activity-indicator" id="activityIndicator">
+                        <span class="pulse-dot"></span>
+                        <span class="activity-text" id="activityText"><span data-i18n="system_operations.processing">Processing...</span></span>
+                        <span class="activity-timer" id="activityTimer">0s</span>
+                        <span class="activity-stage" id="activityStage"></span>
+                    </div>
+                </div>
+
+                <!-- Tab Navigation -->
+    <div class="tab-nav">
+        <button class="tab-btn active" data-tab="dashboard">
+            <i data-lucide="layout-dashboard" class="sysops-icon-16"></i>
+            Dashboard
+        </button>
+        <button class="tab-btn" data-tab="storage">
+            <i data-lucide="hard-drive" class="sysops-icon-16"></i>
+            Storage
+        </button>
+        <button class="tab-btn" data-tab="hardware">
+            <i data-lucide="server" class="sysops-icon-16"></i>
+            Hardware
+        </button>
+        <button class="tab-btn" data-tab="memory">
+            <i data-lucide="memory-stick" class="sysops-icon-16"></i>
+            Memory
+        </button>
+        <button class="tab-btn" data-tab="processes">
+            <i data-lucide="cpu" class="sysops-icon-16"></i>
+            Processes
+        </button>
+        <button class="tab-btn" data-tab="docker">
+            <i data-lucide="container" class="sysops-icon-16"></i>
+            Docker
+        </button>
+        <button class="tab-btn" data-tab="network">
+            <i data-lucide="network" class="sysops-icon-16"></i>
+            Network
+        </button>
+        <button class="tab-btn" data-tab="firewall">
+            <i data-lucide="shield" class="sysops-icon-16"></i>
+            Firewall
+        </button>
+        <button class="tab-btn" data-tab="compliance">
+            <i data-lucide="shield-check" class="sysops-icon-16"></i>
+            Compliance
+        </button>
+    </div>
+
+    <!-- Tab: Dashboard -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">
+                        <i data-lucide="cpu" class="sysops-icon-20"></i>
+                        CPU Usage
+                    </div>
+                    <span id="cpu-temp" class="stat-badge sysops-hidden" title="CPU Temperature">
+                        <i data-lucide="thermometer" class="sysops-icon-12"></i>
+                        <span id="cpu-temp-value">--</span>
+                    </span>
+                </div>
+                <!-- CPU 0 -->
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.cpu_0">CPU 0</span></div>
+                <div class="stat-value sysops-text-xl" id="cpu-value">--</div>
+                <div class="stat-subtitle" id="cpu-model"><span data-i18n="system_operations.loading">Loading...</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill green" id="cpu-bar" style="width: 0%"></div>
+                </div>
+                <div class="stat-subtitle sysops-stat-footer"><span data-i18n="system_operations.load">Load: </span><span id="cpu-load">--</span></div>
+                <!-- CPU 1 Divider -->
+                <div class="sysops-divider"></div>
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.cpu_1">CPU 1</span></div>
+                <div id="cpu1-container">
+                    <div class="stat-value sysops-text-2xl-muted" id="cpu1-value"><span data-i18n="system_operations.unavailable">Unavailable</span></div>
+                    <div class="stat-subtitle sysops-text-xs" id="cpu1-model"><span data-i18n="system_operations.no_second_cpu_detected">No second CPU detected</span></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">
+                        <i data-lucide="memory-stick" class="sysops-icon-20"></i>
+                        Memory Usage
+                    </div>
+                </div>
+                <div class="stat-value" id="mem-value">--</div>
+                <div class="stat-subtitle" id="mem-detail"><span data-i18n="system_operations.loading_2">Loading...</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill green" id="mem-bar" style="width: 0%"></div>
+                </div>
+                <div class="stat-subtitle sysops-stat-footer"><span data-i18n="system_operations.swap">Swap: </span><span id="mem-swap">--</span></div>
+                <!-- DIMM Hardware Info -->
+                <div class="sysops-divider"></div>
+                <div class="stat-subtitle sysops-sublabel sysops-mb-4"><span data-i18n="system_operations.hardware">Hardware</span></div>
+                <div id="mem-hw-summary" class="sysops-hw-detail">
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.dimms">DIMMs:</span></span>
+                        <span id="dash-mem-dimms">--</span>
+                    </div>
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.type">Type:</span></span>
+                        <span id="dash-mem-type">--</span>
+                    </div>
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.speed">Speed:</span></span>
+                        <span id="dash-mem-speed">--</span>
+                    </div>
+                    <div class="sysops-flex-between">
+                        <span class="sysops-text-muted"><span data-i18n="system_operations.config">Config:</span></span>
+                        <span id="dash-mem-channels">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card" id="gpu-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">
+                        <i data-lucide="monitor" class="sysops-icon-20"></i>
+                        GPU VRAM
+                    </div>
+                    <span id="gpu-temp" class="stat-badge sysops-hidden" title="GPU Temperature">
+                        <i data-lucide="thermometer" class="sysops-icon-12"></i>
+                        <span id="gpu-temp-value">--</span>
+                    </span>
+                </div>
+                <!-- GPU 0 -->
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.gpu_0">GPU 0</span></div>
+                <div class="stat-value sysops-text-xl" id="gpu-value">--</div>
+                <div class="stat-subtitle" id="gpu-model"><span data-i18n="system_operations.checking">Checking...</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill green" id="gpu-bar" style="width: 0%"></div>
+                </div>
+                <div class="stat-subtitle sysops-stat-footer"><span data-i18n="system_operations.vram">VRAM: </span><span id="gpu-vram">--</span></div>
+                <div class="stat-subtitle" style="margin-top: 2px; font-size: 0.75rem;"><span data-i18n="system_operations.compute">Compute: </span><span id="gpu-compute">--</span></div>
+                <!-- GPU 1 Divider -->
+                <div class="sysops-divider"></div>
+                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.gpu_1">GPU 1</span></div>
+                <div id="gpu1-container">
+                    <div class="stat-value sysops-text-2xl-muted" id="gpu1-value"><span data-i18n="system_operations.unavailable_2">Unavailable</span></div>
+                    <div class="stat-subtitle sysops-text-xs" id="gpu1-model"><span data-i18n="system_operations.no_second_gpu_detected">No second GPU detected</span></div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">
+                        <i data-lucide="hard-drive" class="sysops-icon-20"></i>
+                        Disk Usage
+                    </div>
+                </div>
+                <div id="disk-drives-container">
+                    <div class="sysops-text-muted-085"><span data-i18n="system_operations.loading_3">Loading...</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sysops-flex-center-mb">
+            <span class="sysops-text-muted-085"><span data-i18n="system_operations.history_range">History Range:</span></span>
+            <div style="display: flex; gap: 4px;" id="history-range-selector">
+                <button class="btn btn-sm" data-hours="1" onclick="changeHistoryRange(1)">1h</button>
+                <button class="btn btn-sm active" data-hours="24" onclick="changeHistoryRange(24)">24h</button>
+                <button class="btn btn-sm" data-hours="168" onclick="changeHistoryRange(168)">7d</button>
+                <button class="btn btn-sm" data-hours="720" onclick="changeHistoryRange(720)">30d</button>
+            </div>
+        </div>
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3><span data-i18n="system_operations.cpu_history">CPU History</span></h3>
+                <canvas id="cpuChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3><span data-i18n="system_operations.memory_history">Memory History</span></h3>
+                <canvas id="memChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3><span data-i18n="system_operations.gpu_history">GPU History</span></h3>
+                <canvas id="gpuChart"></canvas>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="info" class="sysops-icon-18"></i>
+                    System Information
+                </div>
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.hostname">Hostname</span></span>
+                    <span class="info-value" id="sys-hostname">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.distribution">Distribution</span></span>
+                    <span class="info-value" id="sys-distro">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.kernel">Kernel</span></span>
+                    <span class="info-value" id="sys-kernel">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.uptime">Uptime</span></span>
+                    <span class="info-value" id="sys-uptime">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.ip_address">IP Address</span></span>
+                    <span class="info-value" id="sys-ip">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.boot_time">Boot Time</span></span>
+                    <span class="info-value" id="sys-boot">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.processes">Processes</span></span>
+                    <span class="info-value" id="sys-processes">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.users_logged_in">Users Logged In</span></span>
+                    <span class="info-value" id="sys-users">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Storage -->
+    <div id="tab-storage" class="tab-content">
+        <!-- Storage Overview Bar -->
+        <div class="storage-overview-bar">
+            <!-- Local Storage Section -->
+            <div class="storage-section-group storage-local-section">
+                <span class="storage-section-label sysops-text-cyan"><span data-i18n="system_operations.local">LOCAL</span></span>
+                <div class="storage-overview-stat">
+                    <span class="storage-overview-label"><span data-i18n="system_operations.capacity">Capacity</span></span>
+                    <span class="storage-overview-value" id="storage-local-total">--</span>
+                </div>
+                <div class="storage-overview-stat">
+                    <span class="storage-overview-label"><span data-i18n="system_operations.used">Used</span></span>
+                    <span class="storage-overview-value" id="storage-local-used">--</span>
+                </div>
+                <div class="storage-overview-stat">
+                    <span class="storage-overview-label"><span data-i18n="system_operations.free">Free</span></span>
+                    <span class="storage-overview-value" id="storage-local-free">--</span>
+                </div>
+                <div class="storage-overview-stat">
+                    <span class="storage-overview-label"><span data-i18n="system_operations.drives">Drives</span></span>
+                    <span class="storage-overview-value" id="storage-local-count">--</span>
+                </div>
+            </div>
+            <!-- Attached Storage Section -->
+            <div class="storage-section-group storage-attached-section">
+                <span class="storage-section-label sysops-text-orange"><span data-i18n="system_operations.usb_attached">USB/ATTACHED</span></span>
+                <div class="storage-overview-stat">
+                    <span class="storage-overview-label"><span data-i18n="system_operations.capacity_2">Capacity</span></span>
+                    <span class="storage-overview-value" id="storage-attached-total">--</span>
+                </div>
+                <div class="storage-overview-stat">
+                    <span class="storage-overview-label"><span data-i18n="system_operations.used_2">Used</span></span>
+                    <span class="storage-overview-value" id="storage-attached-used">--</span>
+                </div>
+                <div class="storage-overview-stat">
+                    <span class="storage-overview-label"><span data-i18n="system_operations.drives_2">Drives</span></span>
+                    <span class="storage-overview-value" id="storage-attached-count">--</span>
+                </div>
+            </div>
+            <!-- Health -->
+            <div class="storage-overview-stat storage-health-stat">
+                <span class="storage-overview-label"><span data-i18n="system_operations.health">Health</span></span>
+                <span class="storage-overview-value" id="storage-health">--</span>
+            </div>
+            <span id="host-queue-status" class="storage-queue-status"></span>
+            <button class="action-btn storage-refresh-btn" onclick="loadStorageData(true)">
+                <i data-lucide="refresh-cw"></i>
+                Refresh
+            </button>
+        </div>
+
+        <!-- Main Layout: Visual Area + Action Panel -->
+        <div class="storage-main-layout panel-closed" id="storage-layout">
+            <!-- Left: Visual Area -->
+            <div class="storage-visual-area">
+                <!-- Treemap -->
+                <div class="section-title">
+                    <i data-lucide="hard-drive" class="sysops-icon-18"></i>
+                    Disk Map
+                    <span class="host-badge" style="margin-left: 8px;"><span data-i18n="system_operations.interactive">INTERACTIVE</span></span>
+                </div>
+                <div class="panel" id="storage-treemap">
+                    <p class="sysops-empty-state"><span data-i18n="system_operations.loading_disk_map">Loading disk map...</span></p>
+                </div>
+
+                <!-- Disk Usage Breakdown -->
+                <div class="panel" style="padding: 16px;">
+                    <h4 style="color: var(--archie-text-secondary); margin: 0 0 12px 0; font-size: 0.85rem;"><span data-i18n="system_operations.disk_usage">Disk Usage</span></h4>
+                    <div id="storage-disk-breakdown">
+                        <div class="sysops-text-muted-085"><span data-i18n="system_operations.loading_4">Loading...</span></div>
+                    </div>
+                </div>
+
+                <!-- LVM Configuration -->
+                <div class="section-title">
+                    <i data-lucide="database" class="sysops-icon-18"></i>
+                    LVM Configuration
+                </div>
+                <div class="panel" id="lvm-panel">
+                    <div class="lvm-grid">
+                        <div class="lvm-section">
+                            <h4 class="sysops-text-cyan-mb"><span data-i18n="system_operations.volume_groups">Volume Groups</span></h4>
+                            <table class="data-table data-table-compact">
+                                <thead>
+                                    <tr><th><span data-i18n="system_operations.vg_name">VG Name</span></th><th><span data-i18n="system_operations.total">Total</span></th><th><span data-i18n="system_operations.free_2">Free</span></th></tr>
+                                </thead>
+                                <tbody id="lvm-vgs">
+                                    <tr><td colspan="3" class="sysops-text-muted"><span data-i18n="system_operations.loading_5">Loading...</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="lvm-section">
+                            <h4 style="color: var(--archie-green); margin-bottom: 10px;"><span data-i18n="system_operations.logical_volumes">Logical Volumes</span></h4>
+                            <table class="data-table data-table-compact">
+                                <thead>
+                                    <tr><th><span data-i18n="system_operations.lv_name">LV Name</span></th><th>VG</th><th><span data-i18n="system_operations.size">Size</span></th><th><span data-i18n="system_operations.actions">Actions</span></th></tr>
+                                </thead>
+                                <tbody id="lvm-lvs">
+                                    <tr><td colspan="4" class="sysops-text-muted"><span data-i18n="system_operations.loading_6">Loading...</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="lvm-section">
+                            <h4 style="color: var(--archie-orange); margin-bottom: 10px;"><span data-i18n="system_operations.physical_volumes">Physical Volumes</span></h4>
+                            <table class="data-table data-table-compact">
+                                <thead>
+                                    <tr><th><span data-i18n="system_operations.pv_name">PV Name</span></th><th>VG</th><th><span data-i18n="system_operations.size_2">Size</span></th></tr>
+                                </thead>
+                                <tbody id="lvm-pvs">
+                                    <tr><td colspan="3" class="sysops-text-muted"><span data-i18n="system_operations.loading_7">Loading...</span></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p id="lvm-none" style="color: var(--archie-text-muted); display: none;"><span data-i18n="system_operations.no_lvm_configuration_detected">No LVM configuration detected</span></p>
+                </div>
+
+                <!-- RAID Status -->
+                <div class="section-title">
+                    <i data-lucide="layers" class="sysops-icon-18"></i>
+                    RAID Status
+                </div>
+                <div class="panel" id="raid-status">
+                    <p class="sysops-text-muted"><span data-i18n="system_operations.checking_raid_configuration">Checking RAID configuration...</span></p>
+                </div>
+
+                <!-- Capacity Alerts Banner -->
+                <div id="capacity-alerts-banner" style="display: none; margin-bottom: 16px;"></div>
+
+                <!-- SMART Health Panel -->
+                <div class="section-title">
+                    <i data-lucide="activity" class="sysops-icon-18"></i>
+                    Drive Health (SMART)
+                </div>
+                <div class="panel" id="smart-health-panel">
+                    <div id="smart-health-content" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;">
+                        <p class="sysops-text-muted"><span data-i18n="system_operations.loading_smart_data">Loading SMART data...</span></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Panel removed - using modals instead -->
+        </div>
+    </div>
+
+    <!-- Tab: Hardware -->
+    <div id="tab-hardware" class="tab-content">
+        <div class="section-title">
+            <i data-lucide="server" class="sysops-icon-18"></i>
+            Hardware Configuration
+            <span id="hardware-data-age" class="sysops-tag-label"></span>
+        </div>
+
+        <!-- Hardware Summary Cards -->
+        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 1.5rem;">
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.cpu_sockets">CPU SOCKETS</span></div>
+                <div class="stat-value" id="hw-cpu-sockets">--</div>
+                <div class="stat-subtitle" id="hw-cpu-socket-type">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.memory_slots">MEMORY SLOTS</span></div>
+                <div class="stat-value" id="hw-mem-slots">--</div>
+                <div class="stat-subtitle" id="hw-mem-capacity">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.pci_slots">PCI SLOTS</span></div>
+                <div class="stat-value" id="hw-pci-slots">--</div>
+                <div class="stat-subtitle" id="hw-pci-available">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.gpu">GPU</span></div>
+                <div class="stat-value" id="hw-gpu-count">--</div>
+                <div class="stat-subtitle" id="hw-gpu-model">--</div>
+            </div>
+        </div>
+
+        <!-- Two column layout for CPU and Memory sections -->
+        <div class="sysops-grid-2col-lg">
+            <!-- CPU Section -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="cpu" class="sysops-icon-16"></i>
+                        Processor
+                    </div>
+                </div>
+                <div id="hw-cpu-content">
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_cpu_info">Loading CPU info...</span></div>
+                </div>
+            </div>
+
+            <!-- Memory Section -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="memory-stick" class="sysops-icon-16"></i>
+                        Memory
+                    </div>
+                </div>
+                <div id="hw-memory-content">
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_memory_info">Loading memory info...</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two column layout for GPU and Motherboard sections -->
+        <div class="sysops-grid-2col-lg">
+            <!-- GPU Section -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="monitor" class="sysops-icon-16"></i>
+                        Graphics
+                    </div>
+                </div>
+                <div id="hw-gpu-content">
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_gpu_info">Loading GPU info...</span></div>
+                </div>
+            </div>
+
+            <!-- Motherboard Section -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <i data-lucide="circuit-board" class="sysops-icon-16"></i>
+                        Motherboard
+                    </div>
+                </div>
+                <div id="hw-motherboard-content">
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading_motherboard_info">Loading motherboard info...</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PCI Expansion Slots Section -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="plug" class="sysops-icon-16"></i>
+                    PCI Expansion Slots
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="loadHardwareData()">
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i>
+                    Refresh
+                </button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="pci-slots-table">
+                    <thead>
+                        <tr>
+                            <th><span data-i18n="system_operations.slot">Slot</span></th>
+                            <th><span data-i18n="system_operations.type_2">Type</span></th>
+                            <th><span data-i18n="system_operations.length">Length</span></th>
+                            <th><span data-i18n="system_operations.status">Status</span></th>
+                            <th><span data-i18n="system_operations.device">Device</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="pci-slots-body">
+                        <tr>
+                            <td colspan="5" class="sysops-center-muted">
+                                Loading PCI slot info...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- SATA Ports Section -->
+        <div class="panel sysops-mt-20">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="hard-drive" class="sysops-icon-16"></i>
+                    SATA Ports
+                </div>
+            </div>
+            <div id="hw-sata-content">
+                <div class="sysops-text-muted"><span data-i18n="system_operations.loading_sata_port_info">Loading SATA port info...</span></div>
+            </div>
+        </div>
+
+        <!-- Upgrade Potential Section -->
+        <div class="panel sysops-mt-20">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="trending-up" class="sysops-icon-16"></i>
+                    Upgrade Potential
+                </div>
+            </div>
+            <div id="hw-upgrade-content">
+                <div class="sysops-text-muted"><span data-i18n="system_operations.loading_upgrade_information">Loading upgrade information...</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Memory Hardware -->
+    <div id="tab-memory" class="tab-content">
+        <div class="section-title">
+            <i data-lucide="memory-stick" class="sysops-icon-18"></i>
+            Memory Hardware Configuration
+            <span id="memory-dimm-count" class="sysops-tag-label"></span>
+        </div>
+
+        <!-- Memory Summary -->
+        <div class="stats-row" style="margin-bottom: 1.5rem;">
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.total_capacity">TOTAL CAPACITY</span></div>
+                <div class="stat-value" id="mem-hw-total">--</div>
+                <div class="stat-subtitle" id="mem-hw-slots">-- slots</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.dimm_speed">DIMM SPEED</span></div>
+                <div class="stat-value" id="mem-hw-speed">--</div>
+                <div class="stat-subtitle" id="mem-hw-type">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.channels">CHANNELS</span></div>
+                <div class="stat-value" id="mem-hw-channels">--</div>
+                <div class="stat-subtitle" id="mem-hw-config">--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label"><span data-i18n="system_operations.max_capacity">MAX CAPACITY</span></div>
+                <div class="stat-value" id="mem-hw-max">--</div>
+                <div class="stat-subtitle" id="mem-hw-expandable">--</div>
+            </div>
+        </div>
+
+        <!-- DIMM Slots Table -->
+        <div class="panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="cpu" class="sysops-icon-16"></i>
+                    DIMM Slots
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="loadMemoryHardware()">
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i>
+                    Refresh
+                </button>
+            </div>
+            <div class="table-container">
+                <table class="data-table" id="dimm-table">
+                    <thead>
+                        <tr>
+                            <th><span data-i18n="system_operations.slot_2">Slot</span></th>
+                            <th><span data-i18n="system_operations.size_3">Size</span></th>
+                            <th><span data-i18n="system_operations.type_3">Type</span></th>
+                            <th><span data-i18n="system_operations.speed_2">Speed</span></th>
+                            <th><span data-i18n="system_operations.manufacturer">Manufacturer</span></th>
+                            <th><span data-i18n="system_operations.part_number">Part Number</span></th>
+                            <th><span data-i18n="system_operations.serial">Serial</span></th>
+                            <th><span data-i18n="system_operations.status_2">Status</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="dimm-table-body">
+                        <tr>
+                            <td colspan="8" class="sysops-center-muted">
+                                Loading memory hardware info...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Memory Controller Info -->
+        <div class="panel" style="margin-top: 1rem;">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="info" class="sysops-icon-16"></i>
+                    Memory Controller
+                </div>
+            </div>
+            <div class="info-grid" id="mem-controller-info">
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.controller">Controller</span></span>
+                    <span class="info-value" id="mem-ctrl-type">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.error_correction">Error Correction</span></span>
+                    <span class="info-value" id="mem-ctrl-ecc">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.supported_types">Supported Types</span></span>
+                    <span class="info-value" id="mem-ctrl-supported">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><span data-i18n="system_operations.max_speed">Max Speed</span></span>
+                    <span class="info-value" id="mem-ctrl-maxspeed">--</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Processes -->
+    <div id="tab-processes" class="tab-content">
+        <div class="section-title">
+            <i data-lucide="activity" class="sysops-icon-18"></i>
+            Running Processes
+            <span id="process-count-badge" class="sysops-tag-label"></span>
+            <span id="process-source-badge" style="font-size: 0.7rem; font-weight: normal; margin-left: 8px;"></span>
+        </div>
+        <div class="filter-bar">
+            <input type="text" id="process-filter" placeholder="Filter by name, user, or PID...">
+            <select id="process-category-filter" onchange="filterProcessesByCategory(this.value)">
+                <option value="all"><span data-i18n="system_operations.all_categories">All Categories</span></option>
+                <option value="docker"><span data-i18n="system_operations.docker_containers">Docker Containers</span></option>
+                <option value="user"><span data-i18n="system_operations.user_apps">User Apps</span></option>
+                <option value="system"><span data-i18n="system_operations.system">System</span></option>
+                <option value="kernel"><span data-i18n="system_operations.kernel_2">Kernel</span></option>
+            </select>
+            <select id="process-sort">
+                <option value="cpu"><span data-i18n="system_operations.sort_by_cpu">Sort by CPU</span></option>
+                <option value="memory"><span data-i18n="system_operations.sort_by_memory">Sort by Memory</span></option>
+                <option value="name"><span data-i18n="system_operations.sort_by_name">Sort by Name</span></option>
+                <option value="category"><span data-i18n="system_operations.sort_by_category">Sort by Category</span></option>
+            </select>
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 8px;">
+                <span class="sysops-text-muted-sm"><span data-i18n="system_operations.show">Show:</span></span>
+                <select id="process-page-size" onchange="changeProcessPageSize(this.value)" style="padding: 4px 8px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-text-primary); font-size: 0.85rem;">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        <div class="panel">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th><span data-i18n="system_operations.pid">PID</span></th>
+                        <th><span data-i18n="system_operations.name_container">Name / Container</span></th>
+                        <th><span data-i18n="system_operations.category">Category</span></th>
+                        <th><span data-i18n="system_operations.user">User</span></th>
+                        <th><span data-i18n="system_operations.cpu">CPU %</span></th>
+                        <th><span data-i18n="system_operations.memory">Memory %</span></th>
+                        <th><span data-i18n="system_operations.status_3">Status</span></th>
+                        <th><span data-i18n="system_operations.actions_2">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody id="processes-table">
+                    <tr><td colspan="8" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_8"> Loading...</span></td></tr>
+                </tbody>
+            </table>
+            <div id="process-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-top: 1px solid var(--archie-border-default); margin-top: 8px;">
+                <span id="process-page-info" class="sysops-text-muted-085"><span data-i18n="system_operations.showing_1_20_of_0">Showing 1-20 of 0</span></span>
+                <div class="sysops-flex-gap-8">
+                    <button class="btn btn-ghost btn-sm" id="process-prev-btn" onclick="processPagePrev()" disabled><span data-i18n="system_operations.prev">← Prev</span></button>
+                    <button class="btn btn-ghost btn-sm" id="process-next-btn" onclick="processPageNext()"><span data-i18n="system_operations.next">Next →</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-title">
+            <i data-lucide="settings" class="sysops-icon-18"></i>
+            Systemd Services
+            <span class="docker-note" title="Running in Docker container - host services not accessible">
+                <i data-lucide="info" class="sysops-icon-14"></i> Docker Mode
+            </span>
+        </div>
+        <div class="filter-bar">
+            <select id="service-filter">
+                <option value="all"><span data-i18n="system_operations.all_services">All Services</span></option>
+                <option value="active"><span data-i18n="system_operations.active_only">Active Only</span></option>
+                <option value="failed"><span data-i18n="system_operations.failed_only">Failed Only</span></option>
+            </select>
+        </div>
+        <div class="panel">
+            <div id="services-docker-notice" class="info-notice sysops-hidden">
+                <i data-lucide="alert-circle" class="sysops-icon-16"></i>
+                <span><span data-i18n="system_operations.systemd_services_are_not_accessible_from_within_th">Systemd services are not accessible from within the Docker container. Use Docker Containers section below for container management.</span></span>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th><span data-i18n="system_operations.service">Service</span></th>
+                        <th><span data-i18n="system_operations.status_4">Status</span></th>
+                        <th><span data-i18n="system_operations.enabled">Enabled</span></th>
+                        <th><span data-i18n="system_operations.actions_3">Actions</span></th>
+                    </tr>
+                </thead>
+                <tbody id="services-table">
+                    <tr><td colspan="4" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_9"> Loading...</span></td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p style="color: var(--archie-text-muted); font-size: 0.85rem; padding: 10px;">
+            <i data-lucide="info" class="sysops-icon-inline-14-bare"></i>
+            Docker management has moved to the <strong><span data-i18n="system_operations.docker">Docker</span></strong> tab for a more complete experience.
+        </p>
+    </div>
+
+    <!-- Tab: Docker (Portainer-style) -->
+    <div id="tab-docker" class="tab-content">
+        <!-- Stack Overview (landing page) -->
+        <div id="docker-stack-overview">
+            <div class="docker-overview-grid">
+                <div class="docker-stat-card running">
+                    <div class="docker-stat-icon">
+                        <i data-lucide="play-circle" class="sysops-icon-32"></i>
+                    </div>
+                    <div class="docker-stat-info">
+                        <span class="docker-stat-value" id="docker-running-count">0</span>
+                        <span class="docker-stat-label"><span data-i18n="system_operations.running">Running</span></span>
+                    </div>
+                </div>
+                <div class="docker-stat-card stopped">
+                    <div class="docker-stat-icon">
+                        <i data-lucide="stop-circle" class="sysops-icon-32"></i>
+                    </div>
+                    <div class="docker-stat-info">
+                        <span class="docker-stat-value" id="docker-stopped-count">0</span>
+                        <span class="docker-stat-label"><span data-i18n="system_operations.stopped">Stopped</span></span>
+                    </div>
+                </div>
+                <div class="docker-stat-card total">
+                    <div class="docker-stat-icon">
+                        <i data-lucide="box" class="sysops-icon-32"></i>
+                    </div>
+                    <div class="docker-stat-info">
+                        <span class="docker-stat-value" id="docker-total-count">0</span>
+                        <span class="docker-stat-label"><span data-i18n="system_operations.total_2">Total</span></span>
+                    </div>
+                </div>
+                <div class="docker-stat-card images">
+                    <div class="docker-stat-icon">
+                        <i data-lucide="layers" class="sysops-icon-32"></i>
+                    </div>
+                    <div class="docker-stat-info">
+                        <span class="docker-stat-value" id="docker-stacks-count">0</span>
+                        <span class="docker-stat-label"><span data-i18n="system_operations.stacks">Stacks</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Health Alerts Panel -->
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--archie-space-4);">
+                <span>
+                    <i data-lucide="alert-triangle" class="sysops-icon-18"></i>
+                    Health Alerts
+                    <span class="health-alert-badge sysops-hidden" id="health-alert-badge">0</span>
+                </span>
+                <button class="btn btn-sm btn-ghost" onclick="showAlertConfigModal()">
+                    <i data-lucide="settings" class="sysops-icon-14"></i>
+                    Configure
+                </button>
+            </div>
+            <div class="health-alerts-panel" id="health-alerts-panel">
+                <div class="empty-state" style="padding: var(--archie-space-4); text-align: center; color: var(--archie-text-muted);">
+                    <i data-lucide="check-circle" style="width: 24px; height: 24px; color: var(--archie-green);"></i>
+                    <p style="margin-top: var(--archie-space-2);"><span data-i18n="system_operations.no_active_alerts">No active alerts</span></p>
+                </div>
+            </div>
+
+            <!-- Stack Cards -->
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+                <span>
+                    <i data-lucide="layers" class="sysops-icon-18"></i>
+                    Stacks
+                </span>
+                <button class="new-stack-btn" onclick="openCreateStackWizard()">
+                    <i data-lucide="plus" class="sysops-icon-16"></i>
+                    New Stack
+                </button>
+            </div>
+            <div class="stack-overview-grid" id="stack-overview-grid">
+                <div class="loading-placeholder">
+                    <i data-lucide="loader" class="sysops-icon-24"></i>
+                    Loading stacks...
+                </div>
+            </div>
+        </div>
+
+        <!-- Stack Detail View -->
+        <div id="docker-stack-detail" class="stack-detail-view">
+            <div class="stack-detail-header">
+                <div class="stack-detail-title">
+                    <button class="stack-back-btn" onclick="showStackOverview()">
+                        <i data-lucide="arrow-left" class="sysops-icon-16"></i>
+                        Back
+                    </button>
+                    <span class="stack-color-dot" id="detail-stack-color"></span>
+                    <h2 id="detail-stack-name"><span data-i18n="system_operations.stack_name">Stack Name</span></h2>
+                    <span id="detail-stack-badge"></span>
+                </div>
+                <div class="stack-actions" id="detail-stack-actions"></div>
+            </div>
+
+            <div class="stack-subtabs" id="stack-subtabs">
+                <button class="stack-subtab active" onclick="showStackSubtab('containers')" data-subtab="containers">
+                    <i data-lucide="box" class="sysops-icon-14"></i> Containers
+                </button>
+                <button class="stack-subtab" onclick="showStackSubtab('compose')" data-subtab="compose">
+                    <i data-lucide="file-code" class="sysops-icon-14"></i> Compose
+                </button>
+                <button class="stack-subtab" onclick="showStackSubtab('env')" data-subtab="env">
+                    <i data-lucide="settings-2" class="sysops-icon-14"></i> Environment
+                </button>
+                <button class="stack-subtab" onclick="showStackSubtab('logs')" data-subtab="logs">
+                    <i data-lucide="scroll-text" class="sysops-icon-14"></i> Logs
+                </button>
+            </div>
+
+            <!-- Containers sub-tab -->
+            <div class="stack-subtab-content active" id="subtab-containers">
+                <div class="docker-actions-bar sysops-mb-16">
+                    <button class="docker-action-btn" onclick="stackAction('up')" title="Start all containers">
+                        <i data-lucide="play" class="sysops-icon-16"></i> Start All
+                    </button>
+                    <button class="docker-action-btn" onclick="stackAction('restart')" title="Restart all containers">
+                        <i data-lucide="refresh-cw" class="sysops-icon-16"></i> Restart All
+                    </button>
+                    <button class="docker-action-btn warning" onclick="stackAction('down')" title="Stop all containers">
+                        <i data-lucide="square" class="sysops-icon-16"></i> Stop All
+                    </button>
+                    <button class="docker-action-btn" onclick="stackAction('pull')" title="Pull latest images">
+                        <i data-lucide="download" class="sysops-icon-16"></i> Pull
+                    </button>
+                    <button class="docker-action-btn" onclick="loadStackDetail(currentStackName)" title="Refresh">
+                        <i data-lucide="refresh-cw" class="sysops-icon-16"></i> Refresh
+                    </button>
+                </div>
+                <div class="docker-container-grid" id="stack-container-grid">
+                    <div class="loading-placeholder">
+                        <i data-lucide="loader" class="sysops-icon-24"></i>
+                        Loading containers...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Compose sub-tab -->
+            <div class="stack-subtab-content" id="subtab-compose">
+                <div class="panel">
+                    <div class="stack-header">
+                        <div class="stack-info">
+                            <div class="stack-meta">
+                                <span><i data-lucide="folder" class="sysops-icon-14"></i> <code id="detail-compose-path">-</code></span>
+                                <span><i data-lucide="git-branch" class="sysops-icon-14"></i> <span id="detail-services-count">-</span><span data-i18n="system_operations.services"> services</span></span>
+                            </div>
+                        </div>
+                        <div class="stack-actions">
+                            <button class="docker-action-btn" onclick="viewStackCompose()" title="View compose file">
+                                <i data-lucide="eye" class="sysops-icon-16"></i> View
+                            </button>
+                            <button class="docker-action-btn" onclick="editStackCompose()" title="Edit compose file">
+                                <i data-lucide="edit" class="sysops-icon-16"></i> Edit
+                            </button>
+                        </div>
+                    </div>
+                    <div class="stack-services-grid" id="detail-services-grid"></div>
+                </div>
+            </div>
+
+            <!-- Environment sub-tab -->
+            <div class="stack-subtab-content" id="subtab-env">
+                <div class="panel">
+                    <div class="env-files-list" id="detail-env-files">
+                        <div class="loading-placeholder"><span data-i18n="system_operations.loading_environment_files">Loading environment files...</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logs sub-tab -->
+            <div class="stack-subtab-content" id="subtab-logs">
+                <div class="panel">
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                        <select id="stack-log-service" class="sysops-select">
+                            <option value=""><span data-i18n="system_operations.all_services_2">All services</span></option>
+                        </select>
+                        <select id="stack-log-tail" class="sysops-select">
+                            <option value="50"><span data-i18n="system_operations.last_50_lines">Last 50 lines</span></option>
+                            <option value="100" selected><span data-i18n="system_operations.last_100_lines">Last 100 lines</span></option>
+                            <option value="500"><span data-i18n="system_operations.last_500_lines">Last 500 lines</span></option>
+                        </select>
+                        <button class="docker-action-btn" onclick="loadStackLogs()">
+                            <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
+                        </button>
+                    </div>
+                    <pre id="stack-log-output" style="background: var(--archie-bg-void); border: 1px solid var(--archie-border-default); border-radius: 8px; padding: 16px; max-height: 500px; overflow-y: auto; font-size: 0.8rem; color: var(--archie-text-secondary); font-family: var(--archie-font-mono); white-space: pre-wrap; word-break: break-all;">Select a service and click Refresh to view logs.</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stack Creation Wizard -->
+    <div class="wizard-overlay" id="createStackWizard">
+        <div class="wizard-dialog">
+            <h3 style="color: var(--archie-accent); margin: 0 0 20px 0;">
+                <i data-lucide="plus-circle" class="sysops-icon-inline-20"></i>
+                Create New Stack
+            </h3>
+            <div class="wizard-steps" id="wizard-steps">
+                <div class="wizard-step-indicator active" data-step="1">1</div>
+                <div class="wizard-step-line"></div>
+                <div class="wizard-step-indicator" data-step="2">2</div>
+                <div class="wizard-step-line"></div>
+                <div class="wizard-step-indicator" data-step="3">3</div>
+                <div class="wizard-step-line"></div>
+                <div class="wizard-step-indicator" data-step="4">4</div>
+            </div>
+            <div class="wizard-content" id="wizard-step-1">
+                <div class="wizard-field">
+                    <label><span data-i18n="system_operations.stack_name_slug">Stack Name (slug)</span></label>
+                    <input type="text" id="wizard-name" placeholder="e.g. plex, home-assistant" oninput="updateWizardSlug()">
+                    <div style="font-size: 0.75rem; color: var(--archie-text-muted); margin-top: 4px;">
+                        Directory: <code id="wizard-dir-preview">/mnt/stacks/</code>
+                    </div>
+                </div>
+                <div class="wizard-field">
+                    <label><span data-i18n="system_operations.display_name">Display Name</span></label>
+                    <input type="text" id="wizard-display-name" placeholder="e.g. Plex Media Server">
+                </div>
+                <div class="wizard-field">
+                    <label><span data-i18n="system_operations.description_optional">Description (optional)</span></label>
+                    <input type="text" id="wizard-description" placeholder="Short description of this stack">
+                </div>
+                <div class="wizard-field">
+                    <label><span data-i18n="system_operations.color">Color</span></label>
+                    <div class="color-picker-grid" id="wizard-color-picker">
+                        <div class="color-swatch selected" style="background: #00D4AA;" data-color="#00D4AA" onclick="selectWizardColor(this)"></div>
+                        <div class="color-swatch" style="background: #E5A00D;" data-color="#E5A00D" onclick="selectWizardColor(this)"></div>
+                        <div class="color-swatch" style="background: #FF6B6B;" data-color="#FF6B6B" onclick="selectWizardColor(this)"></div>
+                        <div class="color-swatch" style="background: #4ECDC4;" data-color="#4ECDC4" onclick="selectWizardColor(this)"></div>
+                        <div class="color-swatch" style="background: #A78BFA;" data-color="#A78BFA" onclick="selectWizardColor(this)"></div>
+                        <div class="color-swatch" style="background: #F472B6;" data-color="#F472B6" onclick="selectWizardColor(this)"></div>
+                        <div class="color-swatch" style="background: #60A5FA;" data-color="#60A5FA" onclick="selectWizardColor(this)"></div>
+                        <div class="color-swatch" style="background: #34D399;" data-color="#34D399" onclick="selectWizardColor(this)"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="wizard-content sysops-hidden" id="wizard-step-2">
+                <div class="wizard-field">
+                    <label><span data-i18n="system_operations.docker_compose_yml">docker-compose.yml</span></label>
+                    <textarea id="wizard-compose" placeholder="version: '3.8'&#10;services:&#10;  app:&#10;    image: myimage:latest&#10;    ports:&#10;      - '8080:80'" spellcheck="false"></textarea>
+                </div>
+            </div>
+            <div class="wizard-content sysops-hidden" id="wizard-step-3">
+                <div class="wizard-field">
+                    <label><span data-i18n="system_operations.env_file_optional">.env file (optional)</span></label>
+                    <textarea id="wizard-env" placeholder="KEY=value&#10;ANOTHER_KEY=another_value" spellcheck="false" style="min-height: 150px;"></textarea>
+                </div>
+            </div>
+            <div class="wizard-content sysops-hidden" id="wizard-step-4">
+                <div style="background: var(--archie-bg-secondary); border-radius: 8px; padding: 16px;">
+                    <h4 style="color: var(--archie-accent); margin: 0 0 12px 0;"><span data-i18n="system_operations.review">Review</span></h4>
+                    <div id="wizard-review-content" style="font-size: 0.9rem; color: var(--archie-text-secondary);"></div>
+                </div>
+            </div>
+            <div class="wizard-footer">
+                <button class="btn-cancel" onclick="closeCreateStackWizard()"><span data-i18n="system_operations.cancel">Cancel</span></button>
+                <div class="sysops-flex-gap-8">
+                    <button class="docker-action-btn sysops-hidden" id="wizard-prev-btn" onclick="wizardPrev()">
+                        <i data-lucide="arrow-left" class="sysops-icon-14"></i> Previous
+                    </button>
+                    <button class="new-stack-btn" id="wizard-next-btn" onclick="wizardNext()">
+                        Next <i data-lucide="arrow-right" class="sysops-icon-14"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compose File Viewer/Editor Modal -->
+    <div class="modal-overlay" id="composeModal">
+        <div class="modal-dialog" style="max-width: 900px; max-height: 85vh;">
+            <div class="compose-modal-header">
+                <h3 id="composeModalTitle" style="color: var(--archie-cyan); margin: 0;">
+                    <i data-lucide="file-code" class="sysops-icon-inline-20"></i>
+                    docker-compose.yml
+                </h3>
+                <div class="compose-modal-actions">
+                    <button class="docker-action-btn sysops-hidden" id="composeEditToggle" onclick="toggleComposeEdit()">
+                        <i data-lucide="edit" class="sysops-icon-14"></i> Edit
+                    </button>
+                    <button class="docker-action-btn sysops-hidden" id="composeSaveBtn" onclick="saveComposeFile()">
+                        <i data-lucide="save" class="sysops-icon-14"></i> Save
+                    </button>
+                </div>
+            </div>
+            <div class="compose-content">
+                <pre id="composeViewer" class="compose-viewer"><code>Loading...</code></pre>
+                <textarea id="composeEditor" class="compose-editor sysops-hidden" spellcheck="false"></textarea>
+            </div>
+            <div class="compose-modal-footer">
+                <span id="composeStatus" style="font-size: 0.8rem; color: var(--archie-text-muted);"></span>
+                <div>
+                    <button class="btn-cancel" onclick="closeComposeModal()"><span data-i18n="system_operations.close">Close</span></button>
+                    <button class="btn-confirm sysops-hidden" id="composeApplyBtn" onclick="applyComposeChanges()">
+                        <i data-lucide="play" class="sysops-icon-inline-14-bare"></i>
+                        Apply & Restart
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Network -->
+    <div id="tab-network" class="tab-content">
+        <!-- Host Network Info Card (always visible) -->
+        <div class="section-title">
+            <i data-lucide="server" class="sysops-icon-18"></i>
+            Host Network
+        </div>
+        <div class="panel">
+            <div class="network-summary" id="network-summary">
+                <div class="network-stat">
+                    <span class="network-label"><span data-i18n="system_operations.hostname_2">Hostname</span></span>
+                    <span class="network-value mono" id="net-hostname">--</span>
+                </div>
+                <div class="network-stat">
+                    <span class="network-label"><span data-i18n="system_operations.host_ip">Host IP</span></span>
+                    <span class="network-value mono sysops-text-green" id="net-host-ip"><span data-i18n="system_operations.detecting">Detecting...</span></span>
+                </div>
+                <div class="network-stat">
+                    <span class="network-label"><span data-i18n="system_operations.container_ip">Container IP</span></span>
+                    <span class="network-value mono" id="net-container-ip">--</span>
+                </div>
+                <div class="network-stat">
+                    <span class="network-label"><span data-i18n="system_operations.gateway">Gateway</span></span>
+                    <span class="network-value mono" id="net-gateway">--</span>
+                </div>
+                <div class="network-stat">
+                    <span class="network-label"><span data-i18n="system_operations.dns_servers">DNS Servers</span></span>
+                    <span class="network-value mono" id="net-dns">--</span>
+                </div>
+            </div>
+            <div id="host-interfaces-section" style="margin-top: 15px; display: none;">
+                <h4 class="sysops-text-cyan-mb"><span data-i18n="system_operations.host_interfaces">Host Interfaces </span><span class="host-badge"><span data-i18n="system_operations.host">HOST</span></span></h4>
+                <table class="data-table data-table-compact">
+                    <thead>
+                        <tr><th><span data-i18n="system_operations.interface">Interface</span></th><th><span data-i18n="system_operations.ip_address_2">IP Address</span></th><th><span data-i18n="system_operations.cidr">CIDR</span></th><th><span data-i18n="system_operations.note">Note</span></th></tr>
+                    </thead>
+                    <tbody id="host-interfaces-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Network Sub-tabs -->
+        <div class="net-subtabs" id="net-subtabs">
+            <button class="net-subtab active" onclick="showNetSubtab('overview')" id="net-subtab-btn-overview">
+                <i data-lucide="layout-list" class="sysops-icon-14"></i> Overview
+            </button>
+            <button class="net-subtab" onclick="showNetSubtab('portmap')" id="net-subtab-btn-portmap">
+                <i data-lucide="git-branch" class="sysops-icon-14"></i> Port Map
+            </button>
+            <button class="net-subtab" onclick="showNetSubtab('topology')" id="net-subtab-btn-topology">
+                <i data-lucide="network" class="sysops-icon-14"></i> Topology
+            </button>
+            <button class="net-subtab" onclick="showNetSubtab('bandwidth')" id="net-subtab-btn-bandwidth">
+                <i data-lucide="activity" class="sysops-icon-14"></i> Bandwidth
+            </button>
+        </div>
+
+        <!-- Sub-tab: Overview (default, existing content) -->
+        <div id="net-subtab-overview" class="net-subtab-content active">
+            <div class="section-title">
+                <i data-lucide="wifi" class="sysops-icon-18"></i>
+                Container Network Interfaces
+            </div>
+            <div class="panel">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th><span data-i18n="system_operations.interface_2">Interface</span></th>
+                            <th><span data-i18n="system_operations.ip_address_3">IP Address</span></th>
+                            <th><span data-i18n="system_operations.netmask">Netmask</span></th>
+                            <th><span data-i18n="system_operations.mac_address">MAC Address</span></th>
+                            <th><span data-i18n="system_operations.status_5">Status</span></th>
+                            <th><span data-i18n="system_operations.speed_3">Speed</span></th>
+                            <th><span data-i18n="system_operations.mtu">MTU</span></th>
+                            <th><span data-i18n="system_operations.sent">Sent</span></th>
+                            <th><span data-i18n="system_operations.received">Received</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="network-table">
+                        <tr><td colspan="9" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_10"> Loading...</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section-title">
+                <i data-lucide="plug" class="sysops-icon-18"></i>
+                Active Connections
+            </div>
+            <div class="panel">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th><span data-i18n="system_operations.local_address">Local Address</span></th>
+                            <th><span data-i18n="system_operations.remote_address">Remote Address</span></th>
+                            <th><span data-i18n="system_operations.status_6">Status</span></th>
+                            <th><span data-i18n="system_operations.process">Process</span></th>
+                            <th><span data-i18n="system_operations.pid_2">PID</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="connections-table">
+                        <tr><td colspan="5" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_11"> Loading...</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section-title">
+                <i data-lucide="radio" class="sysops-icon-18"></i>
+                Listening Ports (Open Services)
+            </div>
+            <div class="panel">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th><span data-i18n="system_operations.port">Port</span></th>
+                            <th><span data-i18n="system_operations.protocol">Protocol</span></th>
+                            <th><span data-i18n="system_operations.bind_address">Bind Address</span></th>
+                            <th><span data-i18n="system_operations.process_2">Process</span></th>
+                            <th><span data-i18n="system_operations.pid_3">PID</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="listening-ports-table">
+                        <tr><td colspan="5" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_12"> Loading...</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section-title">
+                <i data-lucide="bar-chart-2" class="sysops-icon-18"></i>
+                Bandwidth Summary
+            </div>
+            <div class="panel">
+                <div class="network-summary" id="bandwidth-summary">
+                    <div class="network-stat">
+                        <span class="network-label"><span data-i18n="system_operations.total_sent">Total Sent</span></span>
+                        <span class="network-value sysops-text-cyan" id="bandwidth-sent">--</span>
+                    </div>
+                    <div class="network-stat">
+                        <span class="network-label"><span data-i18n="system_operations.total_received">Total Received</span></span>
+                        <span class="network-value sysops-text-green" id="bandwidth-recv">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sub-tab: Port Map -->
+        <div id="net-subtab-portmap" class="net-subtab-content">
+            <div class="section-title sysops-flex-between-center">
+                <span class="sysops-flex-center">
+                    <i data-lucide="git-branch" class="sysops-icon-18"></i>
+                    Port-to-Stack Mapping
+                </span>
+                <button class="btn btn-secondary sysops-btn-sm" onclick="loadPortMap()">
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
+                </button>
+            </div>
+            <div id="port-map-container" class="panel">
+                <p class="sysops-empty-state">
+                    <i data-lucide="loader" class="sysops-icon-16"></i> Loading port map...
+                </p>
+            </div>
+        </div>
+
+        <!-- Sub-tab: Topology -->
+        <div id="net-subtab-topology" class="net-subtab-content">
+            <div class="section-title">
+                <i data-lucide="network" class="sysops-icon-18"></i>
+                Network Topology
+            </div>
+            <div id="topology-svg-container" class="topology-container">
+                <p class="sysops-empty-state">
+                    <i data-lucide="loader" class="sysops-icon-16"></i> Loading topology...
+                </p>
+            </div>
+        </div>
+
+        <!-- Sub-tab: Bandwidth -->
+        <div id="net-subtab-bandwidth" class="net-subtab-content">
+            <div class="section-title sysops-flex-between-center">
+                <span class="sysops-flex-center">
+                    <i data-lucide="activity" class="sysops-icon-18"></i>
+                    Bandwidth Monitor
+                </span>
+                <button class="btn btn-secondary sysops-btn-sm" onclick="loadBandwidthData()">
+                    <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
+                </button>
+            </div>
+
+            <!-- Total Traffic Summary -->
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 16px;">
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">
+                            <i data-lucide="download" style="width: 18px; height: 18px; color: var(--archie-green);"></i>
+                            Total Downloaded
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-rx-bytes" style="font-size: 1.4rem; color: var(--archie-green);">--</div>
+                    <div class="stat-label" id="total-rx-packets">-- packets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">
+                            <i data-lucide="upload" style="width: 18px; height: 18px; color: var(--archie-cyan);"></i>
+                            Total Uploaded
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-tx-bytes" style="font-size: 1.4rem; color: var(--archie-cyan);">--</div>
+                    <div class="stat-label" id="total-tx-packets">-- packets</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">
+                            <i data-lucide="hard-drive" style="width: 18px; height: 18px; color: var(--archie-purple);"></i>
+                            Total Traffic
+                        </div>
+                    </div>
+                    <div class="stat-value" id="total-traffic" style="font-size: 1.4rem; color: var(--archie-purple);">--</div>
+                    <div class="stat-label" id="total-traffic-label"><span data-i18n="system_operations.since_last_reboot">Since last reboot</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-card-header">
+                        <div class="stat-card-title">
+                            <i data-lucide="gauge" style="width: 18px; height: 18px; color: var(--archie-orange);"></i>
+                            Current Rate
+                        </div>
+                    </div>
+                    <div class="stat-value" id="current-rate" style="font-size: 1.4rem; color: var(--archie-orange);">--</div>
+                    <div class="stat-label" id="current-rate-label"><span data-i18n="system_operations.combined_rx_tx">Combined RX+TX</span></div>
+                </div>
+            </div>
+
+            <!-- Bandwidth History Chart -->
+            <div class="chart-card" style="margin-bottom: 16px; height: 250px;">
+                <h3 class="sysops-flex-center-mb">
+                    <span><span data-i18n="system_operations.bandwidth_history">Bandwidth History</span></span>
+                    <span id="bandwidth-chart-info" style="font-size: 0.75rem; color: var(--archie-text-muted); font-weight: normal;">--</span>
+                </h3>
+                <canvas id="bandwidthChart"></canvas>
+            </div>
+
+            <div id="bandwidth-monitor-container" class="panel">
+                <p class="sysops-empty-state">
+                    <i data-lucide="loader" class="sysops-icon-16"></i> Loading bandwidth data...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Firewall -->
+    <div id="tab-firewall" class="tab-content">
+    <div class="section-title sysops-flex-between-center">
+        <span class="sysops-flex-center">
+            <i data-lucide="shield" class="sysops-icon-18"></i>
+            UFW Firewall Management
+        </span>
+        <button class="btn btn-secondary sysops-btn-sm" onclick="loadFirewallData()">
+            <i data-lucide="refresh-cw" class="sysops-icon-14"></i> Refresh
+        </button>
+    </div>
+
+    <!-- Firewall Status and Controls -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 20px;">
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-title">
+                    <i data-lucide="shield-check" class="sysops-icon-20"></i>
+                    Firewall Status
+                </div>
+            </div>
+            <div class="stat-value sysops-text-lg" id="firewall-status-value">--</div>
+            <div class="stat-label" id="firewall-status-label"><span data-i18n="system_operations.checking_2">Checking...</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-title">
+                    <i data-lucide="list" class="sysops-icon-20"></i>
+                    Active Rules
+                </div>
+            </div>
+            <div class="stat-value sysops-text-lg" id="firewall-rules-count">--</div>
+            <div class="stat-label"><span data-i18n="system_operations.total_rules_configured">Total rules configured</span></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-header">
+                <div class="stat-card-title">
+                    <i data-lucide="settings" class="sysops-icon-20"></i>
+                    Controls
+                </div>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
+                <button class="btn btn-success sysops-text-sm" id="firewall-enable-btn" onclick="enableFirewall()">
+                    <i data-lucide="power" class="sysops-icon-14"></i> Enable
+                </button>
+                <button class="btn btn-danger sysops-text-sm" id="firewall-disable-btn" onclick="confirmDisableFirewall()">
+                    <i data-lucide="power-off" class="sysops-icon-14"></i> Disable
+                </button>
+                <button class="btn btn-primary sysops-text-sm" onclick="openAddRuleModal()">
+                    <i data-lucide="plus" class="sysops-icon-14"></i> Add Rule
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firewall Rules Table -->
+    <div class="section-title">
+        <i data-lucide="shield-alert" class="sysops-icon-18"></i>
+        Firewall Rules
+        <span id="firewall-from-config-badge" style="display: none; margin-left: 10px; font-size: 0.7rem; background: rgba(251, 191, 36, 0.2); color: var(--archie-yellow); padding: 2px 8px; border-radius: 4px;">
+            From Config (UFW Inactive)
+        </span>
+    </div>
+    <div class="panel">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 50px;">#</th>
+                    <th><span data-i18n="system_operations.port_2">Port</span></th>
+                    <th><span data-i18n="system_operations.action">Action</span></th>
+                    <th><span data-i18n="system_operations.direction">Direction</span></th>
+                    <th><span data-i18n="system_operations.from">From</span></th>
+                    <th><span data-i18n="system_operations.service_comment">Service/Comment</span></th>
+                    <th style="width: 100px;"><span data-i18n="system_operations.actions_4">Actions</span></th>
+                </tr>
+            </thead>
+            <tbody id="firewall-rules-table">
+                <tr><td colspan="7" class="loading"><i data-lucide="loader"></i><span data-i18n="system_operations.loading_firewall_rules"> Loading firewall rules...</span></td></tr>
+            </tbody>
+        </table>
+        <div id="firewall-no-rules" style="display: none; text-align: center; padding: 30px; color: var(--archie-text-muted);">
+            <i data-lucide="shield-off" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+            <p style="margin-top: 10px;"><span data-i18n="system_operations.no_firewall_rules_configured">No firewall rules configured.</span></p>
+        </div>
+    </div>
+
+    {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+            </div><!-- /lcars-body -->
+            <div class="lcars-footer-bar"></div>
+        </div><!-- /lcars-content -->
+    </div><!-- /lcars-frame -->
+    {% else %}
+        </div><!-- /modern-body -->
+    </div><!-- /modern-frame -->
+    {% endif %}
+
+</div><!-- /sysops-container -->
+
+<!-- Firewall: Disable Confirmation Modal -->
+<div class="modal-overlay" id="firewallDisableModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-20"></i>
+                Disable Firewall?
+            </h3>
+            <button class="modal-close" onclick="closeFirewallDisableModal()"><span data-i18n="system_operations.times">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--archie-red); border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                <p style="color: var(--archie-red); font-weight: 600; margin-bottom: 8px;">
+                    <i data-lucide="shield-off" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle;"></i>
+                    Warning: This will expose all ports!
+                </p>
+                <p style="color: var(--archie-text-muted); font-size: 0.9rem; margin: 0;">
+                    Disabling the firewall removes all protection. All ports will be accessible from any network.
+                </p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeFirewallDisableModal()"><span data-i18n="system_operations.cancel_2">Cancel</span></button>
+            <button class="btn btn-danger" onclick="disableFirewall()">
+                <i data-lucide="power-off" class="sysops-icon-14"></i> Disable Firewall
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Firewall: Add Rule Modal -->
+<div class="modal-overlay" id="firewallAddRuleModal">
+    <div class="modal sysops-max-w-450">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="plus-circle" class="sysops-icon-inline-20"></i>
+                Add Firewall Rule
+            </h3>
+            <button class="modal-close" onclick="closeAddRuleModal()"><span data-i18n="system_operations.times_2">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label"><span data-i18n="system_operations.port_number">Port Number</span></label>
+                <input type="number" id="firewall-port-input" class="form-input" placeholder="e.g. 8080" min="1" max="65535">
+                <small class="sysops-text-muted"><span data-i18n="system_operations.valid_range_1_65535">Valid range: 1-65535</span></small>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><span data-i18n="system_operations.protocol_2">Protocol</span></label>
+                <select id="firewall-protocol-select" class="form-input">
+                    <option value="tcp"><span data-i18n="system_operations.tcp">TCP</span></option>
+                    <option value="udp"><span data-i18n="system_operations.udp">UDP</span></option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><span data-i18n="system_operations.action_2">Action</span></label>
+                <select id="firewall-action-select" class="form-input">
+                    <option value="allow"><span data-i18n="system_operations.allow_permit_traffic">Allow (permit traffic)</span></option>
+                    <option value="deny"><span data-i18n="system_operations.deny_block_traffic">Deny (block traffic)</span></option>
+                </select>
+            </div>
+            <div id="firewall-add-rule-warning" style="display: none; background: rgba(251, 191, 36, 0.1); border: 1px solid var(--archie-yellow); border-radius: 8px; padding: 10px; margin-top: 10px;">
+                <p style="color: var(--archie-yellow); font-size: 0.85rem; margin: 0;">
+                    <i data-lucide="alert-triangle" class="sysops-icon-inline-14-bare"></i>
+                    <span id="firewall-add-rule-warning-text"></span>
+                </p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeAddRuleModal()"><span data-i18n="system_operations.cancel_3">Cancel</span></button>
+            <button class="btn btn-primary" onclick="addFirewallRule()">
+                <i data-lucide="plus" class="sysops-icon-14"></i> Add Rule
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Firewall: Edit Rule Modal -->
+<div class="modal-overlay" id="firewallEditRuleModal">
+    <div class="modal sysops-max-w-450">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="edit" class="sysops-icon-inline-20"></i>
+                Edit Firewall Rule
+            </h3>
+            <button class="modal-close" onclick="closeEditRuleModal()"><span data-i18n="system_operations.times_3">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="firewall-edit-old-port">
+            <input type="hidden" id="firewall-edit-old-protocol">
+            <div class="form-group">
+                <label class="form-label"><span data-i18n="system_operations.port_number_2">Port Number</span></label>
+                <input type="number" id="firewall-edit-port-input" class="form-input" placeholder="e.g. 8080" min="1" max="65535">
+                <small class="sysops-text-muted"><span data-i18n="system_operations.valid_range_1_65535_2">Valid range: 1-65535</span></small>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><span data-i18n="system_operations.protocol_3">Protocol</span></label>
+                <select id="firewall-edit-protocol-select" class="form-input">
+                    <option value="tcp"><span data-i18n="system_operations.tcp_2">TCP</span></option>
+                    <option value="udp"><span data-i18n="system_operations.udp_2">UDP</span></option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label"><span data-i18n="system_operations.action_3">Action</span></label>
+                <select id="firewall-edit-action-select" class="form-input">
+                    <option value="allow"><span data-i18n="system_operations.allow_permit_traffic_2">Allow (permit traffic)</span></option>
+                    <option value="deny"><span data-i18n="system_operations.deny_block_traffic_2">Deny (block traffic)</span></option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeEditRuleModal()"><span data-i18n="system_operations.cancel_4">Cancel</span></button>
+            <button class="btn btn-primary" onclick="updateFirewallRule()">
+                <i data-lucide="save" class="sysops-icon-14"></i> Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Firewall: Delete Rule Confirmation Modal -->
+<div class="modal-overlay" id="firewallDeleteModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="trash-2" class="sysops-icon-inline-20"></i>
+                Delete Rule?
+            </h3>
+            <button class="modal-close" onclick="closeDeleteRuleModal()"><span data-i18n="system_operations.times_4">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <p class="sysops-text-muted"><span data-i18n="system_operations.are_you_sure_you_want_to_delete_this_firewall_rule">Are you sure you want to delete this firewall rule?</span></p>
+            <div style="background: var(--archie-surface); border-radius: 8px; padding: 12px; margin-top: 10px; font-family: monospace;">
+                <span id="firewall-delete-rule-details"><span data-i18n="system_operations.rule">Rule #--</span></span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeDeleteRuleModal()"><span data-i18n="system_operations.cancel_5">Cancel</span></button>
+            <button class="btn btn-danger" onclick="deleteFirewallRule()">
+                <i data-lucide="trash-2" class="sysops-icon-14"></i> Delete Rule
+            </button>
+        </div>
+    </div>
+</div>
+
+    <!-- ============ COMPLIANCE TAB ============ -->
+    <div id="tab-compliance" class="tab-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="shield-check" class="sysops-icon-20"></i>
+                <span>Compliance Scanner</span>
+            </h2>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" onclick="runComplianceScan()" id="scanBtn">
+                    <i data-lucide="play" class="sysops-icon-14"></i> Run Scan
+                </button>
+                <button class="btn btn-ghost" data-tier-required="business" onclick="exportCompliancePDF()">
+                    <i data-lucide="file-text" class="sysops-icon-14"></i> Export PDF
+                </button>
+            </div>
+        </div>
+
+        <!-- Pack Selector -->
+        <div id="compliance-pack-selector" style="display: flex; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 20px; padding: 14px 18px; background: var(--archie-card-bg, #1a1a2e); border: 1px solid var(--archie-border, #2a2a3e); border-radius: 8px;">
+            <span style="color: var(--archie-text-muted, #888); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px; align-self: center; margin-right: 4px;">Rule Packs:</span>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--archie-text-secondary, #ccc); font-size: 0.85rem;">
+                <input type="checkbox" class="compliance-pack-cb" value="network-stig" checked style="accent-color: var(--archie-accent, #10b981); width: 16px; height: 16px;">
+                Network Security STIG
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--archie-text-secondary, #ccc); font-size: 0.85rem;">
+                <input type="checkbox" class="compliance-pack-cb" value="ubuntu-22.04-stig" checked style="accent-color: var(--archie-accent, #10b981); width: 16px; height: 16px;">
+                Ubuntu 22.04 STIG
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--archie-text-secondary, #ccc); font-size: 0.85rem;">
+                <input type="checkbox" class="compliance-pack-cb" value="cis-ubuntu-22.04" checked style="accent-color: var(--archie-accent, #10b981); width: 16px; height: 16px;">
+                CIS Ubuntu 22.04
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--archie-text-secondary, #ccc); font-size: 0.85rem;">
+                <input type="checkbox" class="compliance-pack-cb" value="docker-stig" checked style="accent-color: var(--archie-accent, #10b981); width: 16px; height: 16px;">
+                Docker STIG
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; color: var(--archie-text-secondary, #ccc); font-size: 0.85rem;">
+                <input type="checkbox" class="compliance-pack-cb" value="hipaa-security" checked style="accent-color: var(--archie-accent, #10b981); width: 16px; height: 16px;">
+                HIPAA Security
+            </label>
+        </div>
+
+        <!-- Score Overview -->
+        <div id="compliance-score" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Overall Score</div>
+                <div id="compliance-score-value" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-accent);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Passed</div>
+                <div id="compliance-passed" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-green);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Failed</div>
+                <div id="compliance-failed" style="font-size: 2.5rem; font-weight: 700; color: var(--archie-red);">--</div>
+            </div>
+            <div class="stat-card" style="text-align: center;">
+                <div style="color: var(--archie-text-muted); font-size: 0.8rem; text-transform: uppercase;">Last Scan</div>
+                <div id="compliance-last-scan" style="font-size: 1rem; font-weight: 600; color: var(--archie-text-secondary);">Never</div>
+            </div>
+        </div>
+
+        <!-- Results Table -->
+        <div id="compliance-results" style="margin-top: 16px;">
+            <div style="text-align: center; padding: 40px; color: var(--archie-text-muted);">
+                <i data-lucide="shield-question" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+                <p style="margin-top: 10px;">No scan results yet. Click "Run Scan" to start.</p>
+            </div>
+        </div>
+    </div>
+
+<!-- Confirmation Modal - higher z-index to appear above other modals -->
+<div class="modal-overlay" id="confirmModal" style="z-index: 10001;">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3 class="modal-title" id="confirmTitle"><span data-i18n="system_operations.confirm_action">Confirm Action</span></h3>
+            <button class="modal-close" onclick="closeConfirmModal()"><span data-i18n="system_operations.times_5">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <p id="confirmMessage"><span data-i18n="system_operations.are_you_sure">Are you sure?</span></p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeConfirmModal()"><span data-i18n="system_operations.cancel_6">Cancel</span></button>
+            <button class="btn btn-danger" id="confirmBtn"><span data-i18n="system_operations.confirm">Confirm</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- Pre-flight Check Modal -->
+<div class="modal-overlay" id="preflightModal">
+    <div class="modal sysops-max-w-500">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-orange">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-20"></i>
+                Pre-flight Check
+            </h3>
+            <button class="modal-close" onclick="closePreflightModal()"><span data-i18n="system_operations.times_6">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--archie-text-secondary); margin-bottom: 12px;">
+                The following conditions were detected:
+            </p>
+            <div class="preflight-warnings" id="preflightWarnings">
+                <!-- Warnings will be inserted here -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closePreflightModal()"><span data-i18n="system_operations.cancel_7">Cancel</span></button>
+            <button class="btn btn-warning" id="preflightProceedBtn" onclick="proceedAfterPreflight()">
+                <i data-lucide="chevron-right" class="sysops-icon-inline-14"></i>
+                Proceed Anyway
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- LVM Extend Modal -->
+<div class="modal-overlay" id="lvmExtendModal">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-green">
+                <i data-lucide="hard-drive" class="sysops-icon-inline-20"></i>
+                Extend Logical Volume
+            </h3>
+            <button class="modal-close" onclick="closeLvmExtendModal()"><span data-i18n="system_operations.times_7">&times;</span></button>
+        </div>
+
+        <div class="modal-body" id="lvmExtendContent">
+            <!-- Current Status -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.logical_volume">Logical Volume</span></span>
+                        <div class="mono sysops-text-green-lg" id="extendLvName">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_size">Current Size</span></span>
+                        <div id="extendLvSize" class="sysops-text-md">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.volume_group">Volume Group</span></span>
+                        <div class="mono sysops-text-cyan" id="extendVgName">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.vg_free_space">VG Free Space</span></span>
+                        <div id="extendVgFree" class="sysops-text-md">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- No Space Warning -->
+            <div id="lvmNoSpaceWarning" class="sysops-alert-danger-hidden">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.no_free_space_in_volume_group">No Free Space in Volume Group</span></strong>
+                <p class="sysops-subtitle-secondary">
+                    To extend this LV, you need to first add space to the volume group. See "Add New Physical Volume" below.
+                </p>
+            </div>
+
+            <!-- Extension Options (shown when space available) -->
+            <div id="lvmExtendOptions" class="sysops-mb-16">
+                <label class="sysops-label">
+                    Extend by (GB):
+                </label>
+                <div class="sysops-flex-gap-10">
+                    <input type="number" id="extendSizeInput" min="1" step="1" value="10"
+                           style="flex: 1; padding: 10px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-text-primary); font-size: 1rem;">
+                    <button onclick="setExtendMax()" class="action-btn" style="padding: 10px 16px;">
+                        Use All (<span id="extendMaxLabel">0</span> GB)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Commands Section -->
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Commands to run on host (as root):
+                </label>
+                <div class="sysops-code-block">
+                    <pre id="extendCommands" style="margin: 0; white-space: pre-wrap; color: var(--archie-green);"># Commands will appear here</pre>
+                    <button onclick="copyExtendCommands()" style="position: absolute; top: 8px; right: 8px; padding: 4px 8px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-cyan); cursor: pointer; font-size: 0.75rem;">
+                        <i data-lucide="copy" style="width:12px; height:12px; display:inline-block; vertical-align:middle;"></i> Copy
+                    </button>
+                </div>
+            </div>
+
+            <!-- Add New PV Section -->
+            <details class="sysops-mb-16">
+                <summary style="cursor: pointer; color: var(--archie-cyan); font-size: 0.9rem; padding: 8px 0;">
+                    <i data-lucide="plus-circle" style="width:14px; height:14px; display:inline-block; vertical-align:middle; margin-right:6px;"></i>
+                    Add New Physical Volume (expand VG)
+                </summary>
+                <div style="background: var(--archie-bg-tertiary); padding: 12px; border-radius: 6px; margin-top: 8px;">
+                    <p style="font-size: 0.85rem; color: var(--archie-text-secondary); margin-bottom: 12px;">
+                        To add more space to your volume group, you need a new disk or partition. Steps:
+                    </p>
+                    <ol style="font-size: 0.85rem; color: var(--archie-text-secondary); padding-left: 20px; margin: 0;">
+                        <li class="sysops-mb-6"><span data-i18n="system_operations.add_a_new_disk_or_create_a_new_partition">Add a new disk or create a new partition</span></li>
+                        <li class="sysops-mb-6">Initialize as PV: <code class="sysops-code-inline">sudo pvcreate /dev/sdX</code></li>
+                        <li class="sysops-mb-6">Add to VG: <code class="sysops-code-inline">sudo vgextend <span id="addPvVgName">ubuntu-vg</span> /dev/sdX</code></li>
+                        <li><span data-i18n="system_operations.then_return_here_to_extend_the_lv">Then return here to extend the LV</span></li>
+                    </ol>
+                    <div style="margin-top: 12px; padding: 8px; background: rgba(0,255,255,0.1); border-radius: 4px;">
+                        <i data-lucide="info" style="width:14px; height:14px; display:inline-block; vertical-align:middle; color: var(--archie-cyan);"></i>
+                        <span style="font-size: 0.8rem; color: var(--archie-cyan); margin-left: 6px;">
+                            If your disk has unallocated space, you can grow the existing partition with <code>growpart</code> or <code>fdisk</code>, then run <code>pvresize /dev/sdaX</code>
+                        </span>
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeLvmExtendModal()"><span data-i18n="system_operations.close_2">Close</span></button>
+            <button class="btn btn-primary" id="executeLvmExtendBtn" onclick="executeLvmExtend()">
+                <i data-lucide="play" class="sysops-icon-inline-14"></i>
+                Execute on Host
+            </button>
+            <button class="btn btn-primary" id="executeLvmExtendAllBtn" onclick="executeLvmExtendAll()" style="background: var(--archie-orange); border-color: var(--archie-orange);">
+                <i data-lucide="maximize-2" class="sysops-icon-inline-14"></i>
+                Use All Free Space
+            </button>
+            <button class="btn btn-primary" id="refreshAfterExtend" onclick="refreshAfterLvmExtend()">
+                <i data-lucide="refresh-cw" class="sysops-icon-inline-14"></i>
+                Refresh Status
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- LVM Shrink Modal -->
+<div class="modal-overlay" id="lvmShrinkModal">
+    <div class="modal" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-orange">
+                <i data-lucide="minimize-2" class="sysops-icon-inline-20"></i>
+                Shrink Logical Volume
+            </h3>
+            <button class="modal-close" onclick="closeLvmShrinkModal()"><span data-i18n="system_operations.times_8">&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Warning Banner -->
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.data_safety_warning">Data Safety Warning</span></strong>
+                <p class="sysops-subtitle-secondary-085">
+                    Shrinking requires unmounting the volume temporarily. Ensure no applications are using it.
+                    A 10% safety buffer is enforced above used space.
+                </p>
+            </div>
+
+            <!-- Current Status -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.logical_volume_2">Logical Volume</span></span>
+                        <div class="mono sysops-text-green-lg" id="shrinkLvName">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_size_2">Current Size</span></span>
+                        <div id="shrinkLvSize" class="sysops-text-md">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.used_space">Used Space</span></span>
+                        <div id="shrinkLvUsed" style="font-size: 1.1rem; color: var(--archie-cyan);">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.minimum_safe_size">Minimum Safe Size</span></span>
+                        <div id="shrinkMinSize" style="font-size: 1.1rem; color: var(--archie-orange);">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- XFS Warning (hidden by default) -->
+            <div id="shrinkXfsWarning" class="sysops-alert-danger-hidden">
+                <i data-lucide="x-circle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.cannot_shrink_xfs">Cannot Shrink XFS</span></strong>
+                <p class="sysops-subtitle-secondary">
+                    XFS filesystems cannot be shrunk - this is a fundamental limitation of XFS. Only ext4 filesystems support shrinking.
+                </p>
+            </div>
+
+            <!-- Root Warning (hidden by default) -->
+            <div id="shrinkRootWarning" class="sysops-alert-danger-hidden">
+                <i data-lucide="x-circle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.cannot_shrink_root_filesystem">Cannot Shrink Root Filesystem</span></strong>
+                <p class="sysops-subtitle-secondary">
+                    The root filesystem cannot be shrunk while the system is running. This would require booting from a live USB.
+                </p>
+            </div>
+
+            <!-- Size Input -->
+            <div id="shrinkSizeInputArea">
+                <label class="sysops-label-muted"><span data-i18n="system_operations.new_size_gb">New Size (GB):</span></label>
+                <div class="sysops-flex-gap-10">
+                    <input type="number" id="shrinkTargetSize" min="1" step="1" placeholder="Enter size"
+                           style="flex: 1; padding: 10px; background: var(--archie-bg-tertiary); border: 1px solid var(--archie-border-default); border-radius: 4px; color: var(--archie-text-primary); font-size: 1rem;">
+                    <span class="sysops-text-muted">GB</span>
+                </div>
+                <div id="shrinkSizeHint" style="margin-top: 8px; font-size: 0.8rem; color: var(--archie-text-muted);"></div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeLvmShrinkModal()"><span data-i18n="system_operations.cancel_8">Cancel</span></button>
+            <button class="btn btn-warning" id="executeLvmShrinkBtn" onclick="executeLvmShrink()">
+                <i data-lucide="minimize-2" class="sysops-icon-inline-14"></i>
+                Shrink Volume
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Convert to LVM Modal -->
+<div class="modal-overlay" id="convertToLvmModal">
+    <div class="modal" style="max-width: 550px;">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="layers" class="sysops-icon-inline-20"></i>
+                Convert to LVM
+            </h3>
+            <button class="modal-close" onclick="closeConvertToLvmModal()"><span data-i18n="system_operations.times_9">&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Warning Banner -->
+            <div style="background: rgba(255,107,107,0.15); border: 1px solid var(--archie-red); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.data_loss_warning">Data Loss Warning</span></strong>
+                <p class="sysops-subtitle-secondary-085">
+                    Converting to LVM will <strong><span data-i18n="system_operations.erase_all_data">ERASE ALL DATA</span></strong> on this partition. Make sure you have backups!
+                </p>
+            </div>
+
+            <!-- Benefits Info -->
+            <div style="background: rgba(139,92,246,0.15); border: 1px solid var(--archie-purple); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <strong class="sysops-text-purple"><span data-i18n="system_operations.why_lvm">Why LVM?</span></strong>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.85rem; color: var(--archie-text-secondary);">
+                    <li><span data-i18n="system_operations.extend_volumes_without_unmounting">Extend volumes without unmounting</span></li>
+                    <li><span data-i18n="system_operations.shrink_volumes_when_needed">Shrink volumes when needed</span></li>
+                    <li><span data-i18n="system_operations.rename_volumes_easily">Rename volumes easily</span></li>
+                    <li><span data-i18n="system_operations.create_snapshots_future">Create snapshots (future)</span></li>
+                </ul>
+            </div>
+
+            <!-- Current Info -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_2">Device</span></span>
+                        <div class="mono" id="convertDevice" style="color: var(--archie-cyan); font-size: 1rem;">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_4">Size</span></span>
+                        <div id="convertSize" style="font-size: 1rem;">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LVM Names -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                    <label class="sysops-label-muted"><span data-i18n="system_operations.volume_group_name">Volume Group Name:</span></label>
+                    <input type="text" id="convertVgName" placeholder="e.g., data-vg"
+                           class="sysops-input-mono">
+                </div>
+                <div>
+                    <label class="sysops-label-muted"><span data-i18n="system_operations.logical_volume_name">Logical Volume Name:</span></label>
+                    <input type="text" id="convertLvName" placeholder="e.g., data-lv"
+                           class="sysops-input-mono">
+                </div>
+            </div>
+
+            <!-- Filesystem -->
+            <div class="form-group">
+                <label class="sysops-label-muted"><span data-i18n="system_operations.filesystem">Filesystem:</span></label>
+                <select id="convertFstype" class="sysops-input">
+                    <option value="ext4"><span data-i18n="system_operations.ext4_recommended">ext4 (Recommended)</span></option>
+                    <option value="xfs"><span data-i18n="system_operations.xfs">xfs</span></option>
+                    <option value="btrfs"><span data-i18n="system_operations.btrfs">btrfs</span></option>
+                </select>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeConvertToLvmModal()"><span data-i18n="system_operations.cancel_9">Cancel</span></button>
+            <button class="btn btn-danger" onclick="executeConvertToLvm()">
+                <i data-lucide="zap" class="sysops-icon-inline-14"></i>
+                Convert to LVM
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Change Label Modal (for regular partitions) -->
+<div class="modal-overlay" id="changeLabelModal">
+    <div class="modal sysops-max-w-450">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="tag" class="sysops-icon-inline-20"></i>
+                Change Partition Label
+            </h3>
+            <button class="modal-close" onclick="closeChangeLabelModal()"><span data-i18n="system_operations.times_10">&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Current Info -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_3">Device</span></span>
+                        <div class="mono" id="labelDevice" style="color: var(--archie-green); font-size: 1rem;">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_label">Current Label</span></span>
+                        <div id="labelCurrent" style="font-size: 1rem;">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Label Input -->
+            <div class="form-group">
+                <label class="sysops-label-muted"><span data-i18n="system_operations.new_label">New Label:</span></label>
+                <input type="text" id="labelNewName" placeholder="Enter new label" maxlength="16"
+                       class="sysops-input">
+                <span style="font-size: 0.75rem; color: var(--archie-text-muted); margin-top: 4px; display: block;"><span data-i18n="system_operations.max_16_characters_for_ext4">Max 16 characters for ext4</span></span>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeChangeLabelModal()"><span data-i18n="system_operations.cancel_10">Cancel</span></button>
+            <button class="btn btn-primary" onclick="executeChangeLabel()">
+                <i data-lucide="check" class="sysops-icon-inline-14"></i>
+                Change Label
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- LVM Rename Modal -->
+<div class="modal-overlay" id="lvmRenameModal">
+    <div class="modal sysops-max-w-500">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="pencil" class="sysops-icon-inline-20"></i>
+                Rename Logical Volume
+            </h3>
+            <button class="modal-close" onclick="closeLvmRenameModal()"><span data-i18n="system_operations.times_11">&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Warning Banner -->
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.caution">Caution</span></strong>
+                <p class="sysops-subtitle-secondary-085">
+                    Renaming will automatically update /etc/fstab if needed. Any scripts or configs referencing the old name will need manual updates.
+                </p>
+            </div>
+
+            <!-- Current Info -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.volume_group_2">Volume Group</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="renameVgName">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_lv_name">Current LV Name</span></span>
+                        <div class="mono sysops-text-green-lg" id="renameCurrentLvName">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- New Name Input -->
+            <div class="form-group">
+                <label class="sysops-label-muted"><span data-i18n="system_operations.new_lv_name">New LV Name:</span></label>
+                <input type="text" id="renameNewLvName" placeholder="Enter new name (e.g., data-lv)"
+                       pattern="[a-zA-Z0-9_-]+"
+                       class="sysops-input-mono">
+                <span style="font-size: 0.75rem; color: var(--archie-text-muted); margin-top: 4px; display: block;"><span data-i18n="system_operations.only_letters_numbers_hyphens_and_underscores_allow">Only letters, numbers, hyphens, and underscores allowed</span></span>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeLvmRenameModal()"><span data-i18n="system_operations.cancel_11">Cancel</span></button>
+            <button class="btn btn-primary" onclick="executeLvmRename()">
+                <i data-lucide="check" class="sysops-icon-inline-14"></i>
+                Rename
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Re-Authentication Modal -->
+<div class="modal-overlay" id="reauthModal">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-orange">
+                <i data-lucide="shield" class="sysops-icon-inline-20"></i>
+                Re-Authentication Required
+            </h3>
+            <button class="modal-close" onclick="closeReauthModal()"><span data-i18n="system_operations.times_12">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <p id="reauthMessage" style="color: var(--archie-text-secondary); margin-bottom: 16px;">
+                This operation requires password verification to proceed.
+            </p>
+            <label class="sysops-label-muted"><span data-i18n="system_operations.enter_your_password">Enter your password:</span></label>
+            <input type="password" id="reauthPassword" placeholder="Password"
+                   class="sysops-input"
+                   onkeydown="if(event.key==='Enter')submitReauth()">
+            <div id="reauthError" style="display: none; margin-top: 10px; padding: 8px; background: rgba(255,107,107,0.1); border: 1px solid var(--archie-red); border-radius: 4px; color: var(--archie-red); font-size: 0.85rem;"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeReauthModal()"><span data-i18n="system_operations.cancel_12">Cancel</span></button>
+            <button class="btn btn-danger" onclick="submitReauth()"><span data-i18n="system_operations.verify_amp_continue">Verify &amp; Continue</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- Format Partition Modal -->
+<div class="modal-overlay" id="formatModal">
+    <div class="modal sysops-max-w-500">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="hard-drive" class="sysops-icon-inline-20"></i>
+                Format Partition
+            </h3>
+            <button class="modal-close" onclick="closeFormatModal()"><span data-i18n="system_operations.times_13">&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Warning Banner -->
+            <div style="background: rgba(255,107,107,0.15); border: 1px solid var(--archie-red); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.warning_this_will_erase_all_data">WARNING: This will ERASE ALL DATA</span></strong>
+            </div>
+
+            <!-- Partition Info -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_4">Device</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="formatDevice">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_5">Size</span></span>
+                        <div id="formatSize" class="sysops-text-md">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.current_filesystem">Current Filesystem</span></span>
+                        <div id="formatCurrentFs" class="sysops-text-orange">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.label">Label</span></span>
+                        <div id="formatCurrentLabel" class="sysops-text-secondary">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Format Options -->
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    New Filesystem Type:
+                </label>
+                <select id="formatFsType" onchange="updateFormatCommand()" class="sysops-input-plain">
+                    <option value="ext4"><span data-i18n="system_operations.ext4_linux_recommended">ext4 (Linux - recommended)</span></option>
+                    <option value="xfs"><span data-i18n="system_operations.xfs_linux_high_performance">xfs (Linux - high performance)</span></option>
+                    <option value="btrfs"><span data-i18n="system_operations.btrfs_linux_advanced_features">btrfs (Linux - advanced features)</span></option>
+                    <option value="vfat"><span data-i18n="system_operations.vfat_fat32_universal_max_4gb_files">vfat/FAT32 (Universal - max 4GB files)</span></option>
+                    <option value="ntfs"><span data-i18n="system_operations.ntfs_windows_compatible">ntfs (Windows compatible)</span></option>
+                </select>
+            </div>
+
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Volume Label (optional):
+                </label>
+                <input type="text" id="formatLabel" placeholder="e.g., Data, Backup" oninput="updateFormatCommand()"
+                       class="sysops-input">
+            </div>
+
+            <!-- Command Preview -->
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Command to execute:
+                </label>
+                <div class="sysops-code-block-flat">
+                    <code id="formatCommand" class="sysops-text-red">sudo mkfs.ext4 /dev/xxx</code>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeFormatModal()"><span data-i18n="system_operations.cancel_13">Cancel</span></button>
+            <button class="btn btn-danger" onclick="executeFormat()">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-14"></i>
+                Format (Requires Re-auth)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Wipe Drive Modal -->
+<div class="modal-overlay" id="wipeModal">
+    <div class="modal sysops-max-w-500">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-red">
+                <i data-lucide="trash-2" class="sysops-icon-inline-20"></i>
+                Wipe Drive
+            </h3>
+            <button class="modal-close" onclick="closeWipeModal()"><span data-i18n="system_operations.times_14">&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Warning Banner -->
+            <div style="background: rgba(255,0,0,0.15); border: 1px solid var(--archie-red); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <i data-lucide="alert-octagon" class="sysops-icon-inline-16-red"></i>
+                <strong class="sysops-text-red-ml"><span data-i18n="system_operations.warning_this_will_permanently_delete_all_data">WARNING: This will permanently delete ALL data!</span></strong>
+            </div>
+
+            <!-- Drive Info -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_5">Device</span></span>
+                        <div class="mono" id="wipeDevice" style="color: var(--archie-red); font-size: 1.1rem;">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_6">Size</span></span>
+                        <div id="wipeSize" class="sysops-text-md">-</div>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.info">Info</span></span>
+                        <div id="wipeInfo" class="sysops-text-secondary">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wipe Options -->
+            <div class="sysops-mb-16">
+                <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--archie-bg-secondary); border-radius: 6px; cursor: pointer; margin-bottom: 8px;">
+                    <input type="checkbox" id="wipeLvm" checked class="sysops-icon-18">
+                    <div>
+                        <strong style="color: var(--archie-text-primary);"><span data-i18n="system_operations.remove_lvm_structures">Remove LVM structures</span></strong>
+                        <span style="display: block; font-size: 0.8rem; color: var(--archie-text-muted);"><span data-i18n="system_operations.remove_lv_vg_and_pv_from_this_device">Remove LV, VG, and PV from this device</span></span>
+                    </div>
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; padding: 10px; background: var(--archie-bg-secondary); border-radius: 6px; cursor: pointer;">
+                    <input type="checkbox" id="wipePartitionTable" class="sysops-icon-18">
+                    <div>
+                        <strong style="color: var(--archie-text-primary);"><span data-i18n="system_operations.wipe_partition_table">Wipe partition table</span></strong>
+                        <span style="display: block; font-size: 0.8rem; color: var(--archie-text-muted);"><span data-i18n="system_operations.completely_reset_drive_whole_drives_only">Completely reset drive (whole drives only)</span></span>
+                    </div>
+                </label>
+            </div>
+
+            <!-- What happens -->
+            <div style="font-size: 0.85rem; color: var(--archie-text-secondary);">
+                <p style="margin: 0 0 4px 0;"><strong><span data-i18n="system_operations.this_will">This will:</span></strong></p>
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><span data-i18n="system_operations.unmount_any_mounted_filesystems">Unmount any mounted filesystems</span></li>
+                    <li><span data-i18n="system_operations.remove_lvm_structures_lv_vg_pv">Remove LVM structures (LV → VG → PV)</span></li>
+                    <li><span data-i18n="system_operations.optionally_zero_the_partition_table">Optionally zero the partition table</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeWipeModal()"><span data-i18n="system_operations.cancel_14">Cancel</span></button>
+            <button class="btn btn-danger" onclick="executeWipe()">
+                <i data-lucide="trash-2" class="sysops-icon-inline-14"></i>
+                Wipe (Requires Re-auth)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Prepare Drive Modal -->
+<div class="modal-overlay" id="prepareLvmModal">
+    <div class="modal" style="max-width: 520px;">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="layers" class="sysops-icon-inline-20"></i>
+                Prepare Drive as LVM
+            </h3>
+            <button class="modal-close" onclick="closePrepareLvmModal()"><span data-i18n="system_operations.times_15">&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Warning Banner -->
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.this_will_erase_the_entire_drive">This will ERASE the entire drive</span></strong>
+            </div>
+
+            <!-- Drive Info -->
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.drive">Drive</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="prepareLvmDevice">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.size_7">Size</span></span>
+                        <div id="prepareLvmSize" class="sysops-text-md">-</div>
+                    </div>
+                    <div style="grid-column: span 2;">
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.model">Model</span></span>
+                        <div id="prepareLvmModel" class="sysops-text-secondary">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div style="margin-bottom: 16px; color: var(--archie-text-secondary); font-size: 0.9rem; line-height: 1.5;">
+                <p style="margin: 0 0 8px 0;"><span data-i18n="system_operations.this_operation_will">This operation will:</span></p>
+                <ol style="margin: 0; padding-left: 20px;">
+                    <li><span data-i18n="system_operations.create_gpt_partition_table_and_single_partition">Create GPT partition table and single partition</span></li>
+                    <li><span data-i18n="system_operations.create_lvm_physical_volume_pv">Create LVM Physical Volume (PV)</span></li>
+                    <li><span data-i18n="system_operations.create_volume_group_vg_and_logical_volume_lv">Create Volume Group (VG) and Logical Volume (LV)</span></li>
+                    <li><span data-i18n="system_operations.format_and_optionally_mount_the_lv">Format and optionally mount the LV</span></li>
+                </ol>
+            </div>
+
+            <!-- VG Name -->
+            <div class="sysops-mb-12">
+                <label class="sysops-label-secondary">
+                    Volume Group Name:
+                </label>
+                <input type="text" id="prepareLvmVgName" placeholder="e.g., data-vg" class="sysops-input">
+            </div>
+
+            <!-- LV Name -->
+            <div class="sysops-mb-12">
+                <label class="sysops-label-secondary">
+                    Logical Volume Name:
+                </label>
+                <input type="text" id="prepareLvmLvName" placeholder="e.g., data-lv" class="sysops-input">
+            </div>
+
+            <!-- Filesystem Choice -->
+            <div class="sysops-mb-12">
+                <label class="sysops-label-secondary">
+                    Filesystem:
+                </label>
+                <select id="prepareLvmFs" class="sysops-input-plain">
+                    <option value="ext4"><span data-i18n="system_operations.ext4_recommended_2">ext4 (recommended)</span></option>
+                    <option value="xfs"><span data-i18n="system_operations.xfs_high_performance">xfs (high performance)</span></option>
+                </select>
+            </div>
+
+            <!-- Mount Point -->
+            <div class="sysops-mb-16">
+                <label class="sysops-label-secondary">
+                    Mount Point (optional):
+                </label>
+                <input type="text" id="prepareLvmMountpoint" placeholder="e.g., /mnt/data" class="sysops-input">
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closePrepareLvmModal()"><span data-i18n="system_operations.cancel_15">Cancel</span></button>
+            <button class="btn btn-warning" onclick="executePrepareLvm()">
+                <i data-lucide="layers" class="sysops-icon-inline-14"></i>
+                Prepare as LVM
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Partition Details Modal -->
+<div class="modal-overlay" id="partitionDetailsModal">
+    <div class="modal" style="max-width: 480px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="partitionDetailsTitle">
+                <i data-lucide="hard-drive" class="sysops-icon-inline-20"></i>
+                <span id="partitionDetailsName"><span data-i18n="system_operations.partition_details">Partition Details</span></span>
+            </h3>
+            <button class="modal-close" onclick="closePartitionDetailsModal()"><span data-i18n="system_operations.times_16">&times;</span></button>
+        </div>
+        <div class="modal-body" id="partitionDetailsBody">
+            <!-- Populated by JavaScript -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closePartitionDetailsModal()"><span data-i18n="system_operations.close_3">Close</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- Mount Modal -->
+<div class="modal-overlay" id="mountModal">
+    <div class="modal sysops-max-w-450">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="arrow-down-to-line" class="sysops-icon-inline-20"></i>
+                Mount Device
+            </h3>
+            <button class="modal-close" onclick="closeMountModal()"><span data-i18n="system_operations.times_17">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="sysops-panel">
+                <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_6">Device</span></span>
+                <div class="mono sysops-text-cyan-lg" id="mountDevice">-</div>
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Mount Point:
+                </label>
+                <input type="text" id="mountMountpoint" placeholder="/mnt/data"
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
+                    Must be an absolute path (e.g., /mnt/data, /media/backup)
+                </span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeMountModal()"><span data-i18n="system_operations.cancel_16">Cancel</span></button>
+            <button class="btn btn-primary" onclick="executeMount()"><span data-i18n="system_operations.mount">Mount</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- Create LV Modal -->
+<div class="modal-overlay" id="createLvModal">
+    <div class="modal sysops-max-w-500">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="plus" class="sysops-icon-inline-20"></i>
+                Create Logical Volume
+            </h3>
+            <button class="modal-close" onclick="closeCreateLvModal()"><span data-i18n="system_operations.times_18">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.volume_group_3">Volume Group</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="createLvVgName">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.free_space">Free Space</span></span>
+                        <div id="createLvFreeSpace" class="sysops-text-green-lg">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    LV Name:
+                </label>
+                <input type="text" id="createLvName" placeholder="data-lv"
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
+                    Letters, numbers, hyphens, and underscores only
+                </span>
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Size (GB):
+                </label>
+                <input type="number" id="createLvSize" min="1" placeholder="10"
+                       class="sysops-input">
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Filesystem:
+                </label>
+                <select id="createLvFsType" class="sysops-input-plain">
+                    <option value="ext4"><span data-i18n="system_operations.ext4_recommended_3">ext4 (recommended)</span></option>
+                    <option value="xfs"><span data-i18n="system_operations.xfs_2">xfs</span></option>
+                    <option value="btrfs"><span data-i18n="system_operations.btrfs_2">btrfs</span></option>
+                </select>
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Mount Point (optional):
+                </label>
+                <input type="text" id="createLvMountpoint" placeholder="/mnt/data"
+                       class="sysops-input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeCreateLvModal()"><span data-i18n="system_operations.cancel_17">Cancel</span></button>
+            <button class="btn btn-primary" onclick="executeCreateLv()"><span data-i18n="system_operations.create_lv">Create LV</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- Create VG Modal -->
+<div class="modal-overlay" id="createVgModal">
+    <div class="modal sysops-max-w-500">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-cyan">
+                <i data-lucide="database" class="sysops-icon-inline-20"></i>
+                Create Volume Group
+            </h3>
+            <button class="modal-close" onclick="closeCreateVgModal()"><span data-i18n="system_operations.times_19">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="sysops-alert-warning">
+                <div style="display: flex; align-items: center; gap: 8px; color: var(--archie-orange);">
+                    <i data-lucide="alert-triangle" class="sysops-icon-18"></i>
+                    <strong><span data-i18n="system_operations.dangerous_operation">DANGEROUS OPERATION</span></strong>
+                </div>
+                <p style="color: var(--archie-text-secondary); margin: 8px 0 0 0; font-size: 0.85rem;">
+                    This will convert the device to a physical volume and create a new volume group.
+                    Any existing data on the device will be lost.
+                </p>
+            </div>
+            <div class="sysops-panel">
+                <span class="sysops-text-muted-sm"><span data-i18n="system_operations.physical_volume_device">Physical Volume Device</span></span>
+                <div class="mono sysops-text-cyan-lg" id="createVgPvDevice">-</div>
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    VG Name:
+                </label>
+                <input type="text" id="createVgName" placeholder="data-vg"
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
+                    Letters, numbers, hyphens, and underscores only
+                </span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeCreateVgModal()"><span data-i18n="system_operations.cancel_18">Cancel</span></button>
+            <button class="btn btn-primary" onclick="executeCreateVg()" style="background: var(--archie-orange);"><span data-i18n="system_operations.create_vg">Create VG</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- LVM Snapshot Modal -->
+<div class="modal-overlay" id="snapshotModal">
+    <div class="modal sysops-max-w-500">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="copy" class="sysops-icon-inline-20"></i>
+                Create LVM Snapshot
+            </h3>
+            <button class="modal-close" onclick="closeSnapshotModal()"><span data-i18n="system_operations.times_20">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.source_lv">Source LV</span></span>
+                        <div class="mono" id="snapshotSourceLv" style="color: var(--archie-cyan); font-size: 1rem;">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.vg_free_space_2">VG Free Space</span></span>
+                        <div id="snapshotVgFree" style="color: var(--archie-green); font-size: 1rem;">-</div>
+                    </div>
+                </div>
+            </div>
+            <div style="background: var(--archie-blue-alpha-10); border: 1px solid var(--archie-cyan); padding: 12px; border-radius: 6px; margin-bottom: 16px;">
+                <p style="color: var(--archie-text-secondary); margin: 0; font-size: 0.85rem;">
+                    <strong><span data-i18n="system_operations.lvm_snapshots">LVM Snapshots</span></strong> are copy-on-write backups. The snapshot captures the state of the LV
+                    at creation time. Changes made after are tracked separately. Useful for backups.
+                </p>
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Snapshot Name:
+                </label>
+                <input type="text" id="snapshotName" placeholder="backup-20260131"
+                       class="sysops-input">
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Snapshot Size (GB):
+                </label>
+                <input type="number" id="snapshotSize" min="1" placeholder="10"
+                       class="sysops-input">
+                <span class="sysops-text-muted-sm-block">
+                    Size should be enough to hold expected changes while snapshot is active
+                </span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeSnapshotModal()"><span data-i18n="system_operations.cancel_19">Cancel</span></button>
+            <button class="btn btn-primary" onclick="executeSnapshot()"><span data-i18n="system_operations.create_snapshot">Create Snapshot</span></button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Partition Modal -->
+<div class="modal-overlay" id="createPartitionModal">
+    <div class="modal sysops-max-w-450">
+        <div class="modal-header">
+            <h3 class="modal-title sysops-text-purple">
+                <i data-lucide="plus-circle" class="sysops-icon-inline-20"></i>
+                Create Partition
+            </h3>
+            <button class="modal-close" onclick="closeCreatePartitionModal()"><span data-i18n="system_operations.times_21">&times;</span></button>
+        </div>
+        <div class="modal-body">
+            <div class="sysops-alert-warning">
+                <i data-lucide="alert-triangle" class="sysops-icon-inline-16-orange"></i>
+                <strong class="sysops-text-orange-ml"><span data-i18n="system_operations.modifies_partition_table">Modifies partition table</span></strong>
+            </div>
+            <div class="sysops-panel">
+                <div class="sysops-grid-2col">
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.device_7">Device</span></span>
+                        <div class="mono sysops-text-cyan-lg" id="createPartitionDevice">-</div>
+                    </div>
+                    <div>
+                        <span class="sysops-text-muted-sm"><span data-i18n="system_operations.unallocated">Unallocated</span></span>
+                        <div id="createPartitionFreeSpace" style="color: var(--archie-purple); font-size: 1.1rem;">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="sysops-mb-16">
+                <label class="sysops-label">
+                    Partition Size (GB):
+                </label>
+                <input type="number" id="createPartitionSize" min="1" placeholder="100"
+                       class="sysops-input">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-ghost" onclick="closeCreatePartitionModal()"><span data-i18n="system_operations.cancel_20">Cancel</span></button>
+            <button class="btn btn-warning" onclick="executeCreatePartition()">
+                <i data-lucide="plus-circle" class="sysops-icon-inline-14"></i>
+                Create (Requires Re-auth)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Loading Overlay for long operations -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <div class="loading-title" id="loadingTitle"><span data-i18n="system_operations.processing_2">Processing...</span></div>
+        <div class="loading-message" id="loadingMessage"><span data-i18n="system_operations.please_wait_while_the_operation_completes">Please wait while the operation completes</span></div>
+        <div class="loading-progress" id="loadingProgress"></div>
+        <button class="btn btn-ghost" id="loadingCancelBtn" onclick="cancelLoadingOverlay()" style="margin-top: 20px; display: none;">
+            <i data-lucide="x" class="sysops-icon-inline-14"></i>
+            Cancel / Close
+        </button>
+    </div>
+</div>
+
+<!-- Load Chart.js synchronously right before main script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<script src="/static/js/system-operations.js"></script>
+{% endblock %}

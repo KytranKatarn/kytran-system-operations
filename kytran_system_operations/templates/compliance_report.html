@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compliance Report — {{ server_info.hostname|default('Server') }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0a0a0f; --surface: #12121a; --surface-2: #1a1a2e; --border: #2a2a3e;
+            --text: #e0e0e8; --text-dim: #8888a0; --accent: #10b981; --accent-dim: rgba(16,185,129,0.2);
+            --green: #22c55e; --green-dim: rgba(34,197,94,0.15);
+            --red: #ef4444; --red-dim: rgba(239,68,68,0.15);
+            --yellow: #eab308; --yellow-dim: rgba(234,179,8,0.15);
+            --blue: #3b82f6; --blue-dim: rgba(59,130,246,0.15);
+            --font-heading: 'Orbitron', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+        }
+        body { background: var(--bg); color: var(--text); font-family: var(--font-mono); font-size: 14px; line-height: 1.6; padding: 2rem; }
+        .report { max-width: 1000px; margin: 0 auto; }
+
+        /* Header */
+        .header { text-align: center; padding: 2.5rem 2rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-bottom: 2rem; }
+        .header-brand { font-family: var(--font-heading); font-size: 0.75rem; color: var(--accent); letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.25rem; }
+        .header-title { font-family: var(--font-heading); font-size: 1.5rem; font-weight: 900; color: var(--text); margin-bottom: 1rem; }
+        .header-meta { display: flex; justify-content: center; gap: 2rem; flex-wrap: wrap; font-size: 0.8rem; color: var(--text-dim); }
+        .header-meta span { display: flex; align-items: center; gap: 0.3rem; }
+
+        /* Score Banner */
+        .score-banner { display: flex; align-items: center; justify-content: center; gap: 3rem; padding: 2rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); margin-bottom: 2rem; flex-wrap: wrap; }
+        .score-main { text-align: center; }
+        .score-value { font-family: var(--font-heading); font-size: 3rem; font-weight: 900; }
+        .score-grade { font-family: var(--font-heading); font-size: 1.2rem; font-weight: 700; padding: 4px 16px; border-radius: 6px; display: inline-block; margin-top: 4px; }
+        .grade-a { color: var(--green); background: var(--green-dim); }
+        .grade-b { color: var(--blue); background: var(--blue-dim); }
+        .grade-c { color: var(--yellow); background: var(--yellow-dim); }
+        .grade-f { color: var(--red); background: var(--red-dim); }
+        .score-stats { display: flex; gap: 2rem; }
+        .stat { text-align: center; }
+        .stat-num { font-family: var(--font-heading); font-size: 1.8rem; font-weight: 700; }
+        .stat-label { font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; }
+        .stat-num.green { color: var(--green); }
+        .stat-num.red { color: var(--red); }
+
+        /* Sections */
+        .section { margin-bottom: 2rem; }
+        .section-title { font-family: var(--font-heading); font-size: 0.9rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 2px solid var(--accent-dim); padding-bottom: 0.4rem; margin-bottom: 1rem; }
+
+        /* Framework table */
+        .fw-table { width: 100%; border-collapse: collapse; }
+        .fw-table th, .fw-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.82rem; }
+        .fw-table th { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; }
+        .fw-table .fw-score { font-weight: 700; }
+
+        /* Findings */
+        .findings-summary { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 1rem; }
+        .finding { padding: 10px 14px; border-left: 3px solid var(--border); margin-bottom: 6px; background: var(--surface); border-radius: 0 6px 6px 0; display: flex; align-items: center; gap: 12px; font-size: 0.82rem; }
+        .finding.fail { border-left-color: var(--red); background: var(--red-dim); }
+        .finding.pass { border-left-color: var(--green); }
+        .finding-id { font-weight: 600; color: var(--text); min-width: 80px; }
+        .finding-title { flex: 1; }
+        .finding-sev { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; font-weight: 600; }
+        .sev-high { color: var(--red); background: var(--red-dim); }
+        .sev-medium { color: var(--yellow); background: var(--yellow-dim); }
+        .sev-low { color: var(--blue); background: var(--blue-dim); }
+        .finding-status { font-size: 0.7rem; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+        .status-pass { color: var(--green); background: var(--green-dim); }
+        .status-fail { color: var(--red); background: var(--red-dim); }
+
+        /* Collapsible */
+        details { margin-bottom: 1rem; }
+        summary { cursor: pointer; font-size: 0.85rem; color: var(--text-dim); padding: 8px 0; }
+        summary:hover { color: var(--accent); }
+
+        /* Evidence */
+        .ev-item { padding: 8px 12px; margin-bottom: 4px; background: var(--surface-2); border-radius: 4px; font-size: 0.78rem; }
+        .ev-rule { font-weight: 600; color: var(--text); }
+        .ev-detail { color: var(--text-dim); margin-top: 2px; }
+
+        /* Footer */
+        .footer { text-align: center; padding: 1.5rem 0; border-top: 1px solid var(--border); margin-top: 2rem; color: var(--text-dim); font-size: 0.75rem; }
+
+        /* Severity breakdown */
+        .sev-bar { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 0.5rem; }
+        .sev-chip { font-size: 0.75rem; padding: 3px 10px; border-radius: 4px; font-weight: 600; }
+
+        /* Remediation */
+        .rem-item { padding: 8px 14px; margin-bottom: 4px; background: var(--surface); border-left: 3px solid var(--accent); border-radius: 0 6px 6px 0; font-size: 0.82rem; }
+        .rem-result { font-size: 0.7rem; padding: 2px 6px; border-radius: 3px; font-weight: 600; }
+        .rem-success { color: var(--green); background: var(--green-dim); }
+        .rem-failed { color: var(--red); background: var(--red-dim); }
+
+        /* Print button */
+        .print-btn { position: fixed; top: 1rem; right: 1rem; background: var(--accent); color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-family: var(--font-heading); font-size: 0.75rem; font-weight: 700; cursor: pointer; z-index: 100; letter-spacing: 0.05em; }
+        .print-btn:hover { opacity: 0.85; }
+
+        /* Print */
+        @media print {
+            body { background: #fff; color: #000; padding: 0; }
+            .header, .score-banner, .section, .finding { border-color: #ddd; background: #fff; }
+            .section-title { color: #10b981; border-color: #10b981; }
+            .finding.pass { border-left-color: #22c55e; }
+            .finding.fail { border-left-color: #ef4444; background: #fff0f0; }
+            .print-btn { display: none; }
+            details[open] summary { display: none; }
+            details { display: block; }
+        }
+    </style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+
+<div class="report">
+
+    <!-- Header -->
+    <div class="header">
+        <img src="/static/img/kytran-logo.png" alt="Kytran" style="height: 48px; margin-bottom: 0.75rem;">
+        <div class="header-brand">Kytran System Operations</div>
+        <div class="header-title">Compliance Report</div>
+        <div class="header-meta">
+            <span>Host: <strong>{{ server_info.hostname|default('N/A') }}</strong></span>
+            <span>OS: <strong>{{ server_info.os|default('Linux') }}</strong></span>
+            <span>Scan: <strong>{{ scan.scan_id|default('N/A') }}</strong></span>
+            <span>Date: <strong>{{ scan.completed_at|default(server_info.generated_at|default('N/A')) }}</strong></span>
+            {% if scan.started_at and scan.completed_at %}
+            <span>Duration: <strong>{{ scan.duration|default('N/A') }}s</strong></span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Score Banner -->
+    {% set score = scan.score|default(scan.overall_score|default(0))|float %}
+    {% set grade = 'A+' if score >= 95 else 'A' if score >= 90 else 'B+' if score >= 85 else 'B' if score >= 80 else 'C' if score >= 70 else 'D' if score >= 60 else 'F' %}
+    {% set grade_class = 'grade-a' if score >= 80 else 'grade-b' if score >= 70 else 'grade-c' if score >= 60 else 'grade-f' %}
+    <div class="score-banner">
+        <div class="score-main">
+            <div class="score-value" style="color: {{ 'var(--green)' if score >= 80 else 'var(--yellow)' if score >= 60 else 'var(--red)' }};">{{ '%.1f'|format(score) }}%</div>
+            <div class="score-grade {{ grade_class }}">{{ grade }}</div>
+        </div>
+        <div class="score-stats">
+            <div class="stat">
+                <div class="stat-num">{{ scan.total_rules|default(0) }}</div>
+                <div class="stat-label">Total Rules</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num green">{{ scan.passed|default(0) }}</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat">
+                <div class="stat-num red">{{ scan.failed|default(0) }}</div>
+                <div class="stat-label">Failed</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Severity Breakdown -->
+    {% set high_count = findings|selectattr('severity', 'equalto', 'high')|list|length %}
+    {% set med_count = findings|selectattr('severity', 'equalto', 'medium')|list|length %}
+    {% set low_count = findings|selectattr('severity', 'equalto', 'low')|list|length %}
+    <div class="sev-bar">
+        <span class="sev-chip sev-high">HIGH: {{ high_count }}</span>
+        <span class="sev-chip sev-medium">MEDIUM: {{ med_count }}</span>
+        <span class="sev-chip sev-low">LOW: {{ low_count }}</span>
+    </div>
+
+    <!-- Framework Scores (only if data exists) -->
+    {% if pack_scores %}
+    <div class="section">
+        <div class="section-title">Framework Scores</div>
+        <table class="fw-table">
+            <thead><tr><th>Framework</th><th>Total</th><th>Passed</th><th>Failed</th><th>Score</th><th>Grade</th></tr></thead>
+            <tbody>
+            {% for pack_id, ps in pack_scores.items()|sort %}
+                {% set ps_score = ps.score|default(0)|float %}
+                {% set ps_grade = 'A+' if ps_score >= 95 else 'A' if ps_score >= 90 else 'B' if ps_score >= 80 else 'C' if ps_score >= 70 else 'F' %}
+                <tr>
+                    <td><strong>{{ pack_id }}</strong></td>
+                    <td>{{ ps.total|default(0) }}</td>
+                    <td style="color: var(--green);">{{ ps.passed|default(0) }}</td>
+                    <td style="color: var(--red);">{{ ps.failed|default(0) }}</td>
+                    <td class="fw-score">{{ '%.1f'|format(ps_score) }}%</td>
+                    <td><span class="score-grade {{ 'grade-a' if ps_score >= 80 else 'grade-c' if ps_score >= 60 else 'grade-f' }}" style="font-size: 0.7rem; padding: 2px 8px;">{{ ps_grade }}</span></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+    <!-- Failed Findings (shown prominently) -->
+    {% set failed_findings = findings|selectattr('status', 'equalto', 'fail')|list %}
+    {% if failed_findings %}
+    <div class="section">
+        <div class="section-title">Failed Rules ({{ failed_findings|length }})</div>
+        {% for f in failed_findings %}
+        <div class="finding fail">
+            <span class="finding-id">{{ f.rule_id }}</span>
+            <span class="finding-sev sev-{{ f.severity|default('medium') }}">{{ f.severity|default('medium')|upper }}</span>
+            <span class="finding-title">{{ f.title|default(f.description|default('')) }}</span>
+            <span class="finding-status status-fail">FAIL</span>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Passing Rules (collapsible) -->
+    {% set passed_findings = findings|selectattr('status', 'equalto', 'pass')|list %}
+    {% if passed_findings %}
+    <div class="section">
+        <div class="section-title">Passing Rules ({{ passed_findings|length }})</div>
+        <details>
+            <summary>View all {{ passed_findings|length }} passing rules</summary>
+            {% for f in passed_findings %}
+            <div class="finding pass">
+                <span class="finding-id">{{ f.rule_id }}</span>
+                <span class="finding-sev sev-{{ f.severity|default('medium') }}">{{ f.severity|default('medium')|upper }}</span>
+                <span class="finding-title">{{ f.title|default(f.description|default('')) }}</span>
+                <span class="finding-status status-pass">PASS</span>
+            </div>
+            {% endfor %}
+        </details>
+    </div>
+    {% endif %}
+
+    <!-- SOC 2 Evidence (collapsible) -->
+    {% if evidence_by_tsc %}
+    <div class="section">
+        <div class="section-title">SOC 2 Evidence ({{ evidence_by_tsc|length }} categories)</div>
+        <details>
+            <summary>View evidence by Trust Service Criteria</summary>
+            {% for tsc_code, evidence_list in evidence_by_tsc.items()|sort %}
+            <div style="margin: 1rem 0;">
+                <strong style="color: var(--accent); font-size: 0.8rem;">{{ tsc_code }}</strong>
+                <span style="color: var(--text-dim); font-size: 0.75rem;"> — {{ evidence_list|length }} artifact{{ 's' if evidence_list|length != 1 }}</span>
+                {% for ev in evidence_list %}
+                <div class="ev-item">
+                    <span class="ev-rule">{{ ev.rule_id|default('') }}</span> — {{ ev.description|default(ev.type|default('check')) }}
+                    {% if ev.collected_at %}<div class="ev-detail">Collected: {{ ev.collected_at }}</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+        </details>
+    </div>
+    {% endif %}
+
+    <!-- AI Analysis (if available) -->
+    {% if ai_analysis %}
+    <div class="section">
+        <div class="section-title">AI Analysis</div>
+        {% if ai_analysis.executive_summary %}
+        <p style="margin-bottom: 1rem;">{{ ai_analysis.executive_summary }}</p>
+        {% endif %}
+        {% if ai_analysis.remediation_plan %}
+        <div style="margin-top: 0.5rem;"><strong>Remediation Plan:</strong></div>
+        <p style="color: var(--text-dim);">{{ ai_analysis.remediation_plan }}</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Remediation History -->
+    {% if remediations %}
+    <div class="section">
+        <div class="section-title">Remediation Actions ({{ remediations|length }})</div>
+        {% for rem in remediations %}
+        <div class="rem-item">
+            <strong>{{ rem.rule_id }}</strong> — {{ rem.action_type|default('fix') }}
+            <span class="rem-result {{ 'rem-success' if rem.result == 'success' else 'rem-failed' }}">{{ rem.result|upper }}</span>
+            {% if rem.command_executed %}<div style="color: var(--text-dim); font-size: 0.75rem; margin-top: 2px;">{{ rem.command_executed[:150] }}</div>{% endif %}
+            {% if rem.executed_at %}<div style="color: var(--text-dim); font-size: 0.7rem;">{{ rem.executed_at }}</div>{% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+        Generated by Kytran System Operations &mdash; {{ server_info.generated_at|default('') }}<br>
+        {{ server_info.hostname|default('') }} &bull; Scan {{ scan.scan_id|default('') }}
+    </div>
+
+</div>
+</body>
+</html>

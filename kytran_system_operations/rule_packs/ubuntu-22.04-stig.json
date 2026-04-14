@@ -1,0 +1,1138 @@
+{
+  "pack_id": "ubuntu-22.04-stig",
+  "name": "Ubuntu 22.04 STIG",
+  "description": "Security Technical Implementation Guide for Ubuntu 22.04 LTS based on DISA STIG",
+  "version": "1.0",
+  "category": "os",
+  "rules": [
+    {
+      "rule_id": "V-238196",
+      "severity": "high",
+      "title": "SSH must use FIPS-validated MACs",
+      "description": "Without cryptographic integrity protections, information can be altered without detection.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^MACs",
+        "expected": "hmac-sha2-256,hmac-sha2-512"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "MACs hmac-sha2-256,hmac-sha2-512",
+        "restart_service": "sshd",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "cci": "CCI-001453"
+    },
+    {
+      "rule_id": "V-238197",
+      "severity": "high",
+      "title": "SSH must use FIPS-validated ciphers",
+      "description": "Without confidentiality protection mechanisms, unauthorized individuals may gain access to sensitive information.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^Ciphers",
+        "expected": "aes256-ctr,aes192-ctr,aes128-ctr"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "Ciphers aes256-ctr,aes192-ctr,aes128-ctr",
+        "restart_service": "sshd",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-001453"
+    },
+    {
+      "rule_id": "V-238198",
+      "severity": "high",
+      "title": "SSH must disable root login",
+      "description": "Direct root login must be disabled to ensure accountability of actions performed on the system.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^PermitRootLogin",
+        "expected": "no"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "PermitRootLogin no",
+        "restart_service": "sshd",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.2"
+      ],
+      "cci": "CCI-000770"
+    },
+    {
+      "rule_id": "V-238199",
+      "severity": "medium",
+      "title": "SSH must disable empty passwords",
+      "description": "Permitting login without a password is inherently risky.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^PermitEmptyPasswords",
+        "expected": "no"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "PermitEmptyPasswords no",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000766"
+    },
+    {
+      "rule_id": "V-238200",
+      "severity": "medium",
+      "title": "SSH must set MaxAuthTries to 4 or less",
+      "description": "Setting the maximum number of authentication attempts protects against brute force attacks.",
+      "check": {
+        "type": "command_output",
+        "command": "grep '^MaxAuthTries' /etc/ssh/sshd_config 2>/dev/null | awk '{if($2 <= 4 && $2 > 0) print \"COMPLIANT_\"$2; else print \"NONCOMPLIANT_\"$2}'",
+        "expected": "COMPLIANT_",
+        "match_pattern": "COMPLIANT_"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "MaxAuthTries 4",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000044"
+    },
+    {
+      "rule_id": "V-238201",
+      "severity": "medium",
+      "title": "SSH must use protocol version 2",
+      "description": "SSH protocol version 1 has known vulnerabilities and must not be used.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^Protocol",
+        "expected": "2"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "Protocol 2",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-001941"
+    },
+    {
+      "rule_id": "V-238202",
+      "severity": "medium",
+      "title": "SSH must disable X11 forwarding",
+      "description": "X11 forwarding over SSH can allow unauthorized GUI access to the server.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^X11Forwarding",
+        "expected": "no"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "X11Forwarding no",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238203",
+      "severity": "medium",
+      "title": "SSH ClientAliveInterval must be set to 600 or less",
+      "description": "Terminating idle sessions reduces the window of opportunity for unauthorized access.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^ClientAliveInterval",
+        "expected": "600"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "ClientAliveInterval 600",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-001133"
+    },
+    {
+      "rule_id": "V-238204",
+      "severity": "medium",
+      "title": "SSH ClientAliveCountMax must be set to 1",
+      "description": "This limits the number of unresponsive keepalive messages before disconnecting.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^ClientAliveCountMax",
+        "expected": "1"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "ClientAliveCountMax 1",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-001133"
+    },
+    {
+      "rule_id": "V-238205",
+      "severity": "medium",
+      "title": "SSH must set LoginGraceTime to 60 or less",
+      "description": "Limiting login grace time reduces the attack surface for brute force.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/ssh/sshd_config",
+        "pattern": "^LoginGraceTime",
+        "expected": "60"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/ssh/sshd_config",
+        "line": "LoginGraceTime 60",
+        "restart_service": "sshd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238210",
+      "severity": "medium",
+      "title": "Password minimum length must be 14 characters",
+      "description": "The shorter the password, the lower the number of possible combinations that need to be tested.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/security/pwquality.conf",
+        "pattern": "^minlen",
+        "expected": "14"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/security/pwquality.conf",
+        "line": "minlen = 14",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000205"
+    },
+    {
+      "rule_id": "V-238211",
+      "severity": "medium",
+      "title": "Password must require at least 1 uppercase character",
+      "description": "Use of a complex password helps increase the time needed to compromise the password.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/security/pwquality.conf",
+        "pattern": "^ucredit",
+        "expected": "-1"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/security/pwquality.conf",
+        "line": "ucredit = -1",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000192"
+    },
+    {
+      "rule_id": "V-238212",
+      "severity": "medium",
+      "title": "Password must require at least 1 lowercase character",
+      "description": "Use of a complex password helps increase the time needed to compromise the password.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/security/pwquality.conf",
+        "pattern": "^lcredit",
+        "expected": "-1"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/security/pwquality.conf",
+        "line": "lcredit = -1",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000193"
+    },
+    {
+      "rule_id": "V-238213",
+      "severity": "medium",
+      "title": "Password must require at least 1 digit",
+      "description": "Use of a complex password helps increase the time needed to compromise the password.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/security/pwquality.conf",
+        "pattern": "^dcredit",
+        "expected": "-1"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/security/pwquality.conf",
+        "line": "dcredit = -1",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000194"
+    },
+    {
+      "rule_id": "V-238214",
+      "severity": "medium",
+      "title": "Password must require at least 1 special character",
+      "description": "Use of a complex password helps increase the time needed to compromise the password.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/security/pwquality.conf",
+        "pattern": "^ocredit",
+        "expected": "-1"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/security/pwquality.conf",
+        "line": "ocredit = -1",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-001619"
+    },
+    {
+      "rule_id": "V-238215",
+      "severity": "medium",
+      "title": "Password must require minimum 8 characters changed from old password",
+      "description": "Requiring a minimum number of changed characters prevents trivial password rotations.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/security/pwquality.conf",
+        "pattern": "^difok",
+        "expected": "8"
+      },
+      "fix": {
+        "type": "file_line",
+        "path": "/etc/security/pwquality.conf",
+        "line": "difok = 8",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000195"
+    },
+    {
+      "rule_id": "V-238216",
+      "severity": "medium",
+      "title": "Password must enforce history of 5 previous passwords",
+      "description": "Prevents reuse of recent passwords to avoid compromised credential reuse.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/pam.d/common-password",
+        "pattern": "pam_unix.so.*remember",
+        "expected": "remember=5"
+      },
+      "fix": {
+        "type": "command",
+        "command": "sed -i '/pam_unix.so/ s/$/ remember=5/' /etc/pam.d/common-password",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000200"
+    },
+    {
+      "rule_id": "V-238217",
+      "severity": "medium",
+      "title": "Account lockout must be configured for 3 failed attempts",
+      "description": "Locking accounts after failed login attempts reduces brute force attack effectiveness.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/pam.d/common-auth",
+        "pattern": "pam_tally2.so|pam_faillock.so",
+        "expected": "deny=3"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo 'auth required pam_faillock.so preauth deny=3 unlock_time=600 audit' >> /etc/pam.d/common-auth",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000044"
+    },
+    {
+      "rule_id": "V-238220",
+      "severity": "medium",
+      "title": "Audit system must be configured to audit login events",
+      "description": "Without auditing login events, security incidents may go undetected.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/audit/rules.d/audit.rules",
+        "pattern": "logins",
+        "expected": "-w /var/log/lastlog"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo '-w /var/log/lastlog -p wa -k logins' >> /etc/audit/rules.d/audit.rules && echo '-w /var/run/faillock -p wa -k logins' >> /etc/audit/rules.d/audit.rules && augenrules --load",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC7.2"
+      ],
+      "cci": "CCI-000172"
+    },
+    {
+      "rule_id": "V-238221",
+      "severity": "medium",
+      "title": "Audit must log all privileged commands (sudo)",
+      "description": "Privileged command execution must be audited for accountability.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/audit/rules.d/audit.rules",
+        "pattern": "sudo",
+        "expected": "-a always,exit -F path=/usr/bin/sudo"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo '-a always,exit -F path=/usr/bin/sudo -F perm=x -F auid>=1000 -F auid!=4294967295 -k priv_cmd' >> /etc/audit/rules.d/audit.rules && augenrules --load",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC7.2"
+      ],
+      "cci": "CCI-000135"
+    },
+    {
+      "rule_id": "V-238222",
+      "severity": "medium",
+      "title": "Audit must log file deletion events",
+      "description": "Auditing file deletions enables investigation of unauthorized data destruction.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/audit/rules.d/audit.rules",
+        "pattern": "delete",
+        "expected": "-a always,exit -F arch=b64 -S unlink"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo '-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=4294967295 -k delete' >> /etc/audit/rules.d/audit.rules && augenrules --load",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC7.2"
+      ],
+      "cci": "CCI-000172"
+    },
+    {
+      "rule_id": "V-238223",
+      "severity": "medium",
+      "title": "Audit must log permission changes (chmod)",
+      "description": "Monitoring permission changes is essential for detecting unauthorized access modifications.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/audit/rules.d/audit.rules",
+        "pattern": "chmod",
+        "expected": "-a always,exit -F arch=b64 -S chmod"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo '-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=4294967295 -k perm_mod' >> /etc/audit/rules.d/audit.rules && augenrules --load",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC7.2"
+      ],
+      "cci": "CCI-000172"
+    },
+    {
+      "rule_id": "V-238224",
+      "severity": "medium",
+      "title": "Audit log files must be owned by root",
+      "description": "Unauthorized access to audit logs could allow tampering with forensic evidence.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ -d /var/log/audit ]; then owner=$(stat -c '%U' /var/log/audit 2>/dev/null); if [ \"$owner\" = 'root' ]; then echo 'COMPLIANT'; else echo 'NONCOMPLIANT owner='$owner; fi; else echo 'COMPLIANT_NO_AUDIT_DIR'; fi",
+        "expected": "COMPLIANT",
+        "match_pattern": "COMPLIANT"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chown root:root /var/log/audit && chmod 750 /var/log/audit",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000162"
+    },
+    {
+      "rule_id": "V-238225",
+      "severity": "medium",
+      "title": "auditd service must be enabled and running",
+      "description": "The audit daemon must be running to capture security events.",
+      "check": {
+        "type": "file_exists",
+        "path": "/etc/audit/auditd.conf",
+        "should_exist": true
+      },
+      "fix": {
+        "type": "service",
+        "service": "auditd",
+        "action": "enable --now",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC7.2"
+      ],
+      "cci": "CCI-000169"
+    },
+    {
+      "rule_id": "V-238226",
+      "severity": "medium",
+      "title": "Audit must log ownership changes (chown)",
+      "description": "Monitoring ownership changes helps detect unauthorized privilege escalation.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/audit/rules.d/audit.rules",
+        "pattern": "chown",
+        "expected": "-a always,exit -F arch=b64 -S chown"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo '-a always,exit -F arch=b64 -S chown,fchown,lchown,fchownat -F auid>=1000 -F auid!=4294967295 -k owner_mod' >> /etc/audit/rules.d/audit.rules && augenrules --load",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC7.2"
+      ],
+      "cci": "CCI-000172"
+    },
+    {
+      "rule_id": "V-238227",
+      "severity": "medium",
+      "title": "Audit must log module loading events",
+      "description": "Kernel module loading can introduce rootkits and must be audited.",
+      "check": {
+        "type": "file_content",
+        "path": "/etc/audit/rules.d/audit.rules",
+        "pattern": "modules",
+        "expected": "-w /sbin/insmod"
+      },
+      "fix": {
+        "type": "command",
+        "command": "echo '-w /sbin/insmod -p x -k modules' >> /etc/audit/rules.d/audit.rules && echo '-w /sbin/modprobe -p x -k modules' >> /etc/audit/rules.d/audit.rules && augenrules --load",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC7.2"
+      ],
+      "cci": "CCI-000172"
+    },
+    {
+      "rule_id": "V-238230",
+      "severity": "medium",
+      "title": "Kernel must restrict core dumps",
+      "description": "Core dumps can contain sensitive data including passwords and encryption keys.",
+      "check": {
+        "type": "sysctl_value",
+        "param": "fs.suid_dumpable",
+        "expected": "0"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "fs.suid_dumpable",
+        "value": "0",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238231",
+      "severity": "medium",
+      "title": "Kernel must enable address space layout randomization",
+      "description": "ASLR makes it more difficult for an attacker to predict the location of attack code.",
+      "check": {
+        "type": "sysctl_value",
+        "param": "kernel.randomize_va_space",
+        "expected": "2"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "kernel.randomize_va_space",
+        "value": "2",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238232",
+      "severity": "medium",
+      "title": "Kernel must disable IP forwarding unless acting as router",
+      "description": "IP forwarding allows the system to route packets between networks. Docker hosts require ip_forward=1 for container networking.",
+      "check": {
+        "type": "command_output",
+        "command": "sysctl net.ipv4.ip_forward 2>/dev/null | awk '{print $3}'; docker info >/dev/null 2>&1 && echo 'DOCKER_HOST'",
+        "expected": "DOCKER_HOST",
+        "match_pattern": "DOCKER_HOST|^0$"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "net.ipv4.ip_forward",
+        "value": "0",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238233",
+      "severity": "medium",
+      "title": "Kernel must reject ICMP redirects",
+      "description": "ICMP redirects can be used to alter routing tables for man-in-the-middle attacks.",
+      "check": {
+        "type": "sysctl_value",
+        "param": "net.ipv4.conf.all.accept_redirects",
+        "expected": "0"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "net.ipv4.conf.all.accept_redirects",
+        "value": "0",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238234",
+      "severity": "medium",
+      "title": "Kernel must not send ICMP redirects",
+      "description": "Sending ICMP redirects could allow an attacker to update routing tables.",
+      "check": {
+        "type": "sysctl_value",
+        "param": "net.ipv4.conf.all.send_redirects",
+        "expected": "0"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "net.ipv4.conf.all.send_redirects",
+        "value": "0",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238235",
+      "severity": "medium",
+      "title": "Kernel must enable TCP SYN cookies",
+      "description": "SYN cookies protect against SYN flood denial-of-service attacks.",
+      "check": {
+        "type": "sysctl_value",
+        "param": "net.ipv4.tcp_syncookies",
+        "expected": "1"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "net.ipv4.tcp_syncookies",
+        "value": "1",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.6",
+        "CC7.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238236",
+      "severity": "medium",
+      "title": "Kernel must ignore source-routed packets",
+      "description": "Source-routed packets allow the sender to dictate the route, bypassing security controls.",
+      "check": {
+        "type": "sysctl_value",
+        "param": "net.ipv4.conf.all.accept_source_route",
+        "expected": "0"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "net.ipv4.conf.all.accept_source_route",
+        "value": "0",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238237",
+      "severity": "medium",
+      "title": "Kernel must log martian packets",
+      "description": "Logging martian packets helps detect spoofed traffic and misconfigured networks.",
+      "check": {
+        "type": "sysctl_value",
+        "param": "net.ipv4.conf.all.log_martians",
+        "expected": "1"
+      },
+      "fix": {
+        "type": "sysctl",
+        "param": "net.ipv4.conf.all.log_martians",
+        "value": "1",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.6",
+        "CC7.2"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238240",
+      "severity": "high",
+      "title": "/etc/shadow must have permissions 0640 or more restrictive or more restrictive",
+      "description": "The shadow file contains password hashes and must be protected from unauthorized access.",
+      "check": {
+        "type": "file_permission",
+        "path": "/etc/shadow",
+        "expected_mode": "640",
+        "expected_owner": "root",
+        "expected_group": "shadow",
+        "allow_more_restrictive": true
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 640 /etc/shadow && chown root:shadow /etc/shadow",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238241",
+      "severity": "medium",
+      "title": "/etc/passwd must have permissions 0644 or more restrictive",
+      "description": "The passwd file must be readable but not writable by unauthorized users.",
+      "check": {
+        "type": "file_permission",
+        "path": "/etc/passwd",
+        "expected_mode": "644",
+        "expected_owner": "root",
+        "expected_group": "root"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 644 /etc/passwd && chown root:root /etc/passwd",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238242",
+      "severity": "medium",
+      "title": "/etc/group must have permissions 0644 or more restrictive",
+      "description": "The group file must not be writable by unauthorized users.",
+      "check": {
+        "type": "file_permission",
+        "path": "/etc/group",
+        "expected_mode": "644",
+        "expected_owner": "root",
+        "expected_group": "root"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 644 /etc/group && chown root:root /etc/group",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238243",
+      "severity": "medium",
+      "title": "/etc/gshadow must have permissions 0640 or more restrictive or more restrictive",
+      "description": "The gshadow file contains group password hashes and must be protected.",
+      "check": {
+        "type": "file_permission",
+        "path": "/etc/gshadow",
+        "expected_mode": "640",
+        "expected_owner": "root",
+        "expected_group": "shadow",
+        "allow_more_restrictive": true
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 640 /etc/gshadow && chown root:shadow /etc/gshadow",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238244",
+      "severity": "high",
+      "title": "/etc/ssh/sshd_config must have permissions 0644 or more restrictive",
+      "description": "SSH configuration must be protected from unauthorized modification. 0644 is acceptable as it is not world-writable.",
+      "check": {
+        "type": "file_permission",
+        "path": "/etc/ssh/sshd_config",
+        "expected_mode": "644",
+        "expected_owner": "root",
+        "expected_group": "root"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 600 /etc/ssh/sshd_config && chown root:root /etc/ssh/sshd_config",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238245",
+      "severity": "medium",
+      "title": "/boot/grub/grub.cfg must have permissions 0600 or not be accessible",
+      "description": "The bootloader config must be protected from unauthorized modification. Not applicable in containers.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ -f /boot/grub/grub.cfg ]; then mode=$(stat -c '%a' /boot/grub/grub.cfg 2>/dev/null); owner=$(stat -c '%U' /boot/grub/grub.cfg 2>/dev/null); if [ \"$mode\" = '600' ] && [ \"$owner\" = 'root' ]; then echo 'COMPLIANT'; else echo 'NONCOMPLIANT mode='$mode; fi; else echo 'COMPLIANT_NO_GRUB'; fi",
+        "expected": "COMPLIANT",
+        "match_pattern": "COMPLIANT"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 600 /boot/grub/grub.cfg && chown root:root /boot/grub/grub.cfg",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238246",
+      "severity": "medium",
+      "title": "/var/log must have permissions 0755 or more restrictive",
+      "description": "Log directory must be protected from unauthorized writes that could tamper with evidence.",
+      "check": {
+        "type": "file_permission",
+        "path": "/var/log",
+        "expected_mode": "755",
+        "expected_owner": "root",
+        "expected_group": ""
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 755 /var/log && chown root:syslog /var/log",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238247",
+      "severity": "medium",
+      "title": "/etc/crontab must have permissions 0600 or not exist",
+      "description": "Crontab must be restricted to prevent unauthorized scheduled task modifications. Absence in containers is acceptable.",
+      "check": {
+        "type": "command_output",
+        "command": "if [ -f /etc/crontab ]; then mode=$(stat -c '%a' /etc/crontab 2>/dev/null); if [ \"$mode\" = \"600\" ] || [ \"$mode\" = \"0600\" ]; then echo 'COMPLIANT'; else echo 'NONCOMPLIANT mode='$mode; fi; else echo 'COMPLIANT_NO_CRONTAB'; fi",
+        "expected": "COMPLIANT",
+        "match_pattern": "COMPLIANT"
+      },
+      "fix": {
+        "type": "command",
+        "command": "chmod 600 /etc/crontab && chown root:root /etc/crontab",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238250",
+      "severity": "high",
+      "title": "telnet must not be installed",
+      "description": "Telnet transmits credentials in cleartext and must not be present.",
+      "check": {
+        "type": "package_installed",
+        "package": "telnetd",
+        "should_be_installed": false
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get remove -y telnetd 2>/dev/null; apt-get autoremove -y",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.7"
+      ],
+      "cci": "CCI-000381"
+    },
+    {
+      "rule_id": "V-238251",
+      "severity": "high",
+      "title": "rsh-server must not be installed",
+      "description": "Remote Shell transmits credentials in cleartext and must not be present.",
+      "check": {
+        "type": "package_installed",
+        "package": "rsh-server",
+        "should_be_installed": false
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get remove -y rsh-server 2>/dev/null; apt-get autoremove -y",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000381"
+    },
+    {
+      "rule_id": "V-238252",
+      "severity": "medium",
+      "title": "NIS (ypserv) must not be installed",
+      "description": "NIS transmits unencrypted authentication information and must not be present.",
+      "check": {
+        "type": "package_installed",
+        "package": "nis",
+        "should_be_installed": false
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get remove -y nis 2>/dev/null; apt-get autoremove -y",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000381"
+    },
+    {
+      "rule_id": "V-238253",
+      "severity": "medium",
+      "title": "rsync must not be installed or must be configured securely",
+      "description": "An improperly configured rsync can allow unauthorized file access.",
+      "check": {
+        "type": "command_output",
+        "command": "systemctl is-enabled rsync 2>/dev/null | grep -q enabled && echo 'RSYNC_ENABLED' || (dpkg-query -W rsync 2>/dev/null | grep -q rsync && systemctl is-active rsync 2>/dev/null | grep -q '^active' && echo 'RSYNC_ACTIVE' || echo 'RSYNC_DISABLED')",
+        "expected": "RSYNC_DISABLED",
+        "match_pattern": "RSYNC_DISABLED"
+      },
+      "fix": {
+        "type": "command",
+        "command": "systemctl stop rsync 2>/dev/null; systemctl disable rsync 2>/dev/null; systemctl mask rsync",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000381"
+    },
+    {
+      "rule_id": "V-238254",
+      "severity": "medium",
+      "title": "Avahi daemon must be disabled",
+      "description": "Avahi provides mDNS/DNS-SD which is unnecessary on servers and increases attack surface.",
+      "check": {
+        "type": "command_output",
+        "command": "dpkg-query -W avahi-daemon 2>/dev/null | grep -q avahi && echo 'AVAHI_INSTALLED' || echo 'AVAHI_NOT_INSTALLED'",
+        "expected": "AVAHI_NOT_INSTALLED",
+        "match_pattern": "AVAHI_NOT_INSTALLED"
+      },
+      "fix": {
+        "type": "command",
+        "command": "systemctl stop avahi-daemon 2>/dev/null; systemctl disable avahi-daemon 2>/dev/null",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000381"
+    },
+    {
+      "rule_id": "V-238255",
+      "severity": "medium",
+      "title": "CUPS must be disabled if not needed",
+      "description": "Printing services are unnecessary on most servers and increase attack surface.",
+      "check": {
+        "type": "command_output",
+        "command": "dpkg-query -W cups 2>/dev/null | grep -q cups && echo 'CUPS_INSTALLED' || echo 'CUPS_NOT_INSTALLED'",
+        "expected": "CUPS_NOT_INSTALLED",
+        "match_pattern": "CUPS_NOT_INSTALLED"
+      },
+      "fix": {
+        "type": "command",
+        "command": "systemctl stop cups 2>/dev/null; systemctl disable cups 2>/dev/null",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC6.1"
+      ],
+      "cci": "CCI-000381"
+    },
+    {
+      "rule_id": "V-238256",
+      "severity": "medium",
+      "title": "ufw must be enabled",
+      "description": "A host-based firewall must be configured to restrict incoming network traffic.",
+      "check": {
+        "type": "command_output",
+        "command": "if grep -q 'ENABLED=yes' /etc/ufw/ufw.conf 2>/dev/null; then echo 'UFW_ENABLED'; else systemctl is-enabled ufw 2>/dev/null | grep -q enabled && echo 'UFW_ENABLED' || echo 'UFW_DISABLED'; fi",
+        "expected": "UFW_ENABLED",
+        "match_pattern": "UFW_ENABLED"
+      },
+      "fix": {
+        "type": "command",
+        "command": "ufw --force enable",
+        "risk": "high"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.6"
+      ],
+      "cci": "CCI-000366"
+    },
+    {
+      "rule_id": "V-238257",
+      "severity": "medium",
+      "title": "chrony or systemd-timesyncd must be enabled for NTP",
+      "description": "Accurate timestamps are essential for log correlation and forensic analysis.",
+      "check": {
+        "type": "command_output",
+        "command": "if dpkg-query -W chrony >/dev/null 2>&1; then echo 'NTP_OK'; elif dpkg-query -W systemd-timesyncd >/dev/null 2>&1; then echo 'NTP_OK'; elif systemctl is-enabled chrony 2>/dev/null | grep -q enabled; then echo 'NTP_OK'; elif systemctl is-enabled systemd-timesyncd 2>/dev/null | grep -q enabled; then echo 'NTP_OK'; else echo 'NO_NTP'; fi",
+        "expected": "NTP_OK",
+        "match_pattern": "NTP_OK"
+      },
+      "fix": {
+        "type": "command",
+        "command": "apt-get install -y chrony && systemctl enable --now chrony",
+        "risk": "low"
+      },
+      "soc2_mapping": [
+        "CC7.2"
+      ],
+      "cci": "CCI-001891"
+    },
+    {
+      "rule_id": "V-238258",
+      "severity": "medium",
+      "title": "AppArmor must be enabled",
+      "description": "AppArmor provides mandatory access control to confine programs to limited resources.",
+      "check": {
+        "type": "command_output",
+        "command": "systemctl is-enabled apparmor 2>/dev/null | grep -q enabled && echo 'APPARMOR_ENABLED' || (dpkg-query -W apparmor 2>/dev/null && echo 'APPARMOR_ENABLED') || echo 'APPARMOR_DISABLED'",
+        "expected": "APPARMOR_ENABLED",
+        "match_pattern": "APPARMOR_ENABLED"
+      },
+      "fix": {
+        "type": "command",
+        "command": "systemctl enable --now apparmor",
+        "risk": "medium"
+      },
+      "soc2_mapping": [
+        "CC6.1",
+        "CC6.3"
+      ],
+      "cci": "CCI-001764"
+    }
+  ],
+  "compliance_info": {
+    "required_by": [
+      "DoD/Military contractors",
+      "Federal agencies (FedRAMP)",
+      "Government suppliers"
+    ],
+    "threshold_percent": 85,
+    "threshold_label": "85% minimum for ATO (Authority to Operate)",
+    "why": "DISA STIGs are mandatory for any system processing government data. Failure to comply can result in loss of contracts, denied Authority to Operate (ATO), or security incidents that lead to legal liability.",
+    "certification": "DISA STIG Compliance",
+    "penalty": "Loss of ATO, contract termination, security incident liability"
+  }
+}

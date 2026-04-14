@@ -1,0 +1,61 @@
+:root {
+  /* Standalone theme tokens */
+  --sysops-accent: #00e5ff;
+  --sysops-accent-bright: #4df0ff;
+  --sysops-accent-rgb: 0, 229, 255;
+  --sysops-danger: #ef4444;
+  --sysops-success: #22c55e;
+  --sysops-warning: #f59e0b;
+  --sysops-bg-void: #000000;
+  --sysops-bg-primary: #0a0a1a;
+  --sysops-bg-secondary: #1a1a2e;
+  --sysops-bg-tertiary: #2a2a3e;
+  --sysops-text-primary: #e0e0e0;
+  --sysops-text-secondary: #b0b0b0;
+  --sysops-text-muted: #808080;
+  --sysops-border-default: #2a2a3e;
+  --sysops-font-heading: 'Orbitron', sans-serif;
+  --sysops-font-body: 'IBM Plex Mono', sans-serif;
+  --sysops-font-mono: 'IBM Plex Mono', sans-serif;
+  --sysops-border-radius: 20px;
+  --sysops-nav-position: top;
+  --sysops-sidebar-width: 240px;
+
+  /* Aliases for platform CSS compatibility (--archie-* → --sysops-*) */
+  --archie-accent: var(--sysops-accent);
+  --archie-accent-rgb: var(--sysops-accent-rgb);
+  --archie-accent-alpha-10: rgba(0, 229, 255, 0.1);
+  --archie-accent-alpha-20: rgba(0, 229, 255, 0.2);
+  --archie-danger: var(--sysops-danger);
+  --archie-success: var(--sysops-success);
+  --archie-warning: var(--sysops-warning);
+  --archie-bg-primary: var(--sysops-bg-primary);
+  --archie-bg-secondary: var(--sysops-bg-secondary);
+  --archie-bg-tertiary: var(--sysops-bg-tertiary);
+  --archie-text-primary: var(--sysops-text-primary);
+  --archie-text-secondary: var(--sysops-text-secondary);
+  --archie-text-muted: var(--sysops-text-muted);
+  --archie-border-default: var(--sysops-border-default);
+  --archie-font-heading: var(--sysops-font-heading);
+  --archie-font-body: var(--sysops-font-body);
+  --archie-font-mono: var(--sysops-font-mono);
+  --archie-cyan: #00e5ff;
+  --archie-radius-sm: 4px;
+  --archie-radius-md: 8px;
+  --archie-radius-lg: 12px;
+  --archie-radius-full: 9999px;
+  --archie-space-1: 4px;
+  --archie-space-2: 8px;
+  --archie-space-2-5: 10px;
+  --archie-space-3: 12px;
+  --archie-space-4: 16px;
+  --archie-space-5: 20px;
+  --archie-space-6: 24px;
+  --archie-text-xs: 0.75rem;
+  --archie-text-sm: 0.875rem;
+  --archie-text-base: 1rem;
+  --archie-font-semibold: 600;
+  --archie-transition-fast: 150ms ease;
+  --archie-duration-normal: 200ms;
+  --archie-ease-out: ease-out;
+}

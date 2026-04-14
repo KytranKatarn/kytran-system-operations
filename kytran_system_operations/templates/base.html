@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Antonio:wght@400;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/system-operations-theme-vars.css') }}">
+    {% if sysops_theme and sysops_theme.custom_css %}
+    <link rel="stylesheet" href="{{ sysops_theme.custom_css }}">
+    {% endif %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    {% block styles %}{% endblock %}
+    <script>
+        window.KSO_TIER = "{{ user_tier | default('free') }}";
+        window.KSO_TIER_AT_LEAST = function(minTier) {
+            var levels = {free: 0, pro: 1, business: 2, enterprise: 3, staff: 4};
+            return (levels[window.KSO_TIER] || 0) >= (levels[minTier] || 0);
+        };
+    </script>
+    <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+</head>
+<body>
+    <nav class="kso-nav">
+        <a href="/dashboard" class="kso-nav-brand" style="text-decoration: none; color: inherit;">
+            {% if sysops_theme and sysops_theme.logo %}
+            <img src="{{ sysops_theme.logo }}" alt="Logo" style="height: 28px; width: auto;">
+            {% else %}
+            <i class="fas fa-server"></i>
+            {% endif %}
+            <span>{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}</span>
+        </a>
+        <div class="kso-nav-links">
+            {% if current_user.is_authenticated %}
+            <a href="/settings" class="kso-nav-user" style="text-decoration: none; cursor: pointer;">
+                <i class="fas fa-user-circle" style="font-size: 1.3rem;"></i>
+                <span>{{ current_user.display_name or current_user.username }}</span>
+            </a>
+            <a href="{{ url_for('logout') }}" class="kso-nav-link">Logout</a>
+            {% endif %}
+        </div>
+    </nav>
+    <main class="kso-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="kso-flash-container">
+            {% for category, message in messages %}
+            <div class="kso-flash kso-flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
