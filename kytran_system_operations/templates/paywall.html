@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upgrade — Kytran System Operations</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#050509;color:#e0e0e0;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{max-width:480px;width:100%;border:1px solid #ef444433;border-radius:12px;padding:40px;background:#0a0d1a;text-align:center}
+    .icon{font-size:48px;margin-bottom:16px}
+    h1{font-size:1.5rem;font-weight:700;color:#ef4444;margin-bottom:8px}
+    .tagline{font-size:0.95rem;color:#aaa;margin-bottom:28px;line-height:1.5}
+    .price{font-size:2rem;font-weight:800;color:#fff;margin-bottom:4px}
+    .price span{font-size:1rem;color:#888}
+    .features{list-style:none;text-align:left;margin:20px 0 28px;display:flex;flex-direction:column;gap:10px}
+    .features li::before{content:"✓ ";color:#ef4444;font-weight:700}
+    .features li{font-size:0.9rem;color:#ccc}
+    .btn{display:block;background:#ef4444;color:#fff;font-weight:700;font-size:1rem;padding:14px 32px;border-radius:8px;text-decoration:none;transition:opacity .2s}
+    .btn:hover{opacity:.85}
+    .back{display:block;margin-top:14px;font-size:0.85rem;color:#555;text-decoration:none}
+    .back:hover{color:#aaa}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🖥️</div>
+    <h1>Kytran System Operations</h1>
+    <p class="tagline">Server compliance, security hardening, and STIG/HIPAA/CIS audit suite for your infrastructure.</p>
+    <div class="price">$129<span>/month</span></div>
+    <ul class="features">
+      <li>STIG / HIPAA / CIS compliance scans</li>
+      <li>One-click auto-remediation</li>
+      <li>Docker security hardening</li>
+      <li>Continuous compliance monitoring</li>
+    </ul>
+    <a href="{{ upgrade_url }}" class="btn">Subscribe to KSO</a>
+    <a href="/" class="back">← Back to home</a>
+  </div>
+</body>
+</html>

@@ -1,7 +1,8 @@
 """Kytran System Operations — Standalone Flask Application."""
 import os
-from flask import Flask, redirect
-from flask_login import login_required
+from flask import Flask, redirect, render_template, request
+from flask_login import current_user, login_required
+from .billing_gate import has_product_access
 from .config import Config
 from .db import init_db
 from .auth import login_manager, admin_required, register_auth_routes, setup_required
@@ -112,6 +113,25 @@ def create_app(config=None):
                     "sso_login", "sso_callback", "sso_status", "kytran_login", "kytran_callback")
         if req.endpoint and req.endpoint not in excluded and setup_required():
             return redirect("/setup")
+
+    _BILLING_PUBLIC_PATHS = {"/", "/health", "/favicon.ico"}
+    _BILLING_PUBLIC_PREFIXES = ("/auth", "/login", "/logout", "/setup", "/callback",
+                                "/static", "/api/health", "/splash", "/sso")
+
+    @app.before_request
+    def billing_gate():
+        """Block unauthenticated or unpaid users from protected routes."""
+        path = request.path
+        if path in _BILLING_PUBLIC_PATHS or any(path.startswith(p) for p in _BILLING_PUBLIC_PREFIXES):
+            return
+        if not current_user or not current_user.is_authenticated:
+            return
+        if not has_product_access(current_user.id):
+            checkout_url = (
+                "https://business.kytranempowerment.com/billing/checkout"
+                f"?product=kso-compliance&return_url={request.url}"
+            )
+            return render_template("paywall.html", upgrade_url=checkout_url)
 
     # Start background compliance scanner (skip in testing)
     if not app.config.get("TESTING"):
