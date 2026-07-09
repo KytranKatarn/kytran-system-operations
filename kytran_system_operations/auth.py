@@ -166,31 +166,28 @@ def register_auth_routes(app):
         data = request.get_json(silent=True) or {}
         if not hmac.compare_digest(data.get("token", ""), qa_token):
             return jsonify({"error": "Invalid QA token"}), 401
-        username = data.get("username", "probe")
+        # SECURITY (#4782, mirrors media_hub PR #2133): bind a FIXED non-admin QA
+        # identity and IGNORE any client-supplied username — a leaked ARCHIE_QA_TOKEN
+        # must NEVER be able to establish an admin session. Fails CLOSED if the QA
+        # user is missing or is privileged. (Provision a non-admin QA_AUTH_USER,
+        # default 'qa_probe'.) No admin path -> no tier bump.
+        qa_user = os.environ.get("QA_AUTH_USER", "qa_probe")
         db = get_db()
         row = db.execute(
             "SELECT id, username, role, display_name, email, sso_provider "
             "FROM users WHERE username = ?",
-            (username,),
+            (qa_user,),
         ).fetchone()
         db.close()
         if not row:
-            return jsonify({"error": "User not found"}), 404
+            return jsonify({"error": "QA user not provisioned"}), 404
+        if row["role"] == "admin":
+            return jsonify({"error": "QA identity must not be an admin"}), 403
         login_user(
             User(row["id"], row["username"], row["role"], row["display_name"], row["email"], row["sso_provider"]),
             remember=True,
         )
-        # Mirror the normal admin login: admins get the 'pro' tier so QA can
-        # reach tier-gated data routes (auth.py login() does the same bump).
-        if row["role"] == "admin":
-            try:
-                from .services.subscription_service import get_user_tier, set_user_tier
-
-                if get_user_tier(row["id"]) == "free":
-                    set_user_tier(row["id"], "pro")
-            except Exception:
-                pass
-        return jsonify({"success": True, "username": username})
+        return jsonify({"success": True, "username": row["username"]})
 
     @app.context_processor
     def inject_tier_context():
