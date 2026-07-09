@@ -6467,7 +6467,7 @@ def get_db_connection():
                 pass
 
     return psycopg2.connect(
-        host=os.environ.get("DB_HOST", ""),
+        host=os.environ.get("DB_HOST", "192.168.1.200"),
         port=os.environ.get("DB_PORT", "5432"),
         database=os.environ.get("DB_NAME", "archie"),
         user=os.environ.get("DB_USER", "archie"),

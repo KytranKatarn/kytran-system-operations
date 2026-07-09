@@ -488,7 +488,7 @@
       "description": "Unencrypted HTTP should not serve sensitive data. Redirect to HTTPS.",
       "check": {
         "type": "command_output",
-        "command": "curl -sI http://archie.kytranempowerment.com 2>/dev/null | grep -iE 'Location:.*https|301|302|308' && echo 'REDIRECT_OK' || (ss -tlnp | grep -q ':80 ' && echo 'HTTP_ACTIVE_NO_REDIRECT' || echo 'NO_HTTP')",
+        "command": "curl -sI http://platform.kytranempowerment.com 2>/dev/null | grep -iE 'Location:.*https|301|302|308' && echo 'REDIRECT_OK' || (ss -tlnp | grep -q ':80 ' && echo 'HTTP_ACTIVE_NO_REDIRECT' || echo 'NO_HTTP')",
         "expected": "REDIRECT_OK",
         "match_pattern": "REDIRECT_OK|NO_HTTP"
       },

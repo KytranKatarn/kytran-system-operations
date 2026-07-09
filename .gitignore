@@ -1,43 +1,18 @@
-# Python
 __pycache__/
-*.py[cod]
-*.so
+*.pyc
+*.pyo
 *.egg-info/
 dist/
 build/
-
-# Environment
-.env
-.env.local
-*.env
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-logs/
-
-# Database
 *.db
-*.sqlite
 *.sqlite3
-
-# Secrets
+.env
+.venv/
+venv/
+data/
+# secrets (added for repo extraction #4776)
 secrets/
-credentials/
-*.key
 *.pem
-
-# Docker
-*.tar.gz
-
-# Test
-.coverage
-htmlcov/
-test-results/
+*.key
+id_rsa*
+*.secret

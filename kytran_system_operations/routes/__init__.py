@@ -47,6 +47,9 @@ def register_all_routes(app, admin_required_decorator):
     register_health_routes(system_operations_bp, admin_required_decorator)
     register_proxy_routes(system_operations_bp, admin_required_decorator)
 
+    from .chat_proxy_routes import register_chat_proxy_routes
+    register_chat_proxy_routes(app, admin_required_decorator)
+
     # Standalone-only route modules (billing, compliance, SSO, app catalog)
     from .compliance_routes import register_compliance_routes
     from .badge_routes import register_badge_routes
@@ -59,5 +62,9 @@ def register_all_routes(app, admin_required_decorator):
     register_subscription_routes(system_operations_bp, admin_required_decorator)
     register_billing_routes(system_operations_bp, admin_required_decorator)
     register_app_catalog_routes(system_operations_bp, admin_required_decorator)
+
+    # Cross-node Docker visibility (#3763)
+    from .fleet_docker_routes import register_fleet_docker_routes
+    register_fleet_docker_routes(system_operations_bp, admin_required_decorator)
 
     app.register_blueprint(system_operations_bp)

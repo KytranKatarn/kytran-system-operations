@@ -250,15 +250,16 @@
     /* --- End Shared Components --- */
 
     .sysops-container {
-        padding: 20px;
+        padding: 0;
         background: var(--archie-bg-void);
         min-height: 100vh;
         font-family: var(--archie-font-body);
         --frame-color: #ef4444;
         --frame-rgb: 239, 68, 68;
         --lcars-accent-rgb: 239, 68, 68;
-        max-width: 1200px;
-        margin: 0 auto;
+    }
+    .sysops-content {
+        margin-top: 8px;
     }
     .sysops-container .lcars-frame,
     .sysops-container .lcars-frame * {

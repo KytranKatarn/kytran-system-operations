@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Settings - {{ sysops_theme.product_name }}{% endblock %}
 {% block styles %}
+{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+<link rel="stylesheet" href="/static/css/lcars-header.css">
+<link rel="stylesheet" href="/static/css/lcars-frames.css">
+{% endif %}
 <style>
     .settings-container { max-width: 600px; margin: 0 auto; }
     .settings-section { background: var(--sysops-bg-primary, #1e293b); border: 1px solid var(--sysops-border-default, #334155); border-radius: 8px; padding: 24px; margin-bottom: 20px; }
@@ -25,10 +29,24 @@
 </style>
 {% endblock %}
 {% block content %}
+{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+{% set cat_accent = '#ef4444' %}
+{% set cat_accent_rgb = '239,68,68' %}
+{% set cat_accent_dark = '#dc2626' %}
+{% set cat_label = 'ADMIN TOOLS' %}
+{% set module_title = 'SETTINGS' %}
+{% set module_back_url = '/dashboard' %}
+{% set header_shortcuts = [] %}
+{% set header_tabs = [] %}
+{% include 'lcars-header.html' %}
+{% endif %}
+
 <div class="settings-container">
+    {% if not (sysops_theme and sysops_theme.frame_style == 'lcars') %}
     <h2 style="color: var(--sysops-text-primary); margin-bottom: 20px;">
         <i class="fas fa-cog"></i> Settings
     </h2>
+    {% endif %}
 
     <!-- Subscription Tier -->
     <div class="settings-section">
@@ -37,7 +55,9 @@
             <span class="tier-badge tier-{{ tier }}">{{ tier|title }}</span>
         </div>
         <div class="tier-desc">
-            {% if tier == 'free' %}
+            {% if tier == 'staff' %}
+                Kytran Staff: full platform access with all features unlocked.
+            {% elif tier == 'free' %}
                 Basic access with 2 themes and daily compliance scans.
             {% elif tier == 'pro' %}
                 Pro tier: 3 themes, 6-hour scan intervals, and SSO access.
@@ -47,7 +67,7 @@
                 Enterprise tier: all features, custom scan intervals, and priority support.
             {% endif %}
         </div>
-        {% if tier != 'enterprise' %}
+        {% if tier not in ['enterprise', 'staff'] %}
         <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px;">
             {% if tier == 'free' %}
             <button class="kso-btn" onclick="startCheckout('pro')" style="background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid #22c55e; font-weight: 600; cursor: pointer;">
@@ -139,7 +159,7 @@
         </div>
         <p style="color: var(--sysops-text-muted, #94a3b8); font-size: 0.8rem; margin-bottom: 12px;">
             <i class="fas fa-lock" style="margin-right: 4px;"></i>
-            Profile managed by Kytran Empowerment. <a href="https://archie.kytranempowerment.com/account" style="color: var(--archie-accent); text-decoration: none;">Edit in Account Center</a>
+            Profile managed by Kytran Empowerment. <a href="https://platform.kytranempowerment.com/account" style="color: var(--archie-accent); text-decoration: none;">Edit in Account Center</a>
         </p>
         {% else %}
         {# Local admin — can edit profile #}
@@ -185,6 +205,9 @@
     {% endif %}
 </div>
 
+{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
+<script src="/static/js/lcars-header.js"></script>
+{% endif %}
 <script>
 async function startCheckout(tier) {
     const btn = event.currentTarget;

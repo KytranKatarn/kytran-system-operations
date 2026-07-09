@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kytran-sdk"
+version = "1.1.0"
+description = "Kytran SSO OAuth 2.0 client SDK for Flask apps — with refresh token support"
+requires-python = ">=3.9"
+dependencies = ["requests", "flask", "PyJWT"]
+
+[tool.setuptools]
+py-modules = ["kytran_auth"]
+
+[project.urls]
+Source = "https://github.com/KytranKatarn/archie-platform/tree/main/kytran-auth"

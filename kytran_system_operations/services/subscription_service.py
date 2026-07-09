@@ -91,6 +91,11 @@ def get_allowed_themes(tier):
     return TIER_THEMES.get(tier, TIER_THEMES["free"])
 
 
+def get_chat_enabled(tier):
+    """Return True when *tier* includes B.A.S.E. chat access (business+)."""
+    return tier_at_least(tier, "business")
+
+
 def get_scan_interval(tier):
     """Return minimum scan interval (seconds) for *tier*.
 

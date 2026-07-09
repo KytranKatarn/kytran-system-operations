@@ -76,7 +76,7 @@ body {
 .kso-main {
     max-width: 1800px;
     margin: 0 auto;
-    padding: 20px 24px;
+    padding: 0;
 }
 
 /* ── Flash Messages ── */
@@ -222,7 +222,7 @@ body {
     }
 
     .kso-main {
-        padding: 16px;
+        padding: 0;
     }
 
     .kso-auth-card {

@@ -1,202 +1,82 @@
-{% extends "base.html" %}
-{% block title %}Login - {{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}{% endblock %}
-{% block styles %}
-{% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/lcars-frames.css') }}">
-{% endif %}
-<style>
-    .login-wrapper {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: calc(100vh - 60px);
-        padding: 20px;
-    }
-    .login-card {
-        max-width: 440px;
-        width: 100%;
-        background: var(--archie-bg-secondary);
-        border: 1px solid var(--archie-border-default);
-        border-radius: var(--sysops-border-radius, 8px);
-        overflow: hidden;
-    }
-    .login-header {
-        padding: 28px 32px 20px;
-        text-align: center;
-        border-bottom: 1px solid var(--archie-border-default);
-    }
-    .login-header h1 {
-        font-family: var(--sysops-font-heading, 'Inter'), sans-serif;
-        font-size: 1.2rem;
-        font-weight: 700;
-        color: var(--archie-accent);
-        margin: 0;
-        letter-spacing: 1px;
-    }
-    .login-header p {
-        color: var(--archie-text-muted);
-        font-size: 0.85rem;
-        margin: 8px 0 0;
-    }
-    .login-body {
-        padding: 28px 32px;
-    }
-    .login-form-group {
-        margin-bottom: 16px;
-    }
-    .login-form-group label {
-        display: block;
-        font-size: 0.75rem;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        color: var(--archie-text-muted);
-        margin-bottom: 6px;
-        font-family: var(--archie-font-mono);
-    }
-    .login-form-group input {
-        width: 100%;
-        padding: 11px 14px;
-        background: var(--archie-bg-tertiary);
-        border: 1px solid var(--archie-border-default);
-        border-radius: var(--archie-radius-md);
-        color: var(--archie-text-primary);
-        font-size: 0.95rem;
-        font-family: var(--archie-font-mono);
-        box-sizing: border-box;
-        transition: border-color 0.2s;
-    }
-    .login-form-group input:focus {
-        outline: none;
-        border-color: var(--archie-accent);
-        box-shadow: 0 0 8px rgba(var(--archie-accent-rgb, 37,99,235), 0.3);
-    }
-    .login-btn {
-        width: 100%;
-        padding: 12px;
-        margin-top: 4px;
-        background: var(--archie-accent);
-        border: none;
-        border-radius: var(--archie-radius-md);
-        color: var(--archie-bg-primary);
-        font-family: var(--archie-font-mono);
-        font-size: 0.9rem;
-        font-weight: 600;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-        cursor: pointer;
-        transition: filter 0.2s;
-        text-decoration: none;
-        display: block;
-        text-align: center;
-    }
-    .login-btn:hover {
-        filter: brightness(1.15);
-    }
-    .login-divider {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin: 24px 0;
-        color: var(--archie-text-muted);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .login-divider::before,
-    .login-divider::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: var(--archie-border-default);
-    }
-    .login-btn-sso {
-        width: 100%;
-        padding: 12px;
-        background: transparent;
-        border: 1px solid var(--archie-accent);
-        border-radius: var(--archie-radius-md);
-        color: var(--archie-accent);
-        font-family: var(--archie-font-mono);
-        font-size: 0.85rem;
-        font-weight: 600;
-        letter-spacing: 1px;
-        cursor: pointer;
-        transition: background 0.2s;
-        text-decoration: none;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-    }
-    .login-btn-sso:hover {
-        background: var(--archie-accent-alpha-10);
-    }
-    .login-footer {
-        padding: 16px 32px;
-        text-align: center;
-        border-top: 1px solid var(--archie-border-default);
-    }
-    .login-footer a {
-        color: var(--archie-accent);
-        text-decoration: none;
-        font-size: 0.8rem;
-    }
-    {% if sysops_theme and sysops_theme.get('flashes') %}
-    .flash-msg {
-        padding: 12px 16px;
-        margin-bottom: 16px;
-        border-radius: var(--archie-radius-md);
-        font-size: 0.85rem;
-    }
-    {% endif %}
-</style>
-{% endblock %}
-
-{% block content %}
-<div class="login-wrapper">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — Kytran System Operations</title>
+    <link rel="icon" type="image/png" href="/static/img/kytran-logo.png">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --accent:#10b981; --accent-dim:rgba(16,185,129,0.15); --accent-glow:rgba(16,185,129,0.3); --bg:#0a0a1a; --panel:#111827; --border:#1f2937; --text:#e0e0e0; --muted:#9ca3af; }
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:var(--bg);color:var(--text);font-family:'IBM Plex Mono',monospace;min-height:100vh;overflow-x:hidden;display:flex;align-items:center;justify-content:center;}
+        body::before{content:'';position:fixed;inset:0;background:linear-gradient(rgba(16,185,129,0.08) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.08) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0;}
+        .login-page{position:relative;z-index:1;width:100%;max-width:420px;padding:2rem;}
+        .login-card{background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+        .login-header{padding:2.5rem 2rem 1.5rem;text-align:center;border-bottom:1px solid var(--border);}
+        .login-header img{height:56px;width:auto;margin-bottom:1rem;filter:drop-shadow(0 0 16px var(--accent-glow));}
+        .login-header h1{font-family:'Orbitron',sans-serif;font-size:1rem;color:var(--accent);letter-spacing:2px;margin-bottom:0.3rem;}
+        .login-header p{color:var(--muted);font-size:0.78rem;}
+        .login-body{padding:2rem;}
+        .form-group{margin-bottom:1rem;}
+        .form-group label{display:block;font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+        .form-group input{width:100%;padding:11px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:0.9rem;font-family:'IBM Plex Mono',monospace;transition:border-color 0.2s;}
+        .form-group input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 8px var(--accent-glow);}
+        .login-btn{width:100%;padding:12px;margin-top:4px;background:var(--accent);border:none;border-radius:6px;color:#000;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;}
+        .login-btn:hover{opacity:0.85;}
+        .divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;}
+        .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+        .sso-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;background:transparent;border:1px solid var(--accent);border-radius:6px;color:var(--accent);font-size:0.82rem;font-weight:600;letter-spacing:0.5px;cursor:pointer;text-decoration:none;transition:background 0.2s;}
+        .sso-btn:hover{background:var(--accent-dim);}
+        .sso-btn img{height:18px;width:auto;}
+        .login-footer{padding:1rem 2rem;text-align:center;border-top:1px solid var(--border);}
+        .login-footer a{color:var(--muted);text-decoration:none;font-size:0.78rem;transition:color 0.2s;}
+        .login-footer a:hover{color:var(--accent);}
+        .flash{padding:10px 14px;margin-bottom:16px;border-radius:6px;font-size:0.82rem;}
+        .flash-error{background:rgba(239,68,68,0.15);color:#ef4444;}
+        .flash-success{background:rgba(34,197,94,0.15);color:#22c55e;}
+    </style>
+</head>
+<body>
+<div class="login-page">
     <div class="login-card">
         <div class="login-header">
-            <h1>{{ sysops_theme.product_name if sysops_theme else 'Kytran System Operations' }}</h1>
+            <img src="/static/img/kytran-logo.png" alt="Kytran System Operations">
+            <h1>SYSTEM OPERATIONS</h1>
             <p>Sign in to manage your server</p>
         </div>
         <div class="login-body">
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
             {% for category, message in messages %}
-            <div style="padding: 10px 14px; margin-bottom: 16px; border-radius: 6px; font-size: 0.85rem;
-                        background: {{ 'rgba(239,68,68,0.15)' if category == 'error' else 'rgba(34,197,94,0.15)' }};
-                        color: {{ '#ef4444' if category == 'error' else '#22c55e' }};">
-                {{ message }}
-            </div>
+            <div class="flash flash-{{ category }}">{{ message }}</div>
             {% endfor %}
             {% endif %}
             {% endwith %}
 
-            {# Local Login Form #}
             <form method="POST">
-                <div class="login-form-group">
+                <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" required autofocus>
                 </div>
-                <div class="login-form-group">
+                <div class="form-group">
                     <label for="password">Password</label>
                     <input type="password" id="password" name="password" required>
                 </div>
                 <button type="submit" class="login-btn">Sign In</button>
             </form>
 
-            {# Divider #}
-            <div class="login-divider">or</div>
+            <div class="divider">or</div>
 
-            {# Kytran Empowerment SSO #}
-            <a href="/auth/kytran/login" class="login-btn-sso">
-                <img src="/static/img/kytran-logo.png" alt="Kytran" style="height: 20px; width: auto;">
+            <a href="/auth/kytran/login" class="sso-btn">
+                <img src="/static/img/kytran-logo.png" alt="">
                 Connect with Kytran Empowerment
             </a>
         </div>
         <div class="login-footer">
-            <a href="/">Back to product page</a>
+            <a href="/">&larr; Back to System Operations</a>
         </div>
     </div>
 </div>
-{% endblock %}
+</body>
+</html>

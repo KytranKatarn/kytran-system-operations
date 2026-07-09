@@ -19,9 +19,10 @@ class Config:
     BASE_DIR = os.environ.get("KSO_BASE_DIR", "/")
 
     # ARCHIE Hub connection (for SSO + compliance reporting)
-    ARCHIE_HUB_URL = os.environ.get("KSO_ARCHIE_HUB_URL", "")  # e.g., https://archie.example.com
+    ARCHIE_HUB_URL = os.environ.get("KSO_ARCHIE_HUB_URL", "")  # e.g., http://192.168.1.200:3000
     ARCHIE_CLIENT_ID = os.environ.get("KSO_ARCHIE_CLIENT_ID", "kytran-sysops")
     ARCHIE_CLIENT_SECRET = os.environ.get("KSO_ARCHIE_CLIENT_SECRET", "")
+    KSO_CHAT_API_KEY = os.environ.get("KSO_CHAT_API_KEY", "")
     SERVER_SUBDOMAIN = os.environ.get("KSO_SERVER_SUBDOMAIN", "")  # e.g., server.kytranempowerment.com
 
     # Compliance scanning schedule

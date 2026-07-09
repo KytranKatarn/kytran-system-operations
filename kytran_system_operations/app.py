@@ -1,8 +1,7 @@
 """Kytran System Operations — Standalone Flask Application."""
 import os
-from flask import Flask, redirect, render_template, request
-from flask_login import current_user, login_required
-from .billing_gate import has_product_access
+from flask import Flask, redirect
+from flask_login import login_required
 from .config import Config
 from .db import init_db
 from .auth import login_manager, admin_required, register_auth_routes, setup_required
@@ -96,6 +95,17 @@ def create_app(config=None):
         """Top-level health check (no auth, no setup redirect)."""
         return {"healthy": True, "service": "kytran-system-operations"}
 
+    @app.route("/version")
+    def version():
+        """Deploy-provenance (#4776) — build metadata only. KSO has no git repo,
+        so git_sha stays 'unknown'; build_time reflects the last image build.
+        Manual endpoint (not drift-monitored, no repo to compare against)."""
+        return {
+            "product": "kso",
+            "git_sha": os.environ.get("KSO_GIT_SHA", "unknown"),
+            "build_time": os.environ.get("KSO_BUILD_TIME", "unknown"),
+        }
+
     @app.route("/")
     def index():
         if setup_required():
@@ -109,34 +119,86 @@ def create_app(config=None):
     def check_setup():
         """Redirect ALL requests to /setup if no admin account exists."""
         from flask import request as req
-        excluded = ("setup", "static", "top_health", "login", "logout", "splash",
+        excluded = ("setup", "static", "top_health", "version", "login", "logout", "splash",
                     "sso_login", "sso_callback", "sso_status", "kytran_login", "kytran_callback")
         if req.endpoint and req.endpoint not in excluded and setup_required():
             return redirect("/setup")
 
-    _BILLING_PUBLIC_PATHS = {"/", "/health", "/favicon.ico"}
-    _BILLING_PUBLIC_PREFIXES = ("/auth", "/login", "/logout", "/setup", "/callback",
-                                "/static", "/api/health", "/splash", "/sso")
-
     @app.before_request
-    def billing_gate():
-        """Block unauthenticated or unpaid users from protected routes."""
-        path = request.path
-        if path in _BILLING_PUBLIC_PATHS or any(path.startswith(p) for p in _BILLING_PUBLIC_PREFIXES):
-            return
-        if not current_user or not current_user.is_authenticated:
-            return
-        if not has_product_access(current_user.id):
-            checkout_url = (
-                "https://business.kytranempowerment.com/billing/checkout"
-                f"?product=kso-compliance&return_url={request.url}"
-            )
-            return render_template("paywall.html", upgrade_url=checkout_url)
+    def check_subscription_gate():
+        """Block non-Professional users from all routes except auth/static."""
+        from flask import request as req, jsonify, render_template
+        from flask_login import current_user
+
+        exempt = {
+            "setup", "static", "top_health", "version",
+            "login", "logout", "splash",
+            "sso_login", "sso_callback", "sso_status",
+            "kytran_login", "kytran_callback",
+        }
+        if req.endpoint is None or req.endpoint in exempt:
+            return None
+        if not current_user.is_authenticated:
+            return None  # login_required handles the redirect
+
+        from .services.subscription_service import get_user_tier, tier_at_least
+        tier = get_user_tier(current_user.id)
+        if tier_at_least(tier, "pro"):
+            return None
+
+        # Free-tier user — show upgrade wall
+        if req.path.startswith("/api/") or req.path.endswith(".svg"):
+            return jsonify({
+                "error": "upgrade_required",
+                "message": "Kytran System Operations requires a Professional subscription.",
+                "required_tier": "pro",
+                "current_tier": tier,
+                "upgrade_url": "https://business.kytranempowerment.com/billing/dashboard",
+            }), 403
+
+        return render_template(
+            "upgrade_required.html",
+            required_tier="pro",
+            current_tier=tier,
+            feature="Kytran System Operations",
+            tier_prices={"pro": 29, "business": 49, "enterprise": 99},
+        ), 403
 
     # Start background compliance scanner (skip in testing)
     if not app.config.get("TESTING"):
         from .services.scheduler import start_scheduler
         start_scheduler(app)
+
+        # Start background metrics collector — samples CPU/memory/GPU every 5 min
+        # so graph history persists between page loads instead of resetting to now
+        from .services.metrics_collector import start_collector
+        start_collector(app)
+
+    # App-level stubs for lcars-header.js polling calls (no blueprint prefix)
+    # These endpoints are called from the shared LCARS header JS which was
+    # inherited from the platform — KSO has no platform alerts/DHQ, return empty.
+    from flask import jsonify as _jsonify
+    from flask_login import login_required as _lr
+
+    @app.route("/api/alerts/unified")
+    @_lr
+    def _alerts_unified():
+        return _jsonify({"success": True, "counts": {"unread": 0, "critical": 0, "total": 0}, "alerts": []})
+
+    @app.route("/api/alerts/unified/mark-read", methods=["POST"])
+    @_lr
+    def _alerts_mark_read():
+        return _jsonify({"success": True})
+
+    @app.route("/api/alerts/unified/mark-all-read", methods=["POST"])
+    @_lr
+    def _alerts_mark_all_read():
+        return _jsonify({"success": True})
+
+    @app.route("/tools/department-hq/api/dispatch/ops-summary")
+    @_lr
+    def _ops_summary_stub():
+        return _jsonify({"approvals": {"pending": 0}, "active_jobs": {}, "errors_1h": {}})
 
     return app
 

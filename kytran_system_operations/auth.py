@@ -13,7 +13,7 @@ from .kytran_auth import KytranAuth
 
 logger = logging.getLogger(__name__)
 
-VALID_THEMES = ("kytran", "lcars", "midnight", "arctic", "ember")
+VALID_THEMES = ("kytran", "midnight", "arctic", "ember", "lcars")
 ALLOWED_LOGO_EXTENSIONS = {"png", "jpg", "jpeg", "svg", "webp"}
 
 login_manager = LoginManager()
@@ -78,12 +78,31 @@ def create_admin(username, password):
 
 
 def verify_password(username, password):
-    """Verify username/password, return User or None."""
+    """Verify username/password, return User or None.
+    Handles both bcrypt ($2b$) and werkzeug scrypt hashes.
+    """
+    from werkzeug.security import check_password_hash as wk_check
+
     db = get_db()
     row = db.execute("SELECT id, username, password_hash, role FROM users WHERE username = ?",
                      (username,)).fetchone()
     db.close()
-    if row and bcrypt.checkpw(password.encode(), row["password_hash"].encode()):
+    if not row or not row["password_hash"]:
+        return None
+    pw_hash = row["password_hash"]
+    # bcrypt hashes start with $2b$ or $2a$
+    if pw_hash.startswith("$2"):
+        try:
+            ok = bcrypt.checkpw(password.encode(), pw_hash.encode())
+        except Exception:
+            ok = False
+    else:
+        # werkzeug scrypt/pbkdf2 format
+        try:
+            ok = wk_check(pw_hash, password)
+        except Exception:
+            ok = False
+    if ok:
         return User(row["id"], row["username"], row["role"])
     return None
 
@@ -120,6 +139,69 @@ def register_auth_routes(app):
     def logout():
         logout_user()
         return redirect("/login")
+
+    @app.route("/api/qa/auth", methods=["POST"])
+    def qa_auth():
+        """Internal QA authentication — lets P.R.O.B.E. establish a session using
+        the shared ARCHIE_QA_TOKEN instead of the OAuth redirect flow. Internal-IP
+        + hmac token gated; mirrors the platform endpoint (app.py:1254). Only logs
+        in an existing local user (no account creation)."""
+        import hmac
+
+        qa_token = os.environ.get("ARCHIE_QA_TOKEN", "")
+        if not qa_token:
+            return jsonify({"error": "QA auth disabled"}), 403
+        # Internal-only: behind the proxy/published-port DNAT every internal
+        # caller arrives as the docker gateway (KSO's net is 192.168.16.0/20),
+        # so accept any RFC1918/loopback source. The hmac token is the real gate.
+        import ipaddress
+
+        ip = request.remote_addr or ""
+        try:
+            is_internal = ip in ("127.0.0.1", "::1") or ipaddress.ip_address(ip).is_private
+        except ValueError:
+            is_internal = False
+        if not is_internal:
+            return jsonify({"error": "QA auth only available from internal networks"}), 403
+        data = request.get_json(silent=True) or {}
+        if not hmac.compare_digest(data.get("token", ""), qa_token):
+            return jsonify({"error": "Invalid QA token"}), 401
+        username = data.get("username", "probe")
+        db = get_db()
+        row = db.execute(
+            "SELECT id, username, role, display_name, email, sso_provider "
+            "FROM users WHERE username = ?",
+            (username,),
+        ).fetchone()
+        db.close()
+        if not row:
+            return jsonify({"error": "User not found"}), 404
+        login_user(
+            User(row["id"], row["username"], row["role"], row["display_name"], row["email"], row["sso_provider"]),
+            remember=True,
+        )
+        # Mirror the normal admin login: admins get the 'pro' tier so QA can
+        # reach tier-gated data routes (auth.py login() does the same bump).
+        if row["role"] == "admin":
+            try:
+                from .services.subscription_service import get_user_tier, set_user_tier
+
+                if get_user_tier(row["id"]) == "free":
+                    set_user_tier(row["id"], "pro")
+            except Exception:
+                pass
+        return jsonify({"success": True, "username": username})
+
+    @app.context_processor
+    def inject_tier_context():
+        from flask_login import current_user
+        from .services.subscription_service import get_user_tier, get_chat_enabled
+        tier = "free"
+        chat_enabled = False
+        if current_user and current_user.is_authenticated:
+            tier = get_user_tier(current_user.id)
+            chat_enabled = get_chat_enabled(tier)
+        return {"user_tier": tier, "chat_enabled": chat_enabled}
 
     @app.route("/setup", methods=["GET", "POST"])
     def setup():
@@ -362,39 +444,57 @@ def register_auth_routes(app):
         import secrets as secrets_mod
         from werkzeug.security import generate_password_hash
 
-        db = get_db()
         username = userinfo.get("username", "")
+        incoming_role = userinfo.get("role", "user").lower()
 
-        row = db.execute(
-            "SELECT id, username, role FROM users WHERE username = ? AND sso_provider = 'kytran'",
-            (username,),
-        ).fetchone()
+        # Admin-only gate — check BEFORE touching the DB or logging anyone in
+        if incoming_role not in ("admin", "super_admin", "kytran"):
+            flash("KSO access is restricted to administrators.", "error")
+            logger.warning("SSO login blocked for non-admin user: %s (role=%s)", username, incoming_role)
+            return redirect(url_for("login"))
 
-        if row:
-            db.execute(
-                "UPDATE users SET role = ? WHERE id = ?",
-                (userinfo.get("role", "admin"), row["id"]),
-            )
-            db.commit()
-            user = User(row["id"], row["username"], userinfo.get("role", "admin"))
-        else:
-            db.execute(
-                "INSERT INTO users (username, password_hash, role, sso_provider) VALUES (?, ?, ?, 'kytran')",
-                (username, generate_password_hash(secrets_mod.token_urlsafe(32)), userinfo.get("role", "admin")),
-            )
-            db.commit()
-            new_row = db.execute(
-                "SELECT id, username, role FROM users WHERE username = ? AND sso_provider = 'kytran'",
+        db = get_db()
+        try:
+            # Query by username only — handles existing local users (sso_provider IS NULL)
+            # to avoid UNIQUE constraint failure on INSERT
+            row = db.execute(
+                "SELECT id, username, role FROM users WHERE username = ?",
                 (username,),
             ).fetchone()
-            user = User(new_row["id"], new_row["username"], new_row["role"])
+
+            if row:
+                db.execute(
+                    "UPDATE users SET role = ?, sso_provider = 'kytran' WHERE id = ?",
+                    (incoming_role, row["id"]),
+                )
+                db.commit()
+                user = User(row["id"], row["username"], incoming_role)
+            else:
+                db.execute(
+                    "INSERT INTO users (username, password_hash, role, sso_provider) VALUES (?, ?, ?, 'kytran')",
+                    (username, generate_password_hash(secrets_mod.token_urlsafe(32)), incoming_role),
+                )
+                db.commit()
+                new_row = db.execute(
+                    "SELECT id, username, role FROM users WHERE username = ?",
+                    (username,),
+                ).fetchone()
+                user = User(new_row["id"], new_row["username"], new_row["role"])
+        except Exception as e:
+            db.close()
+            logger.error("SSO DB error for user %s: %s", username, e)
+            flash("SSO login failed — database error. Please try again.", "error")
+            return redirect(url_for("login"))
 
         db.close()
         login_user(user)
 
-        # Sync subscription tier from ARCHIE's product_tiers
+        # Sync subscription tier — prefer explicit kso product tier, fall back to global tier
+        # Map platform tiers (kytran/owner) → 'staff' since KSO's DB only allows:
+        # free / pro / business / enterprise / staff
         product_tiers = userinfo.get("product_tiers", {})
-        kso_tier = product_tiers.get("kso", "free")
+        raw_tier = product_tiers.get("kso") or userinfo.get("subscription_tier") or "pro"
+        kso_tier = "staff" if raw_tier in ("kytran", "owner", "staff") else raw_tier
         try:
             from .services.subscription_service import set_user_tier
             set_user_tier(user.id, kso_tier)

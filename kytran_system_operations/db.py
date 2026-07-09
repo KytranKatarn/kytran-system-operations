@@ -91,6 +91,7 @@ def init_db(path):
     )""")
     conn.execute("""CREATE TABLE IF NOT EXISTS compliance_scans (
         scan_id TEXT PRIMARY KEY,
+        node_id TEXT DEFAULT 'local',
         triggered_by TEXT DEFAULT 'manual',
         started_at TIMESTAMP,
         completed_at TIMESTAMP,
@@ -101,6 +102,12 @@ def init_db(path):
         errors INTEGER DEFAULT 0,
         score REAL DEFAULT 0.0
     )""")
+    # Migration: add node_id to existing installs that lack it
+    try:
+        conn.execute("ALTER TABLE compliance_scans ADD COLUMN node_id TEXT DEFAULT 'local'")
+        conn.commit()
+    except Exception:
+        pass  # Column already exists
     conn.execute("""CREATE TABLE IF NOT EXISTS compliance_scan_results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         scan_id TEXT NOT NULL,

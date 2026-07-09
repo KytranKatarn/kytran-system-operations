@@ -14,8 +14,10 @@ RUN groupadd -g ${DOCKER_GID} docker || true \
 
 COPY pyproject.toml README.md LICENSE ./
 COPY kytran_system_operations/ ./kytran_system_operations/
-
-RUN pip install --no-cache-dir .
+COPY kytran-auth-pkg/ /app/kytran-auth-pkg/
+RUN pip install --no-cache-dir /app/kytran-auth-pkg \
+    && pip install --no-cache-dir . \
+    && rm -rf /app/kytran-auth-pkg
 
 # Set permissions before switching user
 RUN mkdir -p /data && chown appuser:appuser /data \
@@ -26,6 +28,14 @@ USER appuser
 ENV KSO_HOST=0.0.0.0
 ENV KSO_PORT=8085
 ENV KSO_DATA_DIR=/data
+
+# Deploy-provenance stamp (#4776): build metadata surfaced at GET /version. KSO has
+# no git repo so GIT_SHA stays 'unknown' (manual endpoint, not drift-monitored);
+# BUILD_TIME is passed at build so /version reports deploy staleness.
+ARG GIT_SHA=unknown
+ARG BUILD_TIME=unknown
+ENV KSO_GIT_SHA=$GIT_SHA
+ENV KSO_BUILD_TIME=$BUILD_TIME
 
 EXPOSE 8085
 

@@ -1,0 +1,145 @@
+{#
+   LCARS Integrated Header -- Shared Module Component
+   Replaces category_nav + glass-nav with unified LCARS header.
+
+   Parameters (set before include):
+     cat_accent       -- CSS hex color (e.g. "#00ffff")
+     cat_accent_rgb   -- RGB triplet for rgba() (e.g. "0,255,255")
+     cat_accent_dark  -- Darker variant (e.g. "#00cccc"), defaults to cat_accent
+     cat_label        -- Category display name (e.g. "AI COMMAND")
+     module_title     -- Module display name (e.g. "CONSCIOUSNESS")
+     module_back_url  -- URL for back button (defaults to /dashboard)
+     header_tabs      -- List of tuples: [(id, label, icon), ...]
+     header_shortcuts -- List of tuples: [(label, icon, url), ...] for module shortcuts strip
+     i18n_prefix      -- i18n namespace prefix (defaults to module_title lowercased)
+#}
+
+{% set _accent = cat_accent|default('#00ffff') %}
+{% set _accent_rgb = cat_accent_rgb|default('0,255,255') %}
+{% set _accent_dark = cat_accent_dark|default(cat_accent_light|default(_accent)) %}
+{% set _module = module_title|default('MODULE')|upper %}
+{% set _back = module_back_url|default('/dashboard') %}
+{% set _tabs = header_tabs|default([]) %}
+{% set _shortcuts = header_shortcuts|default([]) %}
+{% set _i18n = i18n_prefix|default(_module|lower|replace(' ', '_')) %}
+
+<header class="lcars-header" id="lcarsHeader"
+        style="--cat-accent:{{ _accent }}; --cat-accent-dark:{{ _accent_dark }}; --cat-accent-rgb:{{ _accent_rgb }};"
+        data-alert-state="normal">
+
+  <!-- LCARS Elbow (left) -->
+  <div class="lcars-header-elbow" id="lcarsHeaderElbow">
+    <div class="lcars-header-elbow-top">
+      <a href="{{ _back }}" class="lcars-header-back" title="Back to Dashboard" data-i18n-title="nav.back_to_dashboard">
+        <i data-lucide="arrow-left" style="width:16px;height:16px;"></i>
+      </a>
+    </div>
+    <div class="lcars-header-elbow-bottom"></div>
+  </div>
+
+  <!-- Main area (right of elbow) -->
+  <div class="lcars-header-main">
+    <!-- Gradient title bar -->
+    <div class="lcars-header-bar">
+      <span class="lcars-header-title">{{ _module }}</span>
+      <span class="lcars-header-category">{{ cat_label|default('')|upper }}</span>
+    </div>
+
+    <!-- Status strip (utilities + module shortcuts) -->
+    <div class="lcars-header-strip" style="display:flex;align-items:center;">
+      <span class="lcars-header-stardate" id="lcarsStardate"></span>
+      <span style="flex:1;"></span>
+      {% if current_user and current_user.is_authenticated %}
+      <span class="lcars-strip-divider"></span>
+      <a href="/settings" class="lcars-strip-btn" title="Settings &amp; Profile" style="text-decoration:none;display:inline-flex;align-items:center;gap:3px;">
+        <i data-lucide="settings" style="width:11px;height:11px;"></i>
+        <span>{{ current_user.display_name or current_user.username or 'PROFILE' }}</span>
+      </a>
+      <span class="lcars-strip-divider"></span>
+      <a href="{{ url_for('logout') }}" class="lcars-strip-btn" title="Logout" style="text-decoration:none;display:inline-flex;align-items:center;gap:3px;">
+        <i data-lucide="log-out" style="width:11px;height:11px;"></i>
+        <span>LOGOUT</span>
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Tab row -->
+    <div class="lcars-header-tabs" id="lcarsHeaderTabs">
+      {% for tab_id, tab_label, tab_icon in _tabs %}
+      <button class="lcars-header-tab{% if loop.first %} active{% endif %}"
+              data-tab="{{ tab_id }}"
+              onclick="if(window.lcarsHeaderSwitchTab)lcarsHeaderSwitchTab('{{ tab_id }}')">
+        <i data-lucide="{{ tab_icon }}" style="width:14px;height:14px;"></i>
+        <span class="lcars-header-tab-label" data-i18n="{{ _i18n }}.tabs.{{ tab_id }}">{{ tab_label }}</span>
+        <span class="lcars-header-tab-short">{{ tab_label[:4]|upper }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    <!-- Footer bar (bridges nav to content) -->
+    <div class="lcars-header-footer"></div>
+  </div>
+</header>
+
+<!-- Toast container -->
+<div class="lcars-toast-container" id="lcarsToastContainer"></div>
+
+<!-- Notification Modal (bm- LCARS tablet) — shared across all modules -->
+<div class="bm-overlay" id="lcarsNotifModal"
+     style="--bm-accent:var(--cat-accent, #00ffff); --bm-accent-rgb:var(--cat-accent-rgb, 0,255,255);">
+    <div class="bm-shell" style="max-width:500px;">
+        <div class="bm-frame">
+            <div class="bm-frame-elbow-top"></div>
+            <div class="bm-frame-seg"></div>
+            <div class="bm-frame-seg dim"></div>
+            <div class="bm-frame-light on"></div>
+            <div class="bm-frame-light amber"></div>
+            <div class="bm-frame-seg cyan"></div>
+            <div class="bm-frame-fill"></div>
+            <div class="bm-frame-elbow-bottom"></div>
+        </div>
+        <div class="bm-content">
+            <div class="bm-header">
+                <span class="bm-header-title">NOTIFICATIONS</span>
+                <div class="bm-header-strip">
+                    <span class="bm-header-pip w1"></span>
+                    <span class="bm-header-pip w2"></span>
+                    <span class="bm-header-pip w3"></span>
+                    <button class="bm-close" onclick="lcarsCloseNotifications()">&times;</button>
+                </div>
+            </div>
+            <div class="bm-body" id="lcarsNotifBody" style="max-height:60vh;overflow-y:auto;">
+                <p style="color:#94a3b8;">Loading...</p>
+            </div>
+            <div class="bm-actions">
+                <button class="btn-cancel" onclick="lcarsCloseNotifications()">Close</button>
+                <button class="btn-submit" onclick="fetch('/api/alerts/unified/mark-all-read',{method:'POST'}).then(function(){var b=document.getElementById('lcarsNotifBody');if(b){b.textContent='';var p=document.createElement('p');p.style.color='#64748b';p.textContent='All clear — no notifications';b.appendChild(p);}window._lastUnifiedAlerts=null;if(window._pollNotifications)window._pollNotifications();})">Mark All Read</button>
+            </div>
+            <div class="bm-footer">
+                <div class="bm-footer-strip">
+                    <span class="bm-footer-dot cyan"></span>
+                    <span class="bm-footer-dot gold"></span>
+                    <span class="bm-footer-dot green"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.lcars-notif-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.5rem;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+</style>

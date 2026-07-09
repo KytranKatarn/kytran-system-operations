@@ -24,6 +24,7 @@
     <script src="https://unpkg.com/lucide@0.344.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
+    {% if not (sysops_theme and sysops_theme.frame_style == 'lcars') %}
     <nav class="kso-nav">
         <a href="/dashboard" class="kso-nav-brand" style="text-decoration: none; color: inherit;">
             {% if sysops_theme and sysops_theme.logo %}
@@ -43,6 +44,7 @@
             {% endif %}
         </div>
     </nav>
+    {% endif %}
     <main class="kso-main">
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}

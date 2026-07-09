@@ -1,0 +1,1005 @@
+/* ============================================================
+   LCARS Header — lcars-header.css
+   All accent colors via CSS vars: --cat-accent, --cat-accent-dark, --cat-accent-rgb
+   ============================================================ */
+
+/* Hide legacy notification bars when LCARS header is present */
+body:has(.lcars-header) .ops-alert-bar,
+body:has(.lcars-header) .admin-notification-bar { display: none !important; }
+
+/* ============================================================
+   1. BASE LAYOUT
+   ============================================================ */
+.lcars-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  background: var(--archie-bg-primary, #0a0a0f);
+  font-family: 'Antonio', sans-serif;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.lcars-header-elbow {
+  width: 56px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lcars-header-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ============================================================
+   2. ELBOW TOP (back arrow)
+   ============================================================ */
+.lcars-header-elbow-top {
+  flex: 3;
+  flex-shrink: 0;
+  background: var(--cat-accent, #00ffff);
+  border-radius: 20px 0 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.lcars-header-back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: rgba(0, 0, 0, 0.8);
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.lcars-header-back:hover {
+  opacity: 0.65;
+  color: rgba(0, 0, 0, 0.8);
+  text-decoration: none;
+}
+
+.lcars-header-back svg,
+.lcars-header-back i {
+  width: 16px;
+  height: 16px;
+}
+
+/* ============================================================
+   3. ELBOW BOTTOM (utils: theme, lang, notif badge)
+   ============================================================ */
+.lcars-header-elbow-bottom {
+  flex: 1;
+  background: var(--cat-accent, #00ffff);
+  border-radius: 0 0 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-evenly;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.lcars-header-util {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  font-size: 0.75rem;
+}
+
+.lcars-header-util:hover {
+  opacity: 0.6;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.lcars-header-util svg,
+.lcars-header-util i {
+  width: 14px;
+  height: 14px;
+}
+
+.lcars-header-lang {
+  color: rgba(0, 0, 0, 0.7);
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.lcars-header-lang:hover {
+  opacity: 0.6;
+}
+
+/* ============================================================
+   4. ALERT STATES — only bottom elbow flashes
+   ============================================================ */
+[data-alert-state="warning"] .lcars-header-elbow-bottom {
+  background: #ff9f43;
+  animation: lcarsElbowPulse 2s ease-in-out infinite;
+}
+
+[data-alert-state="critical"] .lcars-header-elbow-bottom {
+  background: #ef4444;
+  animation: lcarsElbowPulse 1s ease-in-out infinite;
+}
+
+@keyframes lcarsElbowPulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* ============================================================
+   5. TITLE BAR
+   ============================================================ */
+.lcars-header-bar {
+  background: var(--cat-accent, #00ffff);
+  border-radius: 0 20px 20px 0;
+  padding: 5px 16px;
+  height: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.lcars-header-title {
+  font-family: 'Orbitron', 'Antonio', sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: rgba(0, 0, 0, 0.9);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.2);
+}
+
+.lcars-header-category {
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.6rem;
+  color: rgba(0, 0, 0, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  white-space: nowrap;
+  position: absolute;
+  right: 20px;
+}
+
+.lcars-header-stardate {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.55rem;
+  color: rgba(var(--cat-accent-rgb), 0.4);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+}
+
+/* ============================================================
+   5b. STATUS STRIP (stardate, lang, theme, alerts)
+   ============================================================ */
+.lcars-header-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 12px;
+  background: rgba(var(--cat-accent-rgb), 0.06);
+  border-bottom: 1px solid rgba(var(--cat-accent-rgb), 0.1);
+  flex-shrink: 0;
+}
+
+.lcars-strip-divider {
+  width: 1px;
+  height: 10px;
+  background: rgba(var(--cat-accent-rgb), 0.12);
+  flex-shrink: 0;
+}
+
+.lcars-strip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.55rem;
+  font-weight: 600;
+  color: rgba(var(--cat-accent-rgb), 0.5);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  padding: 0 8px;
+  height: 100%;
+  border-radius: 0;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.lcars-strip-btn:hover {
+  color: var(--cat-accent);
+  border-bottom-color: var(--cat-accent);
+}
+
+.lcars-strip-btn i,
+.lcars-strip-btn svg {
+  width: 11px;
+  height: 11px;
+  flex-shrink: 0;
+  opacity: 0.65;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lcars-strip-btn:hover i,
+.lcars-strip-btn:hover svg {
+  opacity: 1;
+}
+
+.lcars-strip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.45rem;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  margin-left: 2px;
+}
+
+/* ============================================================
+   6. TABS
+   ============================================================ */
+.lcars-header-tabs {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 14px;
+  background: rgba(var(--cat-accent-rgb), 0.04);
+  border-radius: 0 0 14px 0;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lcars-header-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.lcars-header-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+  cursor: pointer;
+  color: rgba(var(--cat-accent-rgb), 0.7);
+  background: transparent;
+  text-decoration: none;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  flex-shrink: 0;
+}
+
+.lcars-header-tab:hover {
+  background: rgba(var(--cat-accent-rgb), 0.08);
+  color: var(--cat-accent);
+  text-decoration: none;
+}
+
+.lcars-header-tab.active,
+.lcars-header-tab[aria-current="true"],
+.lcars-header-tab.lcars-tab-active {
+  background: rgba(var(--cat-accent-rgb), 0.15);
+  color: var(--cat-accent);
+  border-color: rgba(var(--cat-accent-rgb), 0.3);
+  box-shadow: 0 0 8px rgba(var(--cat-accent-rgb), 0.25);
+  text-shadow: 0 0 8px rgba(var(--cat-accent-rgb), 0.5);
+}
+
+.lcars-header-tab-icon {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.lcars-header-tab-short {
+  display: none;
+}
+
+/* ============================================================
+   6b. FOOTER BAR (bridges nav to content below)
+   ============================================================ */
+.lcars-header-footer {
+  height: 6px;
+  background: var(--cat-accent, #00ffff);
+  border-radius: 0 14px 0 0;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.lcars-header-footer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: rgba(var(--cat-accent-rgb), 0.3);
+}
+
+/* ============================================================
+   7. TOASTS
+   ============================================================ */
+/* -- Toast Container -- */
+.lcars-toast-container {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+  max-width: 400px;
+  width: calc(100vw - 40px);
+}
+
+/* -- Toast Frame (LCARS styled) -- */
+.lcars-toast {
+  --toast-color: var(--cat-accent, #00ffff);
+  --toast-rgb: var(--cat-accent-rgb, 0,255,255);
+  display: flex;
+  flex-direction: row;
+  background: rgba(8, 12, 20, 0.96);
+  border: 2px solid rgba(var(--toast-rgb), 0.5);
+  border-left: none;
+  border-radius: 0 8px 8px 0;
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: pointer;
+  animation: lcarsToastIn 0.3s ease forwards;
+  box-shadow:
+    0 0 20px rgba(var(--toast-rgb), 0.15),
+    0 4px 24px rgba(0, 0, 0, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lcars-toast:hover {
+  transform: translateX(-4px);
+  box-shadow:
+    0 0 28px rgba(var(--toast-rgb), 0.25),
+    0 4px 30px rgba(0, 0, 0, 0.6);
+}
+
+.lcars-toast[data-severity="warning"] {
+  --toast-color: #ff9f43;
+  --toast-rgb: 255,159,67;
+}
+
+.lcars-toast[data-severity="error"] {
+  --toast-color: #ef4444;
+  --toast-rgb: 239,68,68;
+}
+
+.lcars-toast[data-severity="success"] {
+  --toast-color: #10b981;
+  --toast-rgb: 16,185,129;
+}
+
+.lcars-toast.removing {
+  animation: lcarsToastOut 0.3s ease forwards;
+}
+
+/* -- LCARS Elbow (left frame accent) -- */
+.lcars-toast-accent {
+  width: 14px;
+  flex-shrink: 0;
+  background: var(--toast-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: 0 0 12px rgba(var(--toast-rgb), 0.5);
+}
+
+.lcars-toast-accent::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.25) 0%, transparent 100%);
+  border-radius: 0 0 3px 3px;
+}
+
+.lcars-toast[data-severity="error"] .lcars-toast-accent {
+  animation: lcarsAccentPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes lcarsAccentPulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 12px rgba(var(--toast-rgb), 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 20px rgba(var(--toast-rgb), 0.8); }
+}
+
+/* -- Toast Content -- */
+.lcars-toast-content {
+  flex: 1;
+  padding: 12px 14px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Header row: title + close */
+.lcars-toast-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-bottom: 1px solid rgba(var(--toast-rgb), 0.2);
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+}
+
+.lcars-toast-title {
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--toast-color);
+  line-height: 1.2;
+}
+
+.lcars-toast-message {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.lcars-toast-action {
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.7rem;
+  color: var(--toast-color);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  opacity: 0.7;
+  margin-top: 2px;
+}
+
+.lcars-toast:hover .lcars-toast-action {
+  opacity: 1;
+}
+
+.lcars-toast-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: rgba(var(--toast-rgb), 0.1);
+  border: 1px solid rgba(var(--toast-rgb), 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--toast-color);
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.lcars-toast-close:hover {
+  background: rgba(var(--toast-rgb), 0.25);
+  border-color: var(--toast-color);
+}
+
+@keyframes lcarsToastIn {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes lcarsToastOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+}
+
+/* ============================================================
+   8. RESPONSIVE — 1024px
+   ============================================================ */
+@media (max-width: 1024px) {
+  .lcars-header-elbow-top {
+    height: 28px;
+    border-radius: 14px 0 0 0;
+  }
+
+  .lcars-header-elbow-bottom {
+    border-radius: 0 0 0 14px;
+  }
+
+  .lcars-header-title {
+    font-size: 0.9rem;
+  }
+}
+
+/* ============================================================
+   9. RESPONSIVE — 768px
+   ============================================================ */
+@media (max-width: 768px) {
+  .lcars-header-elbow {
+    width: 56px;
+  }
+
+  .lcars-header-elbow-top {
+    height: 26px;
+    border-radius: 13px 0 0 0;
+  }
+
+  .lcars-header-elbow-bottom {
+    border-radius: 0 0 0 13px;
+    gap: 4px;
+    padding: 4px 3px;
+  }
+
+  .lcars-header-category {
+    display: none;
+  }
+
+
+  .lcars-header-title {
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+
+  .lcars-header-bar {
+    padding: 4px 12px;
+    min-height: 28px;
+  }
+
+  .lcars-header-tab {
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    gap: 5px;
+  }
+
+  .lcars-header-tabs {
+    padding: 5px 12px;
+    gap: 3px;
+  }
+}
+
+/* ============================================================
+   10. RESPONSIVE — 717px (hide lang label)
+   ============================================================ */
+@media (max-width: 717px) {
+  .lcars-header-elbow {
+    width: 56px;
+  }
+
+  /* Compact strip */
+  .lcars-header-strip {
+    height: 22px;
+    padding: 0 8px;
+  }
+
+  .lcars-strip-btn span:not(.lcars-strip-badge) {
+    display: none;
+  }
+
+  .lcars-strip-btn {
+    height: 14px;
+    padding: 0 6px;
+    border-radius: 3px;
+    margin: 0 1px;
+  }
+
+  .lcars-strip-btn i,
+  .lcars-strip-btn svg {
+    width: 9px;
+    height: 9px;
+  }
+
+  .lcars-strip-divider {
+    height: 8px;
+    margin: 0 2px;
+  }
+
+  .lcars-header-stardate {
+    font-size: 0.5rem;
+  }
+}
+
+/* ============================================================
+   11. RESPONSIVE — 480px (column layout)
+   ============================================================ */
+@media (max-width: 480px) {
+  .lcars-header {
+    flex-direction: column;
+  }
+
+  .lcars-header-elbow {
+    width: 100%;
+    height: 3px;
+    flex-direction: row;
+    flex-shrink: 0;
+  }
+
+  .lcars-header-elbow-top {
+    flex: 1;
+    height: 3px;
+    border-radius: 0;
+    min-height: unset;
+  }
+
+  .lcars-header-back-link {
+    display: none;
+  }
+
+  .lcars-header-elbow-bottom {
+    display: none;
+  }
+
+  .lcars-header-bar {
+    padding: 5px 12px;
+    min-height: 30px;
+    position: relative;
+  }
+
+  .lcars-header-bar::before {
+    content: '←';
+    font-family: 'Antonio', sans-serif;
+    font-size: 0.85rem;
+    color: rgba(var(--cat-accent-rgb), 0.7);
+    margin-right: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .lcars-header-title {
+    font-size: 0.8rem;
+    letter-spacing: 0.8px;
+  }
+
+  .lcars-header-tabs {
+    padding: 4px 8px;
+    gap: 4px;
+    border-bottom-width: 1px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .lcars-header-tab {
+    font-size: 0.6rem;
+    padding: 4px 8px;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .lcars-header-tab-short {
+    display: inline;
+  }
+
+  .lcars-header-tab-label {
+    display: none;
+  }
+
+  .lcars-toast-container {
+    top: 8px;
+    right: 8px;
+    width: calc(100vw - 16px);
+    max-width: unset;
+  }
+}
+
+/* ============================================================
+   12. RESPONSIVE — 360px
+   ============================================================ */
+@media (max-width: 360px) {
+  .lcars-header-title {
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+  }
+
+  .lcars-header-bar {
+    padding: 4px 8px;
+    min-height: 26px;
+  }
+
+  .lcars-header-tabs {
+    padding: 3px 6px;
+    gap: 2px;
+  }
+
+  .lcars-header-tab {
+    font-size: 0.58rem;
+    padding: 3px 6px;
+    gap: 0;
+    letter-spacing: 0.4px;
+  }
+
+  .lcars-header-tab-icon {
+    display: none;
+  }
+
+  .lcars-toast-title {
+    font-size: 0.68rem;
+  }
+
+  .lcars-toast-message {
+    font-size: 0.63rem;
+  }
+}
+
+/* ============================================================
+   8. BM- LCARS MODAL (shared notification modal styles)
+   These styles support the notification modal in lcars-header.html.
+   Duplicated from starbase.css for modules that don't load starbase CSS.
+   ============================================================ */
+.bm-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+}
+.bm-overlay.active { display: flex; }
+
+.bm-shell {
+  background: #06060c;
+  border: none;
+  border-radius: 24px;
+  width: 90%; max-width: 500px;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  box-shadow:
+    0 0 0 2px #1e1e35,
+    0 0 0 4px rgba(var(--bm-accent-rgb, 0,255,255),0.12),
+    0 24px 80px rgba(0,0,0,0.8),
+    0 0 60px rgba(var(--bm-accent-rgb, 0,255,255),0.06);
+  animation: bmTabletIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes bmTabletIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.bm-frame {
+  flex-shrink: 0;
+  width: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0;
+  background: transparent;
+}
+.bm-frame-elbow-top {
+  height: 52px;
+  background: var(--bm-accent, #00ffff);
+  border-radius: 20px 0 0 0;
+  position: relative;
+}
+.bm-frame-elbow-top::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 18px; height: 18px;
+  background: #06060c;
+  border-radius: 0 10px 0 0;
+}
+.bm-frame-seg {
+  height: 28px;
+  border-radius: 0 8px 8px 0;
+  margin-right: 6px;
+  background: var(--bm-accent, #00ffff);
+}
+.bm-frame-seg.dim { opacity: 0.6; }
+.bm-frame-seg.cyan { background: #00d4ff; }
+.bm-frame-light {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin: 4px auto;
+  animation: bmLightPulse 2s ease-in-out infinite;
+}
+.bm-frame-light.on { background: #10b981; box-shadow: 0 0 8px #10b981; }
+.bm-frame-light.amber { background: #FFAA00; box-shadow: 0 0 8px #FFAA00; animation-delay: 0.7s; }
+@keyframes bmLightPulse {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.3; }
+  60% { opacity: 0.3; }
+}
+.bm-frame-fill {
+  flex: 1;
+  background: rgba(var(--bm-accent-rgb, 0,255,255),0.25);
+  border-radius: 0 8px 0 0;
+  margin-right: 6px;
+  min-height: 20px;
+}
+.bm-frame-elbow-bottom {
+  height: 36px;
+  background: var(--bm-accent, #00ffff);
+  border-radius: 0 0 0 20px;
+  position: relative;
+}
+.bm-frame-elbow-bottom::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 18px; height: 14px;
+  background: #06060c;
+  border-radius: 0 0 0 10px;
+}
+
+.bm-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+.bm-header {
+  display: flex;
+  align-items: stretch;
+  gap: 3px;
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.bm-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 18px;
+  background: var(--bm-accent, #00ffff);
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #fff;
+  white-space: nowrap;
+}
+.bm-header-strip {
+  flex: 1;
+  background: rgba(var(--bm-accent-rgb, 0,255,255),0.18);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 8px;
+  border-radius: 0 20px 0 0;
+  gap: 6px;
+}
+.bm-header-pip {
+  height: 8px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.bm-header-pip.w1 { width: 20px; background: rgba(var(--bm-accent-rgb, 0,255,255),0.35); }
+.bm-header-pip.w2 { width: 35px; background: rgba(255,170,0,0.3); }
+.bm-header-pip.w3 { width: 14px; background: rgba(0,212,255,0.3); }
+.bm-close {
+  background: rgba(var(--bm-accent-rgb, 0,255,255),0.15);
+  border: 1px solid rgba(var(--bm-accent-rgb, 0,255,255),0.3);
+  color: rgba(255,255,255,0.6);
+  font-size: 1rem;
+  width: 30px; height: 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  flex-shrink: 0;
+}
+.bm-close:hover {
+  background: rgba(var(--bm-accent-rgb, 0,255,255),0.3);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(var(--bm-accent-rgb, 0,255,255),0.2);
+}
+.bm-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+  background: transparent;
+  font-family: 'Antonio', sans-serif;
+}
+.bm-body::-webkit-scrollbar { width: 4px; }
+.bm-body::-webkit-scrollbar-thumb { background: rgba(var(--bm-accent-rgb, 0,255,255),0.3); border-radius: 2px; }
+.bm-body::-webkit-scrollbar-track { background: transparent; }
+.bm-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 24px 16px;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+.bm-actions button {
+  font-family: 'Antonio', sans-serif;
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1px solid rgba(var(--bm-accent-rgb, 0,255,255),0.3);
+  background: rgba(var(--bm-accent-rgb, 0,255,255),0.08);
+  color: var(--bm-accent, #00ffff);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.bm-actions button:hover {
+  background: rgba(var(--bm-accent-rgb, 0,255,255),0.18);
+  box-shadow: 0 0 12px rgba(var(--bm-accent-rgb, 0,255,255),0.15);
+}
+.bm-actions .btn-cancel {
+  border-color: rgba(148,163,184,0.3);
+  background: rgba(148,163,184,0.08);
+  color: #94a3b8;
+}
+.bm-actions .btn-cancel:hover {
+  background: rgba(148,163,184,0.18);
+  box-shadow: none;
+}

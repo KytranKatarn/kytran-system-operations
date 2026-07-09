@@ -611,77 +611,77 @@ let memoryTabLoaded = false;
 let firewallTabLoaded = false;
 let pendingDeleteRuleNumber = null;  // Rule number pending deletion
 
+function switchSysopsTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    var panel = document.getElementById('tab-' + tabId);
+    if (panel) panel.classList.add('active');
+
+    // Also update old tab-btn active states (modern mode)
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    var btn = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
+    if (btn) btn.classList.add('active');
+
+    // Load storage data when entering the tab
+    if (tabId === 'storage') {
+        if (!storageTabLoaded) {
+            storageTabLoaded = true;
+            loadStorageData();
+        }
+        if (!storagePollingInterval) {
+            storagePollingInterval = setInterval(function() {
+                console.log('Storage auto-refresh...');
+                loadStorageData();
+            }, 30000);
+        }
+    } else {
+        if (storagePollingInterval) {
+            clearInterval(storagePollingInterval);
+            storagePollingInterval = null;
+        }
+        storageTabLoaded = false;
+    }
+
+    if (tabId === 'hardware') {
+        if (!hardwareTabLoaded) {
+            hardwareTabLoaded = true;
+            loadHardwareData();
+        }
+    }
+
+    if (tabId === 'memory') {
+        if (!memoryTabLoaded) {
+            memoryTabLoaded = true;
+            loadMemoryHardware();
+        }
+    }
+
+    if (tabId === 'docker') {
+        loadHealthAlerts();
+    }
+
+    if (tabId === 'firewall') {
+        if (!firewallTabLoaded) {
+            firewallTabLoaded = true;
+            loadFirewallData();
+        }
+    } else {
+        firewallTabLoaded = false;
+    }
+
+    if (tabId === 'compliance') {
+        loadComplianceResults();
+    }
+
+    lucide.createIcons();
+}
+
+// Bridge LCARS header tabs → module tab switching
+window.onLcarsTabSwitch = function(tabId) { switchSysopsTab(tabId); };
+
 function initTabs() {
     document.querySelectorAll('.tab-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-
-            // Load storage data when entering the tab
-            if (btn.dataset.tab === 'storage') {
-                if (!storageTabLoaded) {
-                    storageTabLoaded = true;
-                    loadStorageData();
-                }
-                // Start auto-polling every 30 seconds to detect new drives
-                if (!storagePollingInterval) {
-                    storagePollingInterval = setInterval(function() {
-                        console.log('Storage auto-refresh...');
-                        loadStorageData();
-                    }, 30000);
-                }
-            } else {
-                // Stop polling when leaving storage tab
-                if (storagePollingInterval) {
-                    clearInterval(storagePollingInterval);
-                    storagePollingInterval = null;
-                }
-                // Reset so returning to storage tab re-fetches fresh data
-                storageTabLoaded = false;
-            }
-
-            // Load hardware data when entering the tab
-            if (btn.dataset.tab === 'hardware') {
-                if (!hardwareTabLoaded) {
-                    hardwareTabLoaded = true;
-                    loadHardwareData();
-                }
-            }
-            // Don't reset hardware tab - hardware info doesn't change often
-
-            // Load memory hardware data when entering the tab
-            if (btn.dataset.tab === 'memory') {
-                if (!memoryTabLoaded) {
-                    memoryTabLoaded = true;
-                    loadMemoryHardware();
-                }
-            }
-            // Don't reset memory tab - hardware info doesn't change often
-
-            // Load health alerts when entering Docker tab
-            if (btn.dataset.tab === 'docker') {
-                loadHealthAlerts();
-            }
-
-            // Load firewall data when entering the tab
-            if (btn.dataset.tab === 'firewall') {
-                if (!firewallTabLoaded) {
-                    firewallTabLoaded = true;
-                    loadFirewallData();
-                }
-            } else {
-                // Reset when leaving so returning re-fetches fresh data
-                firewallTabLoaded = false;
-            }
-
-            // Load compliance data when entering the tab
-            if (btn.dataset.tab === 'compliance') {
-                loadComplianceResults();
-            }
-
-            lucide.createIcons();
+            switchSysopsTab(btn.dataset.tab);
         });
     });
 }
@@ -892,6 +892,18 @@ async function refreshAll() {
     }
 }
 
+function _updateCoverageNotice(returnedHours, requestedHours) {
+    const el = document.getElementById('history-coverage-notice');
+    if (!el) return;
+    if (!returnedHours || returnedHours >= requestedHours * 0.8) {
+        el.style.display = 'none';
+        return;
+    }
+    const fmt = h => h < 24 ? Math.round(h) + 'h' : Math.round(h / 24) + 'd';
+    el.textContent = '⏳ Building history — ' + fmt(returnedHours) + ' collected of ' + fmt(requestedHours) + ' requested. Data grows automatically.';
+    el.style.display = 'block';
+}
+
 async function loadHistoricalData() {
     const hours = historyHours;
     console.log('loadHistoricalData: Starting with hours=' + hours);
@@ -902,7 +914,17 @@ async function loadHistoricalData() {
         if (cpuRes.ok) {
             const cpuJson = await cpuRes.json();
             if (cpuJson.success && cpuJson.data && cpuJson.data.values && cpuJson.data.values.length > 0) {
-                cpuHistory = cpuJson.data.labels.map((label, i) => ({
+                const rawLabels = cpuJson.data.labels;
+                // Calculate actual data coverage in hours from first→last timestamp
+                let actualHours = hours;
+                if (rawLabels.length >= 2) {
+                    const spanMs = new Date(rawLabels[rawLabels.length - 1]) - new Date(rawLabels[0]);
+                    actualHours = Math.max(spanMs / 3600000, 0.1);
+                } else if (rawLabels.length === 1) {
+                    actualHours = 0.1;
+                }
+                _updateCoverageNotice(actualHours, hours);
+                cpuHistory = rawLabels.map((label, i) => ({
                     time: formatHistoryTime(label, hours),
                     value: cpuJson.data.values[i]
                 }));
@@ -911,6 +933,8 @@ async function loadHistoricalData() {
                     cpuChart.data.datasets[0].data = cpuHistory.map(h => h.value);
                     cpuChart.update('none');
                 }
+            } else {
+                _updateCoverageNotice(0, hours);
             }
         }
     } catch (e) {
@@ -5105,7 +5129,7 @@ function renderNetwork(data) {
 let portMapLoaded = false;
 let topologyLoaded = false;
 let bandwidthLoaded = false;
-let cachedHostIp = ''; // Updated by renderNetwork from API data
+let cachedHostIp = '192.168.1.200'; // Updated by renderNetwork from API data
 
 function showNetSubtab(tabName) {
     // Toggle button active state
@@ -5418,8 +5442,8 @@ function renderTopology(netData, portData) {
     const stacks = (portData.stacks || []).filter(s => s.ports.length > 0);
     const unassigned = portData.unassigned_ports || [];
 
-    const gateway = netData.gateway || '';
-    const hostIp = netData.host_ip || '';
+    const gateway = netData.gateway || '192.168.1.1';
+    const hostIp = netData.host_ip || '192.168.1.200';
     const hostname = netData.host_hostname || netData.hostname || 'archie';
 
     // Layout dimensions

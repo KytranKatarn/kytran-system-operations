@@ -1,9 +1,18 @@
-"""Kytran Auth implementation for KSO.
+"""Kytran Auth SDK — "Sign in with Kytran" OAuth client for Flask apps.
 
-Delegates to the pip-installed kytran-sdk (kytran_auth module) when available,
-otherwise provides a self-contained fallback so `from .kytran_auth import KytranAuth`
-in auth.py continues to work without modification.
+Usage:
+    from kytran_auth import KytranAuth
+
+    kytran_auth = KytranAuth()
+    kytran_auth.init_app(app)
+
+Env vars required:
+    KYTRAN_CLIENT_ID       — OAuth client ID (e.g., "kso")
+    KYTRAN_CLIENT_SECRET   — OAuth client secret
+    KYTRAN_AUTH_URL         — ARCHIE hub URL (e.g., "https://platform.kytranempowerment.com")
+    KYTRAN_REDIRECT_URI    — Callback URL for this product
 """
+
 import base64
 import hashlib
 import os
@@ -66,14 +75,14 @@ class KytranAuth:
             # can leave it set without completing Flask-Login. Rely on Flask-Login.
             from flask_login import current_user as _cu
             if "kytran_user" in session and _cu.is_authenticated:
-                next_url = request.args.get("next", "/dashboard")
+                next_url = request.args.get("next", "/maven/discover")
                 return redirect(next_url)
 
             # Clear any stale kytran session left over from a previous partial auth
             session.pop("kytran_user", None)
 
             state = secrets.token_urlsafe(32)
-            next_url = request.args.get("next", "/dashboard")
+            next_url = request.args.get("next", "/maven/discover")
 
             # PKCE — generate code_verifier and S256 code_challenge
             code_verifier = secrets.token_urlsafe(64)
@@ -122,14 +131,14 @@ class KytranAuth:
                 return (
                     "<h2>Session Expired</h2>"
                     "<p>Your login session expired. Please try again.</p>"
-                    f'<p><a href="/auth/kytran/login?next=/dashboard">Sign in with Kytran</a></p>'
+                    f'<p><a href="/auth/kytran/login?next=/maven/discover">Sign in with Kytran</a></p>'
                 ), 400
 
-            next_url = "/dashboard"
+            next_url = "/maven/discover"
             if state_data:
-                next_url = state_data.get("next", "/dashboard")
+                next_url = state_data.get("next", "/maven/discover")
             else:
-                next_url = session.pop("oauth_next", "/dashboard")
+                next_url = session.pop("oauth_next", "/maven/discover")
 
             # Retrieve PKCE verifier (from state store, fall back to session)
             code_verifier = (
@@ -163,14 +172,16 @@ class KytranAuth:
                     return (
                         "<h2>Login Failed</h2>"
                         f"<p>Token exchange error. Please try again.</p>"
-                        f'<p><a href="/auth/kytran/login?next=/dashboard">Try again</a></p>'
+                        f'<p><a href="/auth/kytran/login?next=/maven/discover">Try again</a></p>'
                     ), 400
                 token_data = token_resp.json()
+                _refresh_token_val = token_data.get("refresh_token", "")
+                _access_token_exp = int(time.time()) + token_data.get("expires_in", 28800)
             except Exception as e:
                 return (
                     "<h2>Login Failed</h2>"
                     f"<p>Could not connect to auth server. Please try again.</p>"
-                    f'<p><a href="/auth/kytran/login?next=/dashboard">Try again</a></p>'
+                    f'<p><a href="/auth/kytran/login?next=/maven/discover">Try again</a></p>'
                 ), 500
 
             access_token = token_data.get("access_token")
@@ -188,7 +199,7 @@ class KytranAuth:
                     return (
                         "<h2>Login Failed</h2>"
                         f"<p>Could not retrieve user info. Please try again.</p>"
-                        f'<p><a href="/auth/kytran/login?next=/dashboard">Try again</a></p>'
+                        f'<p><a href="/auth/kytran/login?next=/maven/discover">Try again</a></p>'
                     ), 400
                 userinfo = userinfo_resp.json()
             except Exception as e:
@@ -222,6 +233,8 @@ class KytranAuth:
                 "entitlements": entitlements,
                 "product_tiers": userinfo.get("product_tiers", {}),
                 "access_token": access_token,
+                "refresh_token": _refresh_token_val,
+                "access_token_exp": _access_token_exp,
             }
 
             if sdk._on_login:
@@ -255,12 +268,41 @@ class KytranAuth:
         def decorated(*args, **kwargs):
             if "kytran_user" not in session:
                 return redirect(url_for("kytran_login", next=request.url))
+            self._refresh_if_needed()
             return f(*args, **kwargs)
         return decorated
 
     def get_current_user(self):
         """Return current Kytran user from session, or None."""
         return session.get("kytran_user")
+
+    def _refresh_if_needed(self):
+        """Silently refresh access token if expiring within 5 minutes."""
+        auth_data = session.get("kytran_user", {})
+        exp = auth_data.get("access_token_exp", 0)
+        refresh_token = auth_data.get("refresh_token", "")
+        if not refresh_token or not exp:
+            return
+        if time.time() < exp - 300:  # more than 5 minutes remaining
+            return
+        try:
+            resp = requests.post(
+                f"{self.internal_url}/oauth/token",
+                data={
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "client_id": self.client_id,
+                },
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                session["kytran_user"]["access_token"] = data["access_token"]
+                session["kytran_user"]["refresh_token"] = data.get("refresh_token", refresh_token)
+                session["kytran_user"]["access_token_exp"] = int(time.time()) + data.get("expires_in", 28800)
+                session.modified = True
+        except Exception:
+            pass  # Fail silently — token expiry will handle it on the next request
 
     def has_entitlement(self, entitlement):
         """Check if current user has a specific product entitlement."""
