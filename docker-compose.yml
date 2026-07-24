@@ -53,6 +53,13 @@ services:
       - KSO_THEME=kytran
       - KSO_PORT=8085
       - ARCHIE_BASE_DIR=/data
+      # Real PSU rating for power-headroom math (#5140). SMBIOS reports it Unknown, so
+      # it can't be auto-detected. Z420 ships 600 W or 800 W - set to your PSU label
+      # value (here or in .env). Blank -> assumes 600 W and flags it in the UI.
+      - PSU_WATTS=${PSU_WATTS:-}
+      - PSU_AUX_6PIN=${PSU_AUX_6PIN:-}
+      - PSU_MODEL=${PSU_MODEL:-}
+      - PSU_12V_AMPS=${PSU_12V_AMPS:-}
       # Host admin auto-seed (skips first-run setup page)
       - KSO_ADMIN_USER=admin
       - KSO_ADMIN_PASSWORD=${KSO_ADMIN_PASSWORD}

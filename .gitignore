@@ -16,3 +16,7 @@ secrets/
 *.key
 id_rsa*
 *.secret
+
+# session rollback backups (git is the rollback)
+*.bak
+*.bak-*

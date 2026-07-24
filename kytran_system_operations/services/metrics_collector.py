@@ -48,6 +48,18 @@ def _collect_once(app):
             # GPU metrics from host monitor (container can't see GPU directly)
             host_data, host_age = load_host_monitor_data()
             if host_data and (host_age is None or host_age < 300):
+                # Server power (#5140) — total watts lives in host_monitor_data.json,
+                # NOT in get_overview()'s data. Record it here like GPU (same source).
+                pw = host_data.get("power") or {}
+                if isinstance(pw, dict) and pw.get("total_watts") is not None:
+                    record_metric("power_total", pw["total_watts"])
+                    # Per-component watts history (#5140 v1.1) — stacked breakdown
+                    _pmap = {"GPU": "power_gpu", "CPU": "power_cpu", "RAM": "power_ram",
+                             "Disks": "power_disks", "Board+fans": "power_board"}
+                    for _c in (pw.get("components") or []):
+                        _pk = _pmap.get(_c.get("name"))
+                        if _pk and _c.get("watts") is not None:
+                            record_metric(_pk, _c["watts"])
                 host_gpus = host_data.get("gpu") or []
                 for idx, gpu in enumerate(host_gpus):
                     vram_total = gpu.get("vram_total_mb")
