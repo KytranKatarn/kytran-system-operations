@@ -106,6 +106,8 @@ if (typeof Chart === 'undefined') {
 let autoRefreshEnabled = true;
 let refreshInterval = null;
 let cpuChart = null;
+let powerChart = null;
+let powerBreakdownChart = null;
 let memChart = null;
 let gpuChart = null;
 let bandwidthChart = null;
@@ -771,6 +773,55 @@ function initCharts() {
     };
     gpuChart = new Chart(document.getElementById('gpuChart'), gpuChartConfig);
 
+    // Server power chart (#5140) — y-axis is watts vs the 600W PSU ceiling
+    var powerChartOpts = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, title: { display: false } },
+        scales: {
+            y: { min: 0, max: 600, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+            x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e', maxTicksLimit: 8 } }
+        },
+        elements: { point: { radius: 0 }, line: { tension: 0.4 } }
+    };
+    powerChart = new Chart(document.getElementById('powerChart'), {
+        type: 'line',
+        options: powerChartOpts,
+        data: { labels: ['Loading...'], datasets: [{ data: [null], borderColor: '#00ccff', backgroundColor: 'rgba(0,204,255,0.1)', fill: true, borderWidth: 2 }] }
+    });
+
+    // Server power by-component stacked chart (#5140 v1.1)
+    var powerBreakdownEl = document.getElementById('powerBreakdownChart');
+    if (powerBreakdownEl) {
+        var pbOpts = {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: true, labels: { color: '#8b949e', boxWidth: 12 } }, title: { display: false } },
+            scales: {
+                y: { stacked: true, min: 0, max: 600, grid: { color: '#30363d' }, ticks: { color: '#8b949e' } },
+                x: { grid: { color: '#30363d' }, ticks: { color: '#8b949e', maxTicksLimit: 8 } }
+            },
+            elements: { point: { radius: 0 }, line: { tension: 0.4 } }
+        };
+        var pbSeries = [
+            { key: 'power_gpu',   label: 'GPU',        color: '#22c55e' },
+            { key: 'power_cpu',   label: 'CPU',        color: '#00ccff' },
+            { key: 'power_ram',   label: 'RAM',        color: '#f59e0b' },
+            { key: 'power_disks', label: 'Disks',      color: '#a855f7' },
+            { key: 'power_board', label: 'Board+fans', color: '#94a3b8' }
+        ];
+        powerBreakdownChart = new Chart(powerBreakdownEl, {
+            type: 'line',
+            options: pbOpts,
+            data: {
+                labels: ['Loading...'],
+                datasets: pbSeries.map(function(s) {
+                    return { label: s.label, _key: s.key, data: [null],
+                             borderColor: s.color, backgroundColor: s.color + '55',
+                             fill: true, borderWidth: 1.5 };
+                })
+            }
+        });
+    }
+
     // Bandwidth chart config - shows RX/TX rates over time
     const bandwidthCanvas = document.getElementById('bandwidthChart');
     if (bandwidthCanvas) {
@@ -904,6 +955,23 @@ function _updateCoverageNotice(returnedHours, requestedHours) {
     el.style.display = 'block';
 }
 
+// Power charts started collecting later than CPU/mem/GPU, so the two Server Power
+// charts look identical across ranges until enough history accrues. Explain that.
+function _updatePowerCoverageNotice(rawLabels, requestedHours) {
+    const el = document.getElementById('history-coverage-notice');
+    if (!el || !rawLabels || rawLabels.length < 1) return;
+    let spanH = 0.1;
+    if (rawLabels.length >= 2) {
+        spanH = Math.max((new Date(rawLabels[rawLabels.length - 1]) - new Date(rawLabels[0])) / 3600000, 0.1);
+    }
+    if (spanH >= requestedHours * 0.8) { el.style.display = 'none'; return; }
+    const started = new Date(rawLabels[0]);
+    const dateStr = started.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+        + ' ' + started.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    el.textContent = '⏳ Power history started ' + dateStr + ' — longer ranges fill in as data is collected.';
+    el.style.display = 'block';
+}
+
 async function loadHistoricalData() {
     const hours = historyHours;
     console.log('loadHistoricalData: Starting with hours=' + hours);
@@ -940,6 +1008,43 @@ async function loadHistoricalData() {
     } catch (e) {
         console.error('loadHistoricalData: CPU error:', e);
     }
+
+    // Load Server Power history (#5140)
+    try {
+        const pRes = await fetch('/dashboard/api/history?type=power_total&hours=' + hours);
+        if (pRes.ok) {
+            const pJson = await pRes.json();
+            if (pJson.success && pJson.data && pJson.data.values && pJson.data.values.length > 0 && powerChart) {
+                _updatePowerCoverageNotice(pJson.data.labels, hours);
+                powerChart.data.labels = pJson.data.labels.map(l => formatHistoryTime(l, hours));
+                powerChart.data.datasets[0].data = pJson.data.values;
+                powerChart.update('none');
+            }
+        }
+    } catch (e) { console.error('loadHistoricalData: power error:', e); }
+
+    // Load Server Power per-component history (#5140 v1.1)
+    try {
+        if (powerBreakdownChart) {
+            var pbDatasets = powerBreakdownChart.data.datasets;
+            var pbResults = await Promise.all(pbDatasets.map(function(ds) {
+                return fetch('/dashboard/api/history?type=' + ds._key + '&hours=' + hours)
+                    .then(function(r) { return r.ok ? r.json() : null; })
+                    .catch(function() { return null; });
+            }));
+            var pbLabels = null;
+            pbResults.forEach(function(j, i) {
+                if (j && j.success && j.data && j.data.values && j.data.values.length > 0) {
+                    pbDatasets[i].data = j.data.values;
+                    if (!pbLabels || j.data.labels.length > pbLabels.length) pbLabels = j.data.labels;
+                }
+            });
+            if (pbLabels) {
+                powerBreakdownChart.data.labels = pbLabels.map(function(l) { return formatHistoryTime(l, hours); });
+                powerBreakdownChart.update('none');
+            }
+        }
+    } catch (e) { console.error('loadHistoricalData: power breakdown error:', e); }
 
     // Load Memory history
     try {
@@ -1159,6 +1264,7 @@ function getStacksForPath(mountpoint) {
 }
 
 function updateDashboard(data) {
+    renderPowerCard(data.power);
     // CPU
     const cpuPct = data.cpu?.usage_percent || 0;
     const cpuModel = (data.cpu?.model || 'Unknown').substring(0, 45);
@@ -1684,9 +1790,228 @@ async function loadHardwareData() {
     }
 }
 
+function loadPowerPeak() {
+    // Highest total watts over the last 24h (from saved history). Cheap; called throttled.
+    fetch('/dashboard/api/history?type=power_total&hours=24').then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+        var el = document.getElementById('power-peak-val');
+        if (!el) return;
+        var vals = (j && j.data && j.data.values) || [];
+        var labels = (j && j.data && j.data.labels) || [];
+        var max = null, idx = -1;
+        for (var i = 0; i < vals.length; i++) { if (vals[i] != null && (max === null || vals[i] > max)) { max = vals[i]; idx = i; } }
+        if (max === null) { el.textContent = '--'; return; }
+        var when = (idx >= 0 && labels[idx]) ? (' @ ' + formatHistoryTime(labels[idx], 24)) : '';
+        el.textContent = Math.round(max) + ' W' + when;
+    }).catch(function(e){ console.error('loadPowerPeak:', e); });
+}
+
+function renderPowerCard(power) {
+    var valEl = document.getElementById('power-value');
+    var subEl = document.getElementById('power-subtitle');
+    var barEl = document.getElementById('power-bar');
+    var bdEl = document.getElementById('power-breakdown');
+    if (!valEl) return;
+    if (!window.__powerPeakTs || Date.now() - window.__powerPeakTs > 60000) { window.__powerPeakTs = Date.now(); loadPowerPeak(); }
+    if (!power || power.error || power.total_watts == null) {
+        valEl.textContent = 'n/a';
+        if (subEl) subEl.textContent = (power && power.error) ? 'Unavailable' : 'Collecting\u2026';
+        if (bdEl) bdEl.textContent = '';
+        return;
+    }
+    var psu = power.psu_watts || 600;
+    var total = power.total_watts || 0;
+    var pct = (power.load_pct != null) ? power.load_pct : Math.round(total / psu * 100);
+    var headroom = (power.headroom_watts != null) ? power.headroom_watts : (psu - total);
+    valEl.textContent = total + ' W';
+    if (subEl) subEl.textContent = pct + '% of ' + psu + ' W PSU \u00b7 ' + headroom + ' W free';
+    if (barEl) {
+        barEl.style.width = Math.min(pct, 100) + '%';
+        barEl.className = 'progress-fill ' + getColorClass(pct);
+    }
+    if (bdEl) {
+        bdEl.textContent = '';
+        (power.components || []).forEach(function(c) {
+            var row = document.createElement('div');
+            row.className = 'sysops-flex-between';
+            var name = document.createElement('span');
+            name.className = 'sysops-text-muted';
+            name.textContent = c.name;
+            var w = document.createElement('span');
+            w.textContent = (c.watts != null ? c.watts : '-') + ' W';
+            if (c.class !== 'measured') { w.style.opacity = '0.7'; w.title = 'estimated'; }
+            row.appendChild(name);
+            row.appendChild(w);
+            bdEl.appendChild(row);
+        });
+    }
+}
+
+function renderPowerSection(power) {
+    var el = document.getElementById('hw-power-content');
+    if (!el) return;
+    el.textContent = '';
+    if (!power || power.error || power.total_watts == null) {
+        var m = document.createElement('div');
+        m.className = 'sysops-text-muted';
+        m.textContent = (power && power.error) ? ('Power data unavailable: ' + power.error) : 'Power data not available yet (host_monitor collecting…).';
+        el.appendChild(m); return;
+    }
+    var psu = power.psu_watts || 600, total = power.total_watts || 0;
+    var pct = (power.load_pct != null) ? power.load_pct : Math.round(total / psu * 100);
+    var redline = power.redline_pct || 80;
+    var head = document.createElement('div');
+    head.style.cssText = 'display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:10px;';
+    var big = document.createElement('div');
+    big.style.cssText = 'font-size:2rem; font-weight:700; color:#00ccff;';
+    big.textContent = total + ' W';
+    var sub = document.createElement('div');
+    sub.className = 'sysops-text-muted';
+    var headroom = (power.headroom_watts != null) ? power.headroom_watts : (psu - total);
+    sub.textContent = pct + '% of ' + psu + ' W PSU  ·  ' + headroom + ' W headroom  ·  ' + (power.total_class || '');
+    head.appendChild(big); head.appendChild(sub); el.appendChild(head);
+    var barWrap = document.createElement('div');
+    barWrap.style.cssText = 'position:relative; height:14px; background:rgba(255,255,255,0.08); border-radius:7px; overflow:hidden; margin-bottom:4px;';
+    var over = pct >= redline;
+    var fill = document.createElement('div');
+    fill.style.cssText = 'height:100%; width:' + Math.min(pct, 100) + '%; background:' + (over ? '#ef4444' : (pct >= 60 ? '#f59e0b' : '#22c55e')) + '; border-radius:7px;';
+    barWrap.appendChild(fill);
+    var mark = document.createElement('div');
+    mark.title = redline + '% redline';
+    mark.style.cssText = 'position:absolute; top:0; bottom:0; left:' + redline + '%; width:2px; background:#ef4444;';
+    barWrap.appendChild(mark); el.appendChild(barWrap);
+    var rl = document.createElement('div');
+    rl.className = 'sysops-text-muted';
+    rl.style.cssText = 'font-size:11px; margin-bottom:12px;';
+    rl.textContent = 'PSU 0-' + psu + ' W · red line = ' + redline + '% safe max';
+    el.appendChild(rl);
+    (power.components || []).forEach(function(c) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:4px 0; border-top:1px solid rgba(255,255,255,0.05);';
+        var name = document.createElement('span');
+        name.style.cssText = 'min-width:90px; font-weight:600;';
+        name.textContent = c.name;
+        var w = document.createElement('span');
+        w.style.cssText = 'min-width:70px; color:#00ccff; font-family:monospace;';
+        w.textContent = (c.watts != null ? c.watts : '-') + ' W';
+        var meas = (c.class === 'measured');
+        var tag = document.createElement('span');
+        tag.style.cssText = 'font-size:10px; padding:1px 6px; border-radius:3px; ' + (meas ? 'background:rgba(34,197,94,0.2); color:#4ade80;' : 'background:rgba(148,163,184,0.15); color:#94a3b8;');
+        tag.textContent = c.class;
+        var det = document.createElement('span');
+        det.className = 'sysops-text-muted';
+        det.style.cssText = 'font-size:12px;';
+        det.textContent = c.detail || '';
+        row.appendChild(name); row.appendChild(w); row.appendChild(tag); row.appendChild(det);
+        el.appendChild(row);
+    });
+}
+
+function renderPowerPlanning(p) {
+    var el = document.getElementById('hw-power-planning');
+    if (!el) return;
+    el.textContent = '';
+    if (!p) {
+        var na = document.createElement('div');
+        na.className = 'sysops-text-muted';
+        na.textContent = 'Power headroom not available yet.';
+        el.appendChild(na);
+        return;
+    }
+    var col = function(lvl){ return lvl === 'over' ? '#ef4444' : (lvl === 'caution' ? '#f59e0b' : '#22c55e'); };
+    var v = p.verdict || {};
+
+    var vwrap = document.createElement('div');
+    vwrap.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:6px;';
+    var dot = document.createElement('span');
+    dot.style.cssText = 'width:10px; height:10px; border-radius:50%; flex:none; background:' + col(v.level) + ';';
+    var vl = document.createElement('span');
+    vl.style.cssText = 'font-weight:700; color:' + col(v.level) + ';';
+    vl.textContent = 'PSU: ' + (v.label || '') + (p.psu_model ? '  \u00b7  ' + p.psu_model : '');
+    vwrap.appendChild(dot); vwrap.appendChild(vl); el.appendChild(vwrap);
+
+    var vd = document.createElement('div');
+    vd.className = 'sysops-text-muted';
+    vd.style.cssText = 'font-size:12px; margin-bottom:10px;';
+    vd.textContent = (v.detail || '') + '  (now: ' + p.current_watts + ' W / ' + p.current_pct + '%)';
+    el.appendChild(vd);
+
+    if (!p.psu_configured) {
+        var asum = document.createElement('div');
+        asum.style.cssText = 'font-size:11px; color:#94a3b8; margin-bottom:10px;';
+        asum.textContent = 'PSU wattage assumed at ' + p.psu_watts + ' W (SMBIOS reports it Unknown). Set PSU_WATTS to your PSU label value for exact headroom.';
+        el.appendChild(asum);
+    }
+
+    if (p.psu_note) {
+        var note = document.createElement('div');
+        note.style.cssText = 'font-size:11.5px; color:#fbbf24; background:rgba(245,158,11,0.08); border-left:3px solid #f59e0b; padding:6px 10px; border-radius:4px; margin-bottom:12px;';
+        note.textContent = 'Note: ' + p.psu_note;
+        el.appendChild(note);
+    }
+
+    if (p.measured) {
+        var meas = document.createElement('div');
+        meas.style.cssText = 'font-size:11.5px; margin:8px 0 4px; padding:6px 10px; border-radius:4px; background:rgba(34,197,94,0.08); border-left:3px solid #22c55e; color:#4ade80;';
+        var mp = p.psu_watts ? Math.round(p.measured.peak / p.psu_watts * 100) : 0;
+        meas.textContent = 'Measured (last ' + p.measured.days + 'd): peak ' + p.measured.peak + ' W / ' + mp + '% · avg ' + p.measured.avg + ' W. Your real load runs well under the component-cap estimates below -- but 5-min samples miss ms transient spikes.';
+        el.appendChild(meas);
+    }
+    var sh = document.createElement('div');
+    sh.style.cssText = 'font-weight:600; font-size:12px; margin:6px 0 4px; color:#94a3b8;';
+    sh.textContent = 'GPU upgrade headroom (estimated full-load peak vs ' + p.psu_watts + ' W PSU)';
+    el.appendChild(sh);
+    if (p.rail_12v) {
+        var rail = document.createElement('div');
+        rail.className = 'sysops-text-muted';
+        rail.style.cssText = 'font-size:11px; margin:0 0 4px;';
+        rail.textContent = '+12V rail: ' + p.rail_12v.amps + ' A / ' + p.rail_12v.watts + ' W - GPU+CPU draw from here (the real ceiling). Columns below: peak W / % PSU / approx +12V A.';
+        el.appendChild(rail);
+    }
+    (p.gpu_scenarios || []).forEach(function(s){
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:4px 0; border-top:1px solid rgba(255,255,255,0.05);';
+        var nm = document.createElement('span'); nm.style.cssText = 'flex:1; font-size:12.5px;'; nm.textContent = s.name;
+        var w = document.createElement('span'); w.style.cssText = 'min-width:64px; text-align:right; font-family:monospace; color:' + col(s.level) + ';'; w.textContent = s.peak_watts + ' W';
+        var pc = document.createElement('span'); pc.style.cssText = 'min-width:44px; text-align:right; font-family:monospace; color:' + col(s.level) + ';'; pc.textContent = s.peak_pct + '%';
+        var am = document.createElement('span'); am.style.cssText = 'min-width:56px; text-align:right; font-family:monospace; color:' + (s.rail_over ? '#ef4444' : '#94a3b8') + ';'; am.textContent = '~' + s.amps_12v + ' A';
+        row.appendChild(nm); row.appendChild(w); row.appendChild(pc); row.appendChild(am); el.appendChild(row);
+        var noteText = s.note || '';
+        if (s.connector_ok === false) { noteText = 'BLOCKED (no free 6-pin lead): ' + noteText; }
+        else if (s.connector_ok === true && s.kind && s.kind !== 'baseline') { noteText = 'Cable OK. ' + noteText; }
+        if (noteText) {
+            var n = document.createElement('div');
+            n.style.cssText = 'font-size:11px; padding:0 0 3px 0; color:' + (s.connector_ok === false ? '#ef4444' : (s.connector_ok === true ? '#4ade80' : '#94a3b8')) + ';';
+            n.textContent = noteText;
+            el.appendChild(n);
+        }
+    });
+
+    var pcie = p.pcie || {};
+    var ph = document.createElement('div');
+    ph.style.cssText = 'font-weight:600; font-size:12px; margin:12px 0 4px; color:#94a3b8;';
+    ph.textContent = 'PCIe slots (' + (pcie.available || 0) + '/' + (pcie.total_slots || 0) + ' free)';
+    el.appendChild(ph);
+    (pcie.x16_slots || []).forEach(function(s){
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:8px; padding:3px 0; font-size:12px;';
+        var d = document.createElement('span'); d.style.cssText = 'min-width:60px; font-weight:600;'; d.textContent = s.designation;
+        var t = document.createElement('span'); t.className = 'sysops-text-muted'; t.style.cssText = 'flex:1;'; t.textContent = s.type;
+        var st = document.createElement('span'); st.style.cssText = 'color:' + (s.in_use ? '#94a3b8' : '#22c55e') + ';'; st.textContent = s.in_use ? ('in use - ' + (s.device || 'GPU')) : 'FREE';
+        row.appendChild(d); row.appendChild(t); row.appendChild(st); el.appendChild(row);
+    });
+    var fx = document.createElement('div');
+    fx.className = 'sysops-text-muted';
+    fx.style.cssText = 'font-size:11.5px; margin-top:4px;';
+    var freeList = pcie.free_x16 || [];
+    fx.textContent = freeList.length ? ('Free x16 slot(s): ' + freeList.join(', ') + ' - physical room for another GPU; power delivery is the gate.') : 'No free x16 slot - a GPU upgrade means replacing the current card.';
+    el.appendChild(fx);
+}
+
 function renderHardwareTab(data) {
     var upgrade = data.upgrade_summary || {};
     renderHardwareSummary(data);
+    renderPowerSection(data.power || {});
+    renderPowerPlanning(data.power_planning);
     renderCpuSection(data.cpu || {}, upgrade.cpu || {});
     renderHwMemorySection(data.memory || {}, data.memory_config || {}, upgrade.memory || {});
     renderGpuSection(data.gpu || [], upgrade.pci || {});

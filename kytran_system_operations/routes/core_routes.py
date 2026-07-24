@@ -175,6 +175,11 @@ def api_overview():
             if host_disks:
                 data["host_disks"] = host_disks
 
+            # Power: server watts + per-component breakdown (from host_monitor) — #5140
+            host_power = host_data.get("power")
+            if host_power:
+                data["power"] = _apply_psu_config(host_power)
+
         return jsonify({"success": True, "data": data})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
@@ -276,6 +281,10 @@ def api_hardware():
         # Add memory configuration analysis
         memory_config = _analyze_memory_config(memory_hardware)
 
+        # Apply configured PSU wattage (env PSU_WATTS) + recompute headroom/load (#5140)
+        power = _apply_psu_config(host_data.get("power", {}))
+        measured = _measured_peak_watts()
+
         result = {
             "cpu": cpu_hardware,
             "motherboard": motherboard,
@@ -285,6 +294,10 @@ def api_hardware():
             "pci_slots": pci_slots,
             "sata_ports": sata_ports,
             "upgrade_summary": upgrade_summary,
+            "power": power,
+            "power_planning": _compute_power_planning(
+                power, pci_slots, gpu, motherboard, measured
+            ),
         }
 
         return jsonify(
@@ -297,6 +310,254 @@ def api_hardware():
         )
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+def _measured_peak_watts(days=7):
+    """Real observed system power from KSO history (5-min samples).
+
+    Returns {"peak", "avg", "days", "samples"} or None. These are the ACTUAL measured
+    watts -- the power feature logs power_total every 5 min -- so they reflect real
+    load, typically far below the component caps the planning estimates use.
+    NOTE: 5-min sampling captures sustained draw, NOT ms-scale transient spikes.
+    """
+    conn = None
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT max(value), avg(value), count(*) FROM system_metrics_history "
+            "WHERE metric_type = 'power_total' AND recorded_at > now() - make_interval(days => %s)",
+            (days,),
+        )
+        row = cur.fetchone()
+        if not row or row[0] is None:
+            return None
+        return {"peak": round(float(row[0])), "avg": round(float(row[1])),
+                "days": days, "samples": int(row[2])}
+    except Exception:
+        return None
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def _apply_psu_config(power):
+    """Override the collector's assumed PSU wattage with the configured value (#5140).
+
+    host_monitor.py writes a default psu_watts; the Z420 SMBIOS reports the PSU as
+    'Unknown', so it cannot be auto-detected. Set PSU_WATTS in the KSO container env
+    to this unit's real rating (check the PSU label; the Z420 ships 600 W or 800 W).
+    Headroom and load% are then recomputed from the measured total so the stat card,
+    the Server Power section, and the planning verdicts all agree. Default 600 W
+    (conservative); psu_configured stays False until PSU_WATTS is set, which lets the
+    UI flag the value as an assumption to verify.
+    """
+    if not power or power.get("total_watts") is None:
+        return power
+    psu = 600
+    configured = False
+    raw = os.getenv("PSU_WATTS")
+    if raw:
+        try:
+            v = int(float(raw))
+            if v > 0:
+                psu, configured = v, True
+        except (TypeError, ValueError):
+            pass
+    total = power.get("total_watts") or 0
+    power["psu_watts"] = psu
+    power["headroom_watts"] = round(psu - total)
+    power["load_pct"] = round(total / psu * 100, 1) if psu else 0
+    power["psu_configured"] = configured
+    return power
+
+
+def _compute_power_planning(power, pci_slots, gpu, motherboard, measured=None):
+    """Derive PSU-adequacy + GPU-upgrade + PCIe-slot planning from live power data (#5140).
+
+    Answers the three questions the power feature was built for, from the
+    already-collected host_monitor power block + pci_slots (no new sensor reads):
+      * Is the PSU adequate?       -> current draw AND an estimated full-load peak
+      * GPU upgrade headroom       -> estimated peak watts for representative paths
+      * Are both x16 slots usable? -> from the SMBIOS pci_slots table
+
+    GPU peak uses the card's reported max_watts (a real cap). The other rails have
+    no power sensor on this box, so their peak is estimated (current draw x a load
+    margin) and every derived figure is labelled 'estimated'.
+    """
+    if not power or power.get("total_watts") is None:
+        return None
+
+    psu = power.get("psu_watts") or 600
+    redline_pct = power.get("redline_pct") or 80
+    current_w = round(power.get("total_watts") or 0)
+    components = power.get("components") or []
+
+    # +12V rail: CPU + GPU draw almost entirely from +12V, so this rail (not the
+    # total) is the real ceiling for a GPU upgrade. Z420 600 W PSU = 50 A / 600 W.
+    rail_amps = 50
+    _ra = os.getenv("PSU_12V_AMPS")
+    if _ra:
+        try:
+            _v = int(float(_ra))
+            if _v > 0:
+                rail_amps = _v
+        except (TypeError, ValueError):
+            pass
+    rail_watts = rail_amps * 12
+
+    psu_model = (os.getenv("PSU_MODEL") or "Delta DPS-600UB").strip()
+    aux_6pin = None
+    _a6 = os.getenv("PSU_AUX_6PIN")
+    if _a6:
+        try:
+            _v6 = int(float(_a6))
+            if _v6 >= 0:
+                aux_6pin = _v6
+        except (TypeError, ValueError):
+            pass
+
+    NON_GPU_PEAK_FACTOR = 1.25
+    gpu_peak = 0.0
+    rest_peak = 0.0
+    for c in components:
+        w = c.get("watts") or 0
+        if c.get("name") == "GPU":
+            gpu_peak = c.get("max_watts") or (w * 1.15)
+        else:
+            rest_peak += w * NON_GPU_PEAK_FACTOR
+    peak_w = round(rest_peak + gpu_peak)
+
+    def _pct(w):
+        return round(w / psu * 100) if psu else 0
+
+    def _level(pct):
+        if pct >= redline_pct:
+            return "over"
+        if pct >= redline_pct - 15:
+            return "caution"
+        return "ok"
+
+    current_pct = power.get("load_pct")
+    if current_pct is None:
+        current_pct = _pct(current_w)
+    peak_pct = _pct(peak_w)
+    plevel = _level(peak_pct)
+    if plevel == "ok":
+        vlabel = "Adequate"
+        vdetail = ("Estimated full-load peak ~%d W (%d%% of the %d W PSU) sits comfortably "
+                   "below the %d%% safe redline." % (peak_w, peak_pct, psu, redline_pct))
+    elif plevel == "caution":
+        vlabel = "Adequate, limited headroom"
+        vdetail = ("Estimated full-load peak ~%d W (%d%%) is near the %d%% redline -- fine now, "
+                   "but little room to add load." % (peak_w, peak_pct, redline_pct))
+    else:
+        vlabel = "Undersized at peak"
+        vdetail = ("Estimated full-load peak ~%d W (%d%%) exceeds the %d%% redline." %
+                   (peak_w, peak_pct, redline_pct))
+
+    x16 = []
+    available = 0
+    for s in (pci_slots or []):
+        usage = (s.get("current_usage") or "").lower()
+        if usage == "available":
+            available += 1
+        stype = s.get("type") or ""
+        if "x16" in stype.lower():
+            x16.append({
+                "designation": s.get("designation"),
+                "type": stype,
+                "in_use": usage == "in use",
+                "device": s.get("device"),
+            })
+    free_x16 = [s["designation"] for s in x16 if not s["in_use"]]
+
+    chassis = (motherboard or {}).get("system_product") or (motherboard or {}).get("product_name") or ""
+    is_z420 = "z420" in chassis.lower()
+    psu_note = None
+    if is_z420:
+        psu_note = ("HP Z420 600 W, %s (HP proprietary -- no easy ATX swap). Its PCIe 6-pin aux "
+                    "leads are HP-spec ~216 W each (18 A on 12 V), far above the 75 W ATX standard, "
+                    "so ONE lead can feed a ~200 W-class GPU (75 W slot + 216 W). Lead COUNT is "
+                    "revision-dependent: early 600 W units have 2x 6-pin, later ones 1x. A modern "
+                    "8-pin card runs off an HP-quality 6->8-pin adapter; a 2nd GPU or a dual-connector "
+                    "card needs 2 leads. Gates: 600 W total, the 50 A +12V rail, and your free 6-pin "
+                    "count." % psu_model)
+        if aux_6pin is not None:
+            psu_note += " Configured: %d free 6-pin lead(s)." % aux_6pin
+            if aux_6pin == 0:
+                psu_note += (" Spare drive leads: one 4-pin Molex + a freeable CD-ROM SATA. A 6+8-pin "
+                             "card (e.g. Titan X) reuses the M4000's freed 6-pin for its 6-pin; feed the "
+                             "8-pin from a QUALITY dual-input adapter (Molex + SATA) to spread the load -- "
+                             "a single thin adapter is the usual failure point.")
+
+    gpu_model = (gpu[0].get("model") if gpu else None) or "current GPU"
+    scenarios = []
+
+    def _add(name, gpu_total_w, needs_leads, kind, note):
+        pw = round(rest_peak + gpu_total_w)
+        connector_ok = None
+        if kind == "baseline":
+            connector_ok = True
+        elif aux_6pin is not None:
+            available = aux_6pin + (1 if kind == "replace" else 0)
+            connector_ok = needs_leads <= available
+        scenarios.append({
+            "name": name,
+            "gpu_watts": round(gpu_total_w),
+            "peak_watts": pw,
+            "peak_pct": _pct(pw),
+            "level": _level(_pct(pw)),
+            "amps_12v": round(pw / 12.0, 1),
+            "rail_over": (pw / 12.0) > rail_amps,
+            "needs_leads": needs_leads,
+            "kind": kind,
+            "connector_ok": connector_ok,
+            "note": note,
+        })
+
+    _add("Current -- 1x %s" % gpu_model, gpu_peak, 1, "baseline",
+         "Baseline: M4000 on the one 6-pin lead.")
+    _add("+ slot-powered GPU (<=75 W, no cable)", gpu_peak + 75, 0, "add",
+         "2nd card in the free x16 (SLOT 5), slot-powered -- e.g. GTX 1650, RTX 3050 LP, Quadro T1000. No 6-pin needed.")
+    _add("+ 2nd %s" % gpu_model, gpu_peak * 2, 1, "add",
+         "Second M4000 -- needs its own 6-pin lead.")
+    _add("Keep M4000 + add Titan X 12 GB (dual GPU)", gpu_peak + 250, 2, "add",
+         "Both maxed ~560 W = 93% -- over the 80% redline, ~40 W spare. Needs 3 GPU leads (M4000 6-pin + Titan 6+8), only 1 is native -> forces a SATA->6 (marginal) + Molex->8. Safe only if one card idles. The Z420 maxes at a proprietary 600 W (no bigger drop-in) -- real full-dual load needs a 2nd/external PSU or a larger workstation.")
+    _add("Replace M4000 -> Titan X 12 GB (250 W, 6+8-pin)", 250, 2, "replace",
+         "Power is fine; it needs a 6-pin AND an 8-pin. Freeing the M4000 gives 1 native 6-pin -- the 8-pin must come off an adapter.")
+    _add("Replace M4000 -> single-8-pin card (<=216 W)", 216, 1, "replace",
+         "Reuses the M4000's freed HP 6-pin (216 W) via a 6->8-pin adapter. One connector, clean.")
+
+    return {
+        "psu_watts": psu,
+        "redline_pct": redline_pct,
+        "redline_watts": round(psu * redline_pct / 100.0),
+        "current_watts": current_w,
+        "current_pct": current_pct,
+        "peak_watts": peak_w,
+        "peak_pct": peak_pct,
+        "peak_basis": "estimated",
+        "psu_configured": bool(power.get("psu_configured")),
+        "measured": measured,
+        "verdict": {"level": plevel, "label": vlabel, "detail": vdetail},
+        "chassis": chassis,
+        "psu_note": psu_note,
+        "rail_12v": {"amps": rail_amps, "watts": rail_watts},
+        "psu_model": psu_model,
+        "aux_6pin": aux_6pin,
+        "aux_watts_each": 216,
+        "pcie": {
+            "total_slots": len(pci_slots or []),
+            "available": available,
+            "x16_slots": x16,
+            "free_x16": free_x16,
+        },
+        "gpu_scenarios": scenarios,
+    }
 
 
 def _compute_upgrade_summary(cpu, memory, pci_slots, sata_ports=None):

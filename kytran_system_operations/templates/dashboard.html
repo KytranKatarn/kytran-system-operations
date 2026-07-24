@@ -243,6 +243,26 @@
                     <div class="sysops-text-muted-085"><span data-i18n="system_operations.loading_3">Loading...</span></div>
                 </div>
             </div>
+
+            <div class="stat-card" id="power-card">
+                <div class="stat-card-header">
+                    <div class="stat-card-title">
+                        <i data-lucide="zap" class="sysops-icon-20"></i>
+                        Server Power
+                    </div>
+                </div>
+                <div class="stat-value sysops-text-xl" id="power-value">--</div>
+                <div class="stat-subtitle" id="power-subtitle"><span data-i18n="system_operations.loading">Loading...</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill green" id="power-bar" style="width: 0%"></div>
+                </div>
+                <div class="stat-subtitle sysops-stat-footer" style="margin-top:4px;">Peak 24h: <span id="power-peak-val" style="color:#00ccff;font-family:monospace;">--</span></div>
+                <div class="sysops-divider"></div>
+                <div class="stat-subtitle sysops-sublabel sysops-mb-4">Breakdown</div>
+                <div id="power-breakdown" class="sysops-hw-detail">
+                    <div class="sysops-text-muted"><span data-i18n="system_operations.loading">Loading...</span></div>
+                </div>
+            </div>
         </div>
 
         <div class="sysops-flex-center-mb">
@@ -267,6 +287,14 @@
             <div class="chart-card">
                 <h3><span data-i18n="system_operations.gpu_history">GPU History</span></h3>
                 <canvas id="gpuChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Server Power (W)</h3>
+                <canvas id="powerChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>Power by Component (W)</h3>
+                <canvas id="powerBreakdownChart"></canvas>
             </div>
         </div>
 
@@ -539,6 +567,32 @@
                 <div class="stat-label"><span data-i18n="system_operations.gpu">GPU</span></div>
                 <div class="stat-value" id="hw-gpu-count">--</div>
                 <div class="stat-subtitle" id="hw-gpu-model">--</div>
+            </div>
+        </div>
+
+        <!-- Server Power (#5140) -->
+        <div class="panel" style="margin-bottom: 1.5rem;">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="zap" class="sysops-icon-16"></i>
+                    Server Power
+                </div>
+            </div>
+            <div id="hw-power-content">
+                <div class="sysops-text-muted">Loading power…</div>
+            </div>
+        </div>
+
+        <!-- Power Headroom & Upgrade (#5140) -->
+        <div class="panel" style="margin-bottom: 1.5rem;">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <i data-lucide="gauge" class="sysops-icon-16"></i>
+                    Power Headroom &amp; Upgrade
+                </div>
+            </div>
+            <div id="hw-power-planning">
+                <div class="sysops-text-muted">Loading power headroom...</div>
             </div>
         </div>
 
@@ -2859,7 +2913,7 @@
 {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
 <script src="/static/js/lcars-header.js"></script>
 {% endif %}
-<script src="/static/js/system-operations.js"></script>
+<script src="/static/js/system-operations.js?v=5140powerv22"></script>
 {% if chat_enabled %}
 <script src="/static/js/archie-chat-overlay.js"></script>
 <script src="/static/js/kso-chat.js" defer></script>
