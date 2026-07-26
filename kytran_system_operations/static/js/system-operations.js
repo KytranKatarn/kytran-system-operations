@@ -1316,6 +1316,11 @@ function updateDashboard(data) {
     const gpuComputeEl = document.getElementById('gpu-compute');
     const gpu1ValueEl = document.getElementById('gpu1-value');
     const gpu1ModelEl = document.getElementById('gpu1-model');
+    const gpu1BarEl = document.getElementById('gpu1-bar');
+    const gpu1VramEl = document.getElementById('gpu1-vram');
+    const gpu1ComputeEl = document.getElementById('gpu1-compute');
+    const gpu1TempBadge = document.getElementById('gpu1-temp');
+    const gpu1TempValue = document.getElementById('gpu1-temp-value');
     const gpusArray = data.gpus || (data.gpu?.available ? [data.gpu] : []);
 
     // GPU 0
@@ -1376,28 +1381,67 @@ function updateDashboard(data) {
         gpuComputeEl.textContent = '--';
     }
 
-    // GPU 1
+    // GPU 1 -- rendered with the SAME fields as GPU 0. This block used to set
+    // only value+model, so a working second card displayed a bare percentage
+    // with no VRAM, compute or temperature, which reads as "not reporting".
     if (gpusArray.length > 1) {
         const gpu1 = gpusArray[1];
         const gpu1Name = (gpu1.model || 'GPU').substring(0, 25);
         const gpu1Driver = gpu1.driver || '';
 
-        if (gpu1.has_detailed_stats && gpu1.usage_percent != null) {
+        if (gpu1.has_detailed_stats && gpu1.vram_percent != null) {
+            // Headline is VRAM %, matching GPU 0 so the two are comparable.
+            gpu1ValueEl.textContent = gpu1.vram_percent.toFixed(1) + '%';
+            gpu1ValueEl.style.color = '';
+            gpu1ValueEl.style.fontSize = '1.4rem';
+            gpu1ModelEl.textContent = gpu1Name + (gpu1Driver ? ' (' + gpu1Driver + ')' : '');
+            gpu1BarEl.style.width = gpu1.vram_percent + '%';
+            gpu1BarEl.className = 'progress-fill ' + getColorClass(gpu1.vram_percent);
+        } else if (gpu1.has_detailed_stats && gpu1.usage_percent != null) {
             gpu1ValueEl.textContent = gpu1.usage_percent.toFixed(1) + '%';
             gpu1ValueEl.style.color = '';
             gpu1ValueEl.style.fontSize = '1.4rem';
             gpu1ModelEl.textContent = gpu1Name + (gpu1Driver ? ' (' + gpu1Driver + ')' : '');
+            gpu1BarEl.style.width = gpu1.usage_percent + '%';
+            gpu1BarEl.className = 'progress-fill ' + getColorClass(gpu1.usage_percent);
         } else {
             gpu1ValueEl.textContent = gpu1Name;
             gpu1ValueEl.style.fontSize = '1.1rem';
             gpu1ValueEl.style.color = '';
             gpu1ModelEl.textContent = gpu1Driver ? gpu1Driver + ' (no stats)' : 'No usage stats';
+            gpu1BarEl.style.width = '0%';
+        }
+
+        // Compute utilization
+        gpu1ComputeEl.textContent =
+            gpu1.usage_percent != null ? gpu1.usage_percent.toFixed(1) + '%' : 'N/A';
+
+        // Temperature badge
+        if (gpu1.temperature) {
+            gpu1TempValue.textContent = gpu1.temperature + '\u00B0C';
+            gpu1TempBadge.style.display = 'flex';
+            gpu1TempBadge.className = 'stat-badge' + (gpu1.temperature >= 85 ? ' critical' : gpu1.temperature >= 70 ? ' warning' : '');
+        } else {
+            gpu1TempBadge.style.display = 'none';
+        }
+
+        // VRAM
+        if (gpu1.vram_total_mb && gpu1.vram_used_mb != null) {
+            gpu1VramEl.textContent = (gpu1.vram_used_mb / 1024).toFixed(1) + ' / ' + (gpu1.vram_total_mb / 1024).toFixed(1) + ' GB';
+        } else if (gpu1.vram_total_mb) {
+            gpu1VramEl.textContent = (gpu1.vram_total_mb / 1024).toFixed(1) + ' GB total';
+        } else {
+            gpu1VramEl.textContent = 'N/A';
         }
     } else {
         gpu1ValueEl.textContent = 'Unavailable';
         gpu1ValueEl.style.color = 'var(--archie-text-muted)';
         gpu1ValueEl.style.fontSize = '1.4rem';
         gpu1ModelEl.textContent = 'No second GPU detected';
+        gpu1BarEl.style.width = '0%';
+        gpu1VramEl.textContent = '--';
+        gpu1ComputeEl.textContent = '--';
+        gpu1TempBadge.style.display = 'none';
     }
 
     // Disk - per-drive detail with partition breakdown
