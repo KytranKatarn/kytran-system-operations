@@ -225,10 +225,28 @@
                 <div class="stat-subtitle" style="margin-top: 2px; font-size: 0.75rem;"><span data-i18n="system_operations.compute">Compute: </span><span id="gpu-compute">--</span></div>
                 <!-- GPU 1 Divider -->
                 <div class="sysops-divider"></div>
-                <div class="stat-subtitle sysops-sublabel"><span data-i18n="system_operations.gpu_1">GPU 1</span></div>
+                <!--
+                  GPU 1 renders the SAME fields as GPU 0 (bar, VRAM, compute,
+                  temperature). It previously carried only a value and a model
+                  line, so a second card showed a bare percentage with no VRAM,
+                  no compute and no temperature -- visually indistinguishable
+                  from a card that was not reporting at all.
+                -->
+                <div class="sysops-sublabel" style="display: flex; justify-content: space-between; align-items: center;">
+                    <span class="stat-subtitle"><span data-i18n="system_operations.gpu_1">GPU 1</span></span>
+                    <span id="gpu1-temp" class="stat-badge sysops-hidden" title="GPU 1 Temperature">
+                        <i data-lucide="thermometer" class="sysops-icon-12"></i>
+                        <span id="gpu1-temp-value">--</span>
+                    </span>
+                </div>
                 <div id="gpu1-container">
                     <div class="stat-value sysops-text-2xl-muted" id="gpu1-value"><span data-i18n="system_operations.unavailable_2">Unavailable</span></div>
                     <div class="stat-subtitle sysops-text-xs" id="gpu1-model"><span data-i18n="system_operations.no_second_gpu_detected">No second GPU detected</span></div>
+                    <div class="progress-bar">
+                        <div class="progress-fill green" id="gpu1-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="stat-subtitle sysops-stat-footer"><span data-i18n="system_operations.vram">VRAM: </span><span id="gpu1-vram">--</span></div>
+                    <div class="stat-subtitle" style="margin-top: 2px; font-size: 0.75rem;"><span data-i18n="system_operations.compute">Compute: </span><span id="gpu1-compute">--</span></div>
                 </div>
             </div>
 
@@ -2913,7 +2931,7 @@
 {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
 <script src="/static/js/lcars-header.js"></script>
 {% endif %}
-<script src="/static/js/system-operations.js?v=5140powerv22"></script>
+<script src="/static/js/system-operations.js?v=5140gpu1v23"></script>
 {% if chat_enabled %}
 <script src="/static/js/archie-chat-overlay.js"></script>
 <script src="/static/js/kso-chat.js" defer></script>
