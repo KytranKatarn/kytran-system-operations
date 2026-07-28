@@ -60,6 +60,17 @@ services:
       - PSU_AUX_6PIN=${PSU_AUX_6PIN:-}
       - PSU_MODEL=${PSU_MODEL:-}
       - PSU_12V_AMPS=${PSU_12V_AMPS:-}
+      # Dual-PSU accounting (#5368). This box runs TWO supplies on a sync adapter:
+      # PSU1 Delta DPS-600UB 600 W (board/CPU/RAM/disks) + PSU2 Enermax Galaxy EVO
+      # 1050 W (video cards). There is no env_file here, so a value set in .env
+      # reaches the container ONLY if it is listed below — omitting a passthrough
+      # leaves PSU2_WATTS unset and the dual-PSU path silently never activates.
+      # PSU1_WATTS falls back to PSU_WATTS; leave PSU2_WATTS empty on a 1-PSU box.
+      - PSU1_WATTS=${PSU1_WATTS:-}
+      - PSU2_WATTS=${PSU2_WATTS:-}
+      - PSU1_MODEL=${PSU1_MODEL:-}
+      - PSU2_MODEL=${PSU2_MODEL:-}
+      - PSU_SLOT_WATTS_EACH=${PSU_SLOT_WATTS_EACH:-}
       # Host admin auto-seed (skips first-run setup page)
       - KSO_ADMIN_USER=admin
       - KSO_ADMIN_PASSWORD=${KSO_ADMIN_PASSWORD}
