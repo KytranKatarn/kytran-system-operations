@@ -344,33 +344,119 @@ def _measured_peak_watts(days=7):
                 pass
 
 
-def _apply_psu_config(power):
-    """Override the collector's assumed PSU wattage with the configured value (#5140).
+def _env_int(name, default=None, minimum=1):
+    """Read a positive int from env, or ``default`` when unset/garbage."""
+    raw = os.getenv(name)
+    if not raw:
+        return default
+    try:
+        v = int(float(raw))
+    except (TypeError, ValueError):
+        return default
+    return v if v >= minimum else default
 
-    host_monitor.py writes a default psu_watts; the Z420 SMBIOS reports the PSU as
-    'Unknown', so it cannot be auto-detected. Set PSU_WATTS in the KSO container env
-    to this unit's real rating (check the PSU label; the Z420 ships 600 W or 800 W).
-    Headroom and load% are then recomputed from the measured total so the stat card,
-    the Server Power section, and the planning verdicts all agree. Default 600 W
-    (conservative); psu_configured stays False until PSU_WATTS is set, which lets the
-    UI flag the value as an assumption to verify.
+
+def _apply_psu_config(power):
+    """Attribute measured draw to the SUPPLY THAT ACTUALLY CARRIES IT (#5368).
+
+    The Z420 SMBIOS reports the PSU as 'Unknown', so nothing here is auto-detected --
+    it is all operator-declared env. This box now runs TWO supplies joined by a
+    dual-PSU sync adapter:
+
+        PSU1  Delta DPS-600UB rev 05,  600 W  -> board, CPU, RAM, disks
+        PSU2  EGX 1050WT,             1050 W  -> the video cards
+
+    TWO SUPPLIES DO NOT POOL. Summing them into one budget would hide a PSU1
+    overload behind a healthy-looking combined number -- the same confidently-wrong
+    reporting this function used to produce in the OTHER direction, when it charged
+    all draw to a single 600 W unit: against a measured 540 W that read as ~90 %
+    load with a "no room for a GPU upgrade" verdict, on a machine with 1650 W
+    installed. So each unit is tracked separately and the headline figures describe
+    the WORST one, because "is a supply near its limit?" is answered by the busiest
+    supply, never by an average.
+
+    THE NON-OBVIOUS PART: PCIe *slot* power (up to 75 W per card) is delivered by the
+    motherboard, so it lands on PSU1 NO MATTER which supply feeds the 6/8-pin cables.
+    "The GPUs are on PSU2" is therefore never entirely true -- with two cards PSU1
+    still carries up to ~150 W of GPU draw. Ignoring that would understate the load
+    on the smaller, more constrained supply, which is exactly the one worth watching.
+
+    Env: PSU1_WATTS (alias PSU_WATTS) / PSU2_WATTS / PSU1_MODEL / PSU2_MODEL /
+    PSU_SLOT_WATTS_EACH (default 75). Leave PSU2_WATTS unset on a single-PSU box --
+    the previous single-supply behaviour is preserved exactly.
     """
     if not power or power.get("total_watts") is None:
         return power
-    psu = 600
-    configured = False
-    raw = os.getenv("PSU_WATTS")
-    if raw:
-        try:
-            v = int(float(raw))
-            if v > 0:
-                psu, configured = v, True
-        except (TypeError, ValueError):
-            pass
+
+    psu1 = _env_int("PSU1_WATTS") or _env_int("PSU_WATTS") or 600
+    configured = bool(os.getenv("PSU1_WATTS") or os.getenv("PSU_WATTS"))
+    psu2 = _env_int("PSU2_WATTS")
     total = power.get("total_watts") or 0
-    power["psu_watts"] = psu
-    power["headroom_watts"] = round(psu - total)
-    power["load_pct"] = round(total / psu * 100, 1) if psu else 0
+
+    if not psu2:
+        # Single supply -- unchanged semantics.
+        power["psu_watts"] = psu1
+        power["headroom_watts"] = round(psu1 - total)
+        power["load_pct"] = round(total / psu1 * 100, 1) if psu1 else 0
+        power["psu_configured"] = configured
+        power["psu_count"] = 1
+        return power
+
+    components = power.get("components") or []
+    gpu_w = sum(
+        (c.get("watts") or 0)
+        for c in components
+        if str(c.get("name", "")).upper().startswith("GPU")
+    )
+    gpu_n = sum(
+        1 for c in components if str(c.get("name", "")).upper().startswith("GPU")
+    ) or (1 if gpu_w else 0)
+
+    # Slot power rides the board (PSU1), capped by BOTH the per-card limit and by
+    # what the cards are actually drawing -- a card pulling 40 W in total cannot be
+    # pulling 75 W through the slot.
+    slot_each = _env_int("PSU_SLOT_WATTS_EACH", 75, minimum=0)
+    if slot_each is None:
+        slot_each = 75
+    slot_w = min(gpu_w, slot_each * gpu_n)
+
+    load1 = round(max(total - gpu_w, 0) + slot_w, 1)
+    load2 = round(max(gpu_w - slot_w, 0), 1)
+
+    psus = [
+        {
+            "name": "PSU1",
+            "model": (
+                os.getenv("PSU1_MODEL") or os.getenv("PSU_MODEL") or "Delta DPS-600UB"
+            ).strip(),
+            "watts": psu1,
+            "load_watts": load1,
+            "headroom_watts": round(psu1 - load1),
+            "load_pct": round(load1 / psu1 * 100, 1) if psu1 else 0,
+            "feeds": "board, CPU, RAM, disks + PCIe slot power (%.0f W)" % slot_w,
+        },
+        {
+            "name": "PSU2",
+            "model": (os.getenv("PSU2_MODEL") or "EGX 1050WT").strip(),
+            "watts": psu2,
+            "load_watts": load2,
+            "headroom_watts": round(psu2 - load2),
+            "load_pct": round(load2 / psu2 * 100, 1) if psu2 else 0,
+            "feeds": "GPU PCIe power cables",
+        },
+    ]
+
+    worst = max(psus, key=lambda p: p["load_pct"])
+    power["psus"] = psus
+    power["psu_count"] = 2
+    power["psu_total_watts"] = psu1 + psu2
+    power["psu_slot_watts"] = slot_w
+    # Headline = the WORST supply, so the stat card cannot read "fine" while one
+    # unit is saturated.
+    power["psu_watts"] = worst["watts"]
+    power["headroom_watts"] = worst["headroom_watts"]
+    power["load_pct"] = worst["load_pct"]
+    power["psu_binding"] = worst["name"]
     power["psu_configured"] = configured
     return power
 
