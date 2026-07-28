@@ -364,7 +364,10 @@ def _apply_psu_config(power):
     dual-PSU sync adapter:
 
         PSU1  Delta DPS-600UB rev 05,  600 W  -> board, CPU, RAM, disks
-        PSU2  EGX 1050WT,             1050 W  -> the video cards
+        PSU2  Enermax Galaxy EVO (EGX series, 80+ Bronze, MULTI-RAIL +12V)
+              -> the video cards. Rating is env-declared: the line ships 1050 W
+              (EGX1050EWT) and 1250 W (EGX1250EWT) variants, so the wattage is
+              NOT inferred from the model name.
 
     TWO SUPPLIES DO NOT POOL. Summing them into one budget would hide a PSU1
     overload behind a healthy-looking combined number -- the same confidently-wrong
@@ -437,7 +440,7 @@ def _apply_psu_config(power):
         },
         {
             "name": "PSU2",
-            "model": (os.getenv("PSU2_MODEL") or "EGX 1050WT").strip(),
+            "model": (os.getenv("PSU2_MODEL") or "Enermax Galaxy EVO").strip(),
             "watts": psu2,
             "load_watts": load2,
             "headroom_watts": round(psu2 - load2),
