@@ -632,8 +632,50 @@ class SystemService:
     # GPU Methods
     # =========================================================================
 
+    @staticmethod
+    def _parse_nvidia_smi_gpus(stdout: str) -> List[Dict[str, Any]]:
+        """Parse `nvidia-smi --query-gpu=... --format=csv,noheader,nounits` output.
+
+        nvidia-smi emits ONE LINE PER GPU. This used to be
+        ``stdout.strip().split(",")`` across the WHOLE output, which on a
+        multi-GPU host yielded 11 fields instead of 6: every card after the
+        first vanished, and ``driver`` silently absorbed the next card's name
+        (e.g. "535.309.01\nNVIDIA TITAN X (Pascal)"). Task #5399.
+        """
+
+        def _num(value, cast, default):
+            try:
+                return cast(float(value))
+            except (TypeError, ValueError):
+                return default
+
+        cards: List[Dict[str, Any]] = []
+        for idx, line in enumerate(stdout.strip().splitlines()):
+            parts = [p.strip() for p in line.split(",")]
+            if not parts or not parts[0]:
+                continue
+            cards.append(
+                {
+                    "index": idx,
+                    "model": parts[0],
+                    "vram_mb": _num(parts[1], int, 0) if len(parts) > 1 else 0,
+                    "vram_used_mb": _num(parts[2], int, 0) if len(parts) > 2 else 0,
+                    "usage_percent": _num(parts[3], float, 0.0) if len(parts) > 3 else 0.0,
+                    "temperature": _num(parts[4], int, None) if len(parts) > 4 else None,
+                    "driver": parts[5] if len(parts) > 5 else None,
+                }
+            )
+        return cards
+
     def get_gpu_info(self) -> Dict[str, Any]:
-        """Get GPU information"""
+        """Get GPU information.
+
+        ``vram_mb`` and the other singular fields describe the FIRST card and are
+        NEVER a sum across cards: a VRAM figure that anything sizes a model
+        against must mean one card's capacity, because a model cannot span cards
+        (see .claude/rules/fleet.md — the hub's two GPUs are compute capability
+        6.1 and 5.2). Per-card detail is in ``gpus``; ``gpu_count`` is the count.
+        """
         info = {
             "available": False,
             "model": None,
@@ -642,6 +684,8 @@ class SystemService:
             "usage_percent": 0.0,
             "temperature": None,
             "driver": None,
+            "gpus": [],
+            "gpu_count": 0,
         }
 
         # Try NVIDIA
@@ -657,15 +701,19 @@ class SystemService:
                 timeout=5,
             )
             if result.returncode == 0 and result.stdout.strip():
-                parts = result.stdout.strip().split(",")
-                info["available"] = True
-                info["model"] = parts[0].strip()
-                info["vram_mb"] = int(float(parts[1].strip())) if len(parts) > 1 else 0
-                info["vram_used_mb"] = int(float(parts[2].strip())) if len(parts) > 2 else 0
-                info["usage_percent"] = float(parts[3].strip()) if len(parts) > 3 else 0.0
-                info["temperature"] = int(float(parts[4].strip())) if len(parts) > 4 else None
-                info["driver"] = parts[5].strip() if len(parts) > 5 else None
-                return info
+                cards = self._parse_nvidia_smi_gpus(result.stdout)
+                if cards:
+                    first = cards[0]
+                    info["available"] = True
+                    info["model"] = first["model"]
+                    info["vram_mb"] = first["vram_mb"]
+                    info["vram_used_mb"] = first["vram_used_mb"]
+                    info["usage_percent"] = first["usage_percent"]
+                    info["temperature"] = first["temperature"]
+                    info["driver"] = first["driver"]
+                    info["gpus"] = cards
+                    info["gpu_count"] = len(cards)
+                    return info
         except Exception:
             pass
 
@@ -680,6 +728,8 @@ class SystemService:
             if result.returncode == 0:
                 info["available"] = True
                 info["model"] = "AMD GPU (ROCm)"
+                info["gpus"] = [{"index": 0, "model": "AMD GPU (ROCm)"}]
+                info["gpu_count"] = 1
                 return info
         except Exception:
             pass
