@@ -66,6 +66,22 @@ def _collect_once(app):
                     vram_used = gpu.get("vram_used_mb")
                     util_pct = gpu.get("utilization_percent")
 
+                    # TELEMETRY HEALTH (#5595). A card that has FALLEN OFF the PCIe bus
+                    # is still enumerated by lspci, so host_monitor keeps emitting it
+                    # with every value None -- and the guards below then record NOTHING.
+                    # An absent metric is indistinguishable from "no GPU installed" and
+                    # from "collector stopped", which is exactly how both hub GPUs stayed
+                    # dead for 8 days with every dashboard green (Xid 79, 2026-08-04).
+                    # Recording this EVERY cycle turns that silence into a positive,
+                    # queryable signal: 0 means "we can see the card and cannot read it".
+                    # None = non-nvidia vendor, not applicable -- never record, or every
+                    # box with integrated graphics alarms forever and alerting gets muted.
+                    tele_ok = gpu.get("telemetry_ok")
+                    if tele_ok is not None:
+                        record_metric(f"gpu_telemetry_ok_{idx}", 1.0 if tele_ok else 0.0)
+                        if idx == 0:
+                            record_metric("gpu_telemetry_ok", 1.0 if tele_ok else 0.0)
+
                     if util_pct is not None:
                         record_metric(f"gpu_{idx}", util_pct)
                         if idx == 0:
