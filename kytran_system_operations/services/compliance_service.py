@@ -49,12 +49,21 @@ def sync_rule_packs_from_hub():
         if not hub_url:
             return
 
+        # The hub gates this endpoint on the shared internal key (it exposes
+        # host remediation commands). Send it; without it the hub returns 401.
+        internal_key = current_app.config.get("INTERNAL_API_KEY", "") or os.environ.get("INTERNAL_API_KEY", "")
+        headers = {"X-Internal-Key": internal_key} if internal_key else {}
         resp = requests.get(
             f"{hub_url}/tools/security-network/api/compliance/rule-packs",
+            headers=headers,
             timeout=10,
         )
         if resp.status_code != 200:
-            logging.getLogger(__name__).warning("Hub rule pack sync failed: %s", resp.status_code)
+            logging.getLogger(__name__).warning(
+                "Hub rule pack sync failed: %s%s",
+                resp.status_code,
+                " (INTERNAL_API_KEY not set in KSO env)" if resp.status_code == 401 and not internal_key else "",
+            )
             return
 
         data = resp.json()
