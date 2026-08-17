@@ -93,6 +93,9 @@ services:
       # ARCHIE hub chat proxy
       - KSO_ARCHIE_HUB_URL=http://192.168.1.200:3000
       - KSO_CHAT_API_KEY=${KSO_CHAT_API_KEY}
+      # Shared hub key so the compliance rule-pack sync authenticates to the
+      # (now gated) hub /api/compliance/rule-packs endpoint. Provision in KSO .env.
+      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-}
       # P.R.O.B.E. QA auth — internal-only /api/qa/auth, shared platform token
       - ARCHIE_QA_TOKEN=${ARCHIE_QA_TOKEN}
     # AdGuard primary, Cloudflare fallback for when AdGuard cycles or the
