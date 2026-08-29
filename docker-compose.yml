@@ -84,7 +84,7 @@ services:
       # node_api :3001 is now mesh-firewalled on every public outpost (DOCKER-USER
       # DROP via archie-nodeapi-firewall.service, KB #278720), so the full mesh
       # roster is safe. Beacon excluded — ingress-only, runs no node_api.
-      - FLEET_NODE_HOSTS=${FLEET_NODE_HOSTS:-Outpost-US@100.64.0.2,Starship-246@100.64.0.3,Starship-245@100.64.0.6,Singapore@100.64.0.5,Lithuania@100.64.0.7,UK@100.64.0.8,Citadel@100.64.0.10}
+      - FLEET_NODE_HOSTS=${FLEET_NODE_HOSTS:-Outpost-US@100.64.0.2,Starship-246@100.64.0.3,Starship-245@100.64.0.6,Citadel@100.64.0.10}
       # ARCHIE hub SSO
       - KYTRAN_CLIENT_ID=kso
       - KYTRAN_AUTH_URL=https://platform.kytranempowerment.com
