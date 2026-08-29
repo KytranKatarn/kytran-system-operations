@@ -10,7 +10,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-HUB_URL = os.environ.get("KSO_HUB_URL", "http://100.64.0.2:3000")
+HUB_URL = os.environ.get("KSO_HUB_URL", "http://100.64.0.4:3000")
 NODE_API_KEY = os.environ.get("KSO_HUB_API_KEY", "")
 LOCAL_CERT_DIR = os.environ.get("KSO_CERT_DIR", "/opt/archie-fleet/certs/wildcard")
 SYNC_INTERVAL = 43200  # 12 hours
