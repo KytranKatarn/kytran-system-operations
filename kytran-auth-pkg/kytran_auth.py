@@ -36,6 +36,21 @@ def _clean_expired_states():
         _pending_states.pop(k, None)
 
 
+def _safe_next(url, default="/"):
+    """Return ``url`` only if it is a safe same-origin relative path, else ``default``.
+
+    Blocks open-redirect via the ``next`` parameter: rejects absolute URLs
+    (e.g. ``https://evil.com``), protocol-relative URLs (``//evil.com``), and
+    backslash tricks (``/\\evil.com`` that some browsers normalise to ``//``).
+    Only a path beginning with a single ``/`` is accepted.
+    """
+    if not isinstance(url, str):
+        return default
+    if url.startswith("/") and not url.startswith("//") and not url.startswith("/\\"):
+        return url
+    return default
+
+
 class KytranAuth:
     def __init__(self, app=None):
         self.client_id = None
@@ -76,7 +91,7 @@ class KytranAuth:
             from flask_login import current_user as _cu
             if "kytran_user" in session and _cu.is_authenticated:
                 next_url = request.args.get("next", "/maven/discover")
-                return redirect(next_url)
+                return redirect(_safe_next(next_url))
 
             # Clear any stale kytran session left over from a previous partial auth
             session.pop("kytran_user", None)
@@ -126,7 +141,12 @@ class KytranAuth:
             state_data = _pending_states.pop(state, None) if state else None
             session_state = session.pop("oauth_state", None)
 
-            if not state_data and state != session_state:
+            # CSRF protection: a request must carry a state that validates against the
+            # in-memory store OR a non-None session state. A missing state -- or a session
+            # fallback where session_state is None -- must never authorize (fixes the
+            # state-omission OAuth-CSRF bypass).
+            _session_state_ok = bool(session_state) and state == session_state
+            if not state or (not state_data and not _session_state_ok):
                 # Both checks failed — invalid state
                 return (
                     "<h2>Session Expired</h2>"
@@ -255,7 +275,7 @@ class KytranAuth:
                         f'<p><a href="/auth/kytran/login">Try again</a></p>'
                     ), 500
 
-            return redirect(next_url)
+            return redirect(_safe_next(next_url))
 
     def on_login(self, callback):
         """Register a callback for when SSO login succeeds."""
