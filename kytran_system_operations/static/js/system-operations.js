@@ -9484,7 +9484,12 @@ async function loadComplianceResults() {
         // Render results table
         var results = data.results || [];
         var container = document.getElementById('compliance-results');
-        if (!container || results.length === 0) return;
+        if (!container) return;
+        container.textContent = '';
+        if (results.length === 0) {
+            container.textContent = 'No saved results for this scan.';
+            return;
+        }
 
         var table = document.createElement('table');
         table.className = 'data-table';
@@ -9572,11 +9577,14 @@ async function runComplianceScan() {
         };
         var res = await fetch('/dashboard/api/compliance/scan', fetchOpts);
         var data = await res.json();
-        if (data.status === 'completed' || data.scan_id) {
+        if (res.ok && data.status === 'completed' && data.scan_id && !data.error) {
             if (typeof showToast === 'function') showToast('success', 'Scan complete: ' + (data.score || 0).toFixed(1) + '% (' + (data.total || 0) + ' rules)');
             loadComplianceResults();
         } else {
             if (typeof showToast === 'function') showToast('error', data.error || 'Scan failed');
+            // Reload only persisted completed results; never present a partial
+            // scan's ID as proof of success.
+            loadComplianceResults();
         }
     } catch (e) {
         if (typeof showToast === 'function') showToast('error', 'Scan request failed');
