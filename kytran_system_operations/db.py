@@ -100,7 +100,9 @@ def init_db(path):
         passed INTEGER DEFAULT 0,
         failed INTEGER DEFAULT 0,
         errors INTEGER DEFAULT 0,
-        score REAL DEFAULT 0.0
+        score REAL DEFAULT 0.0,
+        not_applicable INTEGER DEFAULT 0,
+        score_basis TEXT DEFAULT 'applicable_controls_v2'
     )""")
     # Migration: add node_id to existing installs that lack it
     try:
@@ -108,6 +110,14 @@ def init_db(path):
         conn.commit()
     except Exception:
         pass  # Column already exists
+    for col in [
+        "not_applicable INTEGER DEFAULT 0",
+        "score_basis TEXT DEFAULT 'legacy_all_rules_v1'",
+    ]:
+        try:
+            conn.execute("ALTER TABLE compliance_scans ADD COLUMN " + col)
+        except Exception:
+            pass  # Column already exists
     conn.execute("""CREATE TABLE IF NOT EXISTS compliance_scan_results (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         scan_id TEXT NOT NULL,

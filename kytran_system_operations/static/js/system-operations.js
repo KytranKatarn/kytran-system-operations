@@ -9470,11 +9470,13 @@ async function loadComplianceResults() {
         var scoreEl = document.getElementById('compliance-score-value');
         var passedEl = document.getElementById('compliance-passed');
         var failedEl = document.getElementById('compliance-failed');
+        var notApplicableEl = document.getElementById('compliance-not-applicable');
         var lastScanEl = document.getElementById('compliance-last-scan');
 
-        if (scoreEl) scoreEl.textContent = (scan.score || 0).toFixed(1) + '%';
+        if (scoreEl) scoreEl.textContent = scan.score == null ? 'N/A' : scan.score.toFixed(1) + '%';
         if (passedEl) passedEl.textContent = scan.passed || 0;
         if (failedEl) failedEl.textContent = scan.failed || 0;
+        if (notApplicableEl) notApplicableEl.textContent = scan.not_applicable || 0;
         if (lastScanEl && scan.completed_at) {
             lastScanEl.textContent = typeof ArchieTime !== 'undefined'
                 ? ArchieTime.format(scan.completed_at, 'short')

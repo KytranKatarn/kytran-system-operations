@@ -278,8 +278,8 @@ def run_scan(pack_ids=None, triggered_by="manual"):
         cur.execute(
             """
             INSERT INTO compliance_scans
-                (scan_id, triggered_by, started_at, pack_ids)
-            VALUES (?, ?, ?, ?)
+                (scan_id, triggered_by, started_at, pack_ids, score_basis)
+            VALUES (?, ?, ?, ?, 'applicable_controls_v2')
             """,
             (scan_id, triggered_by, started_at, json.dumps([p["pack_id"] for p in packs])),
         )
@@ -294,6 +294,7 @@ def run_scan(pack_ids=None, triggered_by="manual"):
     errors = 0
     result_persistence_errors = 0
     evidence_persistence_errors = 0
+    not_applicable = 0
     pack_scores = {}
 
     for pack in packs:
@@ -301,13 +302,14 @@ def run_scan(pack_ids=None, triggered_by="manual"):
         rules = pack["rules"] if isinstance(pack["rules"], list) else json.loads(pack["rules"])
         pack_pass = 0
         pack_total = 0
+        pack_not_applicable = 0
 
         for rule in rules:
             total += 1
             pack_total += 1
             rule_id = rule.get("rule_id", f"unknown-{total}")
 
-            # Skip rules that don't apply in a container context
+            # Keep non-applicable checks separate from failures and execution errors.
             if rule.get("container_not_applicable") and _is_running_in_container():
                 na_reason = rule.get(
                     "container_reason",
@@ -328,7 +330,8 @@ def run_scan(pack_ids=None, triggered_by="manual"):
                     "expected": rule.get("check", {}).get("expected", ""),
                     "details": na_details,
                 }
-                errors += 1  # not_applicable counts as non-pass (doesn't inflate score)
+                not_applicable += 1
+                pack_not_applicable += 1
                 try:
                     soc2 = rule.get("soc2_mapping", [])
                     with _db_cursor(commit=True) as (conn, cur):
@@ -455,11 +458,13 @@ def run_scan(pack_ids=None, triggered_by="manual"):
             "name": pack["name"],
             "passed": pack_pass,
             "total": pack_total,
-            "score": round((pack_pass / pack_total) * 100, 1) if pack_total > 0 else 0,
+            "not_applicable": pack_not_applicable,
+            "assessed": pack_total - pack_not_applicable,
+            "score": _compliance_score(pack_pass, pack_total, pack_not_applicable),
         }
 
-    # Calculate overall score
-    score = round((passed / total) * 100, 1) if total > 0 else 0
+    # Non-applicable controls are reported separately and excluded from the score.
+    score = _compliance_score(passed, total, not_applicable)
     completed_at = datetime.utcnow()
     persistence_errors = result_persistence_errors + evidence_persistence_errors
 
@@ -473,7 +478,9 @@ def run_scan(pack_ids=None, triggered_by="manual"):
                 passed = ?,
                 failed = ?,
                 errors = ?,
-                score = ?
+                score = ?,
+                not_applicable = ?,
+                score_basis = 'applicable_controls_v2'
             WHERE scan_id = ?
             """,
             (
@@ -483,6 +490,7 @@ def run_scan(pack_ids=None, triggered_by="manual"):
                 failed,
                 errors,
                 score,
+                not_applicable,
                 scan_id,
             ),
         )
@@ -492,7 +500,11 @@ def run_scan(pack_ids=None, triggered_by="manual"):
         "scan_id": scan_id,
         "status": "completed" if persistence_errors == 0 else "persistence_error",
         "score": score,
+        "score_basis": "applicable_controls_v2",
         "total": total,
+        "assessed": total - not_applicable,
+        "not_applicable": not_applicable,
+        "coverage": round(((total - not_applicable) / total) * 100, 1) if total else 0,
         "passed": passed,
         "failed": failed,
         "errors": errors,
@@ -501,14 +513,22 @@ def run_scan(pack_ids=None, triggered_by="manual"):
         "duration_seconds": round(duration_s, 2),
         "pack_scores": pack_scores,
     }
-    logger.info(
-        "Compliance scan %s %s: %.1f%% (%d/%d passed)",
-        scan_id,
-        summary["status"],
-        score,
-        passed,
-        total,
-    )
+    if score is None:
+        logger.info(
+            "Compliance scan %s %s: no applicable controls (%d total)",
+            scan_id,
+            summary["status"],
+            total,
+        )
+    else:
+        logger.info(
+            "Compliance scan %s %s: %.1f%% (%d/%d assessed controls passed)",
+            scan_id,
+            summary["status"],
+            score,
+            passed,
+            total - not_applicable,
+        )
 
     if persistence_errors:
         summary["error"] = (
@@ -551,6 +571,8 @@ def run_scan(pack_ids=None, triggered_by="manual"):
                 "passed": passed,
                 "failed": failed,
                 "errors": errors,
+                "not_applicable": not_applicable,
+                "score_basis": "applicable_controls_v2",
                 "pack_ids": pack_ids_list,
                 "pack_scores": pack_scores_flat,
                 "failed_rules": failed_rules,
@@ -605,6 +627,25 @@ _file_cache = {}
 def _clear_file_cache():
     """Clear file cache between scans."""
     _file_cache.clear()
+
+
+def _compliance_score(passed, total, not_applicable=0):
+    """Score assessed controls only; no score exists when none were assessed."""
+    applicable = int(total or 0) - int(not_applicable or 0)
+    if applicable < 0:
+        raise ValueError("not_applicable cannot exceed total")
+    if applicable == 0:
+        return None
+    return round((int(passed or 0) / applicable) * 100, 1)
+
+
+def _normalize_scan_score(stored_score, passed, total, not_applicable, errors, score_basis):
+    """Normalize legacy all-rules scores while preserving genuine error counts."""
+    stored = float(stored_score) if stored_score is not None else None
+    current = _compliance_score(passed, total, not_applicable)
+    if score_basis == "legacy_all_rules_v1" and not_applicable:
+        return current, max(int(errors or 0) - int(not_applicable), 0), "applicable_controls_v2"
+    return stored, int(errors or 0), score_basis or "legacy_all_rules_v1"
 
 
 def _run_host_cmd(command_type, params, timeout=10):
@@ -1407,7 +1448,11 @@ def get_scan_history(limit=20):
         cur.execute(
             """
             SELECT scan_id, triggered_by, started_at, completed_at,
-                   total_rules, passed, failed, errors, score, pack_ids, node_id
+                   total_rules, passed, failed, errors, score, pack_ids, node_id,
+                   score_basis,
+                   (SELECT COUNT(*) FROM compliance_scan_results r
+                    WHERE r.scan_id = compliance_scans.scan_id
+                      AND r.status = 'not_applicable') AS not_applicable
             FROM compliance_scans
             ORDER BY started_at DESC
             LIMIT ?
@@ -1416,6 +1461,14 @@ def get_scan_history(limit=20):
         )
         rows = [dict(r) for r in cur.fetchall()]
         for row in rows:
+            na_count = int(row.get("not_applicable") or 0)
+            row["score"], row["errors"], row["score_basis"] = _normalize_scan_score(
+                row.get("score"), row.get("passed"), row.get("total_rules"),
+                na_count, row.get("errors"), row.get("score_basis")
+            )
+            row["assessed"] = max(int(row.get("total_rules") or 0) - na_count, 0)
+            total = int(row.get("total_rules") or 0)
+            row["coverage"] = round(row["assessed"] / total * 100, 1) if total else 0
             for key in ("started_at", "completed_at"):
                 if row.get(key) and hasattr(row[key], "isoformat"):
                     row[key] = row[key].isoformat()
@@ -1428,7 +1481,10 @@ def get_latest_scores():
         cur.execute(
             """
             SELECT scan_id, score, total_rules, passed, failed, errors,
-                   started_at, completed_at, pack_ids
+                   started_at, completed_at, pack_ids, score_basis,
+                   (SELECT COUNT(*) FROM compliance_scan_results r
+                    WHERE r.scan_id = compliance_scans.scan_id
+                      AND r.status = 'not_applicable') AS not_applicable
             FROM compliance_scans
             WHERE completed_at IS NOT NULL
             ORDER BY started_at DESC
@@ -1443,12 +1499,22 @@ def get_latest_scores():
 
         # Convert types for JSON serialization
         result = dict(row)
+        na_count = int(result.get("not_applicable") or 0)
+        result["score"], result["errors"], result["score_basis"] = _normalize_scan_score(
+            result.get("score"), result.get("passed"), result.get("total_rules"),
+            na_count, result.get("errors"), result.get("score_basis")
+        )
+        result["assessed"] = max(int(result.get("total_rules") or 0) - na_count, 0)
+        total_rules = int(result.get("total_rules") or 0)
+        result["coverage"] = (
+            round(result["assessed"] / total_rules * 100, 1) if total_rules else 0
+        )
         for key in ("started_at", "completed_at"):
             if result.get(key) and hasattr(result[key], "isoformat"):
                 result[key] = result[key].isoformat()
         if result.get("score") is not None:
             result["score"] = float(result["score"])
-        for int_key in ("total_rules", "passed", "failed", "errors"):
+        for int_key in ("total_rules", "passed", "failed", "errors", "not_applicable", "assessed"):
             if result.get(int_key) is not None:
                 result[int_key] = int(result[int_key])
 
@@ -1458,7 +1524,8 @@ def get_latest_scores():
             """
             SELECT r.pack_id, p.name,
                    COUNT(*) AS total,
-                   SUM(CASE WHEN r.status = 'pass' THEN 1 ELSE 0 END) AS passed
+                   SUM(CASE WHEN r.status = 'pass' THEN 1 ELSE 0 END) AS passed,
+                   SUM(CASE WHEN r.status = 'not_applicable' THEN 1 ELSE 0 END) AS not_applicable
             FROM compliance_scan_results r
             LEFT JOIN compliance_rule_packs p ON p.pack_id = r.pack_id
             WHERE r.scan_id = ?
@@ -1474,7 +1541,8 @@ def get_latest_scores():
             pack_name = pr.get("name") or pack_id
             pt = int(pr["total"] or 0)
             pp = int(pr["passed"] or 0)
-            score = round((pp / pt) * 100, 1) if pt > 0 else 0
+            pna = int(pr["not_applicable"] or 0)
+            score = _compliance_score(pp, pt, pna)
 
             # Short key for dashboard widgets
             short_key = pack_name.lower()
@@ -1490,6 +1558,8 @@ def get_latest_scores():
                 "score": score,
                 "passed": pp,
                 "total": pt,
+                "assessed": pt - pna,
+                "not_applicable": pna,
             }
 
         result["packs"] = packs

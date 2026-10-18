@@ -2,6 +2,7 @@
 from flask import Response
 from flask_login import current_user
 from ..db import get_db
+from ..services.compliance_service import _compliance_score, _normalize_scan_score
 from ..services.subscription_service import get_user_tier, tier_at_least
 
 
@@ -76,9 +77,21 @@ def _get_overall_score():
     conn = get_db()
     try:
         row = conn.execute(
-            "SELECT score FROM compliance_scans ORDER BY completed_at DESC LIMIT 1"
+            """SELECT scan_id, score, total_rules, passed, errors, score_basis
+               FROM compliance_scans ORDER BY completed_at DESC LIMIT 1"""
         ).fetchone()
-        return row["score"] if row else None
+        if not row:
+            return None
+        not_applicable = conn.execute(
+            """SELECT COUNT(*) FROM compliance_scan_results
+               WHERE scan_id = ? AND status = 'not_applicable'""",
+            (row["scan_id"],),
+        ).fetchone()[0]
+        score, _, _ = _normalize_scan_score(
+            row["score"], row["passed"], row["total_rules"], not_applicable,
+            row["errors"], row["score_basis"]
+        )
+        return score
     finally:
         conn.close()
 
@@ -100,14 +113,17 @@ def _get_pack_score(pack_id):
         stats = conn.execute(
             """SELECT
                  COUNT(*) AS total,
-                 SUM(CASE WHEN status = 'pass' THEN 1 ELSE 0 END) AS passed
+                 SUM(CASE WHEN status = 'pass' THEN 1 ELSE 0 END) AS passed,
+                 SUM(CASE WHEN status = 'not_applicable' THEN 1 ELSE 0 END) AS not_applicable
                FROM compliance_scan_results
                WHERE scan_id = ? AND pack_id = ?""",
             (scan_id, pack_id),
         ).fetchone()
         if not stats or stats["total"] == 0:
             return None
-        return round(stats["passed"] / stats["total"] * 100, 1)
+        return _compliance_score(
+            stats["passed"], stats["total"], stats["not_applicable"]
+        )
     finally:
         conn.close()
 
