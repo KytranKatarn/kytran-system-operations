@@ -5,6 +5,7 @@ import pytest
 from flask import Flask
 
 from kytran_system_operations import db
+from kytran_system_operations.routes.badge_routes import _get_overall_score
 from kytran_system_operations.services.compliance_service import (
     _compliance_score,
     _normalize_scan_score,
@@ -115,5 +116,43 @@ def test_legacy_database_adds_scoring_provenance_columns(tmp_path):
             columns = {row[1]: row[4] for row in conn.execute("PRAGMA table_info(compliance_scans)")}
         assert columns["not_applicable"] == "0"
         assert columns["score_basis"] == "'legacy_all_rules_v1'"
+    finally:
+        db._db_path = old_path
+
+
+def test_badge_score_treats_sql_like_status_as_data(tmp_path):
+    db_path = tmp_path / "badge.db"
+    old_path = db._db_path
+    db.init_db(str(db_path))
+    try:
+        with sqlite3.connect(db_path) as conn:
+            conn.execute(
+                """INSERT INTO compliance_scans
+                   (scan_id, completed_at, total_rules, passed, errors, score,
+                    not_applicable, score_basis)
+                   VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?)""",
+                ("scan-1", 3, 1, 0, 33.3, 0, "applicable_controls_v2"),
+            )
+            conn.executemany(
+                """INSERT INTO compliance_scan_results
+                   (scan_id, pack_id, rule_id, status) VALUES (?, ?, ?, ?)""",
+                [
+                    ("scan-1", "fixture", "pass-1", "pass"),
+                    ("scan-1", "fixture", "fail-1", "fail"),
+                    (
+                        "scan-1",
+                        "fixture",
+                        "hostile-status",
+                        "not_applicable' OR 1=1 --",
+                    ),
+                ],
+            )
+
+        assert _get_overall_score() == 33.3
+        with sqlite3.connect(db_path) as conn:
+            scan_count = conn.execute(
+                "SELECT COUNT(*) FROM compliance_scans"
+            ).fetchone()[0]
+            assert scan_count == 1
     finally:
         db._db_path = old_path
