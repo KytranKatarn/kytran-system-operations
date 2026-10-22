@@ -11,8 +11,8 @@ from .helpers import audit_log
 
 
 def _authorized():
-    expected = os.environ.get("KSO_PLATFORM_API_KEY", "").strip()
-    supplied = request.headers.get("X-KSO-Internal-Key", "").strip()
+    expected = os.environ.get("KSO_PLATFORM_API_KEY", "")
+    supplied = request.headers.get("X-KSO-Internal-Key", "")
     return bool(expected and supplied and hmac.compare_digest(expected, supplied))
 
 
@@ -31,8 +31,8 @@ def register_internal_routes(app):
         data = request.get_json(silent=True) or {}
         command_type = data.get("command_type")
         params = data.get("params", {})
-        if not isinstance(command_type, str) or not command_type.strip():
-            return jsonify({"success": False, "error": "command_type is required"}), 400
+        if not isinstance(command_type, str) or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", command_type):
+            return jsonify({"success": False, "error": "command_type must be a valid command name"}), 400
         if not isinstance(params, dict):
             return jsonify({"success": False, "error": "params must be an object"}), 400
         try:
