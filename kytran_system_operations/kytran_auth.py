@@ -74,6 +74,33 @@ class KytranAuth:
 
         sdk = self
 
+        @app.route("/auth/kytran/reauth")
+        def kytran_reauth():
+            """Start a fresh Kytran credential check in a popup for a sensitive action."""
+            from flask_login import current_user as _cu
+
+            if not _cu.is_authenticated or not getattr(_cu, "is_admin", False):
+                return "Administrator authentication required", 403
+            if not sdk.client_id or not sdk.redirect_uri or not sdk.client_secret:
+                return "Kytran re-authentication is not configured", 503
+
+            state = secrets.token_urlsafe(32)
+            _clean_expired_states()
+            _pending_states[state] = {
+                "purpose": "reauth",
+                "user_id": str(_cu.get_id()),
+                "username": _cu.username,
+                "expires": time.time() + 600,
+            }
+            from urllib.parse import urlencode
+            auth_params = {
+                'client_id': sdk.client_id,
+                'redirect_uri': sdk.redirect_uri,
+                'state': state,
+            }
+            authorize_url = f"{sdk.auth_url.rstrip('/')}/oauth/reauth/authorize?{urlencode(auth_params)}"
+            return redirect(authorize_url)
+
         @app.route("/auth/kytran/login")
         def kytran_login():
             # Already logged in AND session is complete? Skip OAuth.
@@ -130,7 +157,7 @@ class KytranAuth:
 
             # Validate state: check in-memory store first, then session as fallback
             state_data = _pending_states.pop(state, None) if state else None
-            session_state = session.pop("oauth_state", None)
+            session_state = session.get("oauth_state")
 
             # CSRF protection: a request must carry a state that validates against the
             # in-memory store OR a non-None session state. A missing state -- or a session
@@ -144,6 +171,65 @@ class KytranAuth:
                     "<p>Your login session expired. Please try again.</p>"
                     f'<p><a href="/auth/kytran/login?next=/dashboard">Sign in with Kytran</a></p>'
                 ), 400
+
+            if _session_state_ok:
+                session.pop("oauth_state", None)
+
+            if state_data and state_data.get("purpose") == "reauth":
+                def popup_result(success):
+                    result = "true" if success else "false"
+                    return (
+                        "<!doctype html><meta charset='utf-8'><title>KSO verification</title>"
+                        "<p>" + ("Identity verified. You can close this window." if success else
+                        "Verification failed. Return to KSO and try again.") + "</p>"
+                        "<script>if(window.opener){window.opener.postMessage({type:'kso-sso-reauth',"
+                        f"success:{result}" + "},window.location.origin);}window.close();</script>"
+                    )
+
+                code = request.args.get("code")
+                if not code or time.time() > state_data.get("expires", 0):
+                    return popup_result(False), 400
+                from flask_login import current_user as _cu
+                if (not _cu.is_authenticated or not getattr(_cu, "is_admin", False)
+                        or str(_cu.get_id()) != state_data.get("user_id")):
+                    return popup_result(False), 403
+
+                token_payload = {
+                    "grant_type": "authorization_code",
+                    "code": code,
+                    "client_id": sdk.client_id,
+                    "client_secret": sdk.client_secret,
+                    "redirect_uri": sdk.redirect_uri,
+                }
+                try:
+                    token_resp = requests.post(
+                        f"{sdk.internal_url.rstrip('/')}/oauth/token",
+                        data=token_payload,
+                        timeout=15,
+                    )
+                    if token_resp.status_code != 200:
+                        return popup_result(False), 400
+                    access_token = token_resp.json().get("access_token")
+                    if not access_token:
+                        return popup_result(False), 400
+                    userinfo_resp = requests.get(
+                        f"{sdk.internal_url.rstrip('/')}/oauth/userinfo",
+                        headers={"Authorization": f"Bearer {access_token}"},
+                        timeout=15,
+                    )
+                    if userinfo_resp.status_code != 200:
+                        return popup_result(False), 400
+                    userinfo = userinfo_resp.json()
+                except Exception:
+                    return popup_result(False), 502
+
+                if (str(userinfo.get("username") or "").casefold()
+                        != str(state_data.get("username") or "").casefold()):
+                    return popup_result(False), 403
+
+                session["reauth_timestamp"] = time.time()
+                session["reauth_user_id"] = str(_cu.get_id())
+                return popup_result(True)
 
             next_url = "/dashboard"
             if state_data:

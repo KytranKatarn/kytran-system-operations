@@ -1277,6 +1277,12 @@ def api_auth_verify():
     """Verify user password for re-authentication of destructive operations"""
     try:
         from flask import session
+        if getattr(current_user, "is_sso", False):
+            return jsonify({
+                "success": False,
+                "error": "Use Kytran sign-in to verify this operation.",
+                "requires_sso_reauth": True,
+            }), 400
         from ..auth import verify_password
 
         data = request.get_json() or {}
@@ -1309,6 +1315,7 @@ def api_auth_verify():
 
         # Store re-auth timestamp in session (valid for 5 minutes)
         session["reauth_timestamp"] = time_mod.time()
+        session["reauth_user_id"] = str(current_user.get_id())
 
         audit_log("reauth_attempt", "verify", success=True)
 

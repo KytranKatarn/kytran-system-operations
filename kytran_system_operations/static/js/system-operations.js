@@ -4266,21 +4266,69 @@ async function registerManagedMount(device, mountPoint, filesystem, capacityGb, 
 
 function requestReauth(operationName, callback) {
     reauthCallback = callback;
-    document.getElementById('reauthMessage').textContent = 'Operation: ' + operationName + '. Enter your password to continue.';
-    document.getElementById('reauthPassword').value = '';
+    document.getElementById('reauthMessage').textContent = window.KSO_SSO_REAUTH
+        ? 'Operation: ' + operationName + '. Confirm your identity with Kytran to continue.'
+        : 'Operation: ' + operationName + '. Enter your password to continue.';
+    const passwordField = document.getElementById('reauthPassword');
+    if (passwordField) passwordField.value = '';
     document.getElementById('reauthError').style.display = 'none';
     document.getElementById('reauthModal').classList.add('active');
-    setTimeout(() => document.getElementById('reauthPassword').focus(), 100);
+    if (passwordField) setTimeout(() => passwordField.focus(), 100);
 }
 
 function closeReauthModal() {
     document.getElementById('reauthModal').classList.remove('active');
-    document.getElementById('reauthPassword').value = '';
+    const passwordField = document.getElementById('reauthPassword');
+    if (passwordField) passwordField.value = '';
     document.getElementById('reauthError').style.display = 'none';
     reauthCallback = null;
 }
 
 async function submitReauth() {
+    if (window.KSO_SSO_REAUTH) {
+        const errorElement = document.getElementById('reauthError');
+        errorElement.textContent = '';
+        errorElement.style.display = 'none';
+        const popup = window.open('/auth/kytran/reauth', 'ksoKytranReauth', 'popup,width=520,height=700');
+        if (!popup) {
+            errorElement.textContent = 'Allow the Kytran verification window to open, then try again.';
+            errorElement.style.display = 'block';
+            return;
+        }
+
+        let finished = false;
+        const finish = (success) => {
+            if (finished) return;
+            finished = true;
+            window.removeEventListener('message', onMessage);
+            clearInterval(closePoll);
+            clearTimeout(timeout);
+            if (!success) {
+                errorElement.textContent = 'Kytran could not verify this account. The operation was not run.';
+                errorElement.style.display = 'block';
+                return;
+            }
+            const callbackToRun = reauthCallback;
+            closeReauthModal();
+            showToast('success', 'Kytran identity verified');
+            if (callbackToRun) callbackToRun();
+        };
+        const onMessage = (event) => {
+            if (event.origin !== window.location.origin || event.source !== popup
+                    || !event.data || event.data.type !== 'kso-sso-reauth') return;
+            finish(event.data.success === true);
+        };
+        window.addEventListener('message', onMessage);
+        const closePoll = setInterval(() => {
+            if (popup.closed) finish(false);
+        }, 500);
+        const timeout = setTimeout(() => {
+            try { popup.close(); } catch (_) {}
+            finish(false);
+        }, 10 * 60 * 1000);
+        return;
+    }
+
     const password = document.getElementById('reauthPassword').value;
     if (!password) {
         document.getElementById('reauthError').textContent = 'Password is required';
