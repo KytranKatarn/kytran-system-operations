@@ -144,9 +144,11 @@ def require_reauth():
     """Check if user has recently re-authenticated (within 5 minutes).
     Returns None if OK, or a JSON error response if re-auth needed."""
     from flask import session
+    from flask_login import current_user
 
     reauth_time = session.get("reauth_timestamp")
-    if reauth_time and (time_mod.time() - reauth_time) < 300:
+    if (reauth_time and session.get("reauth_user_id") == str(current_user.get_id())
+            and (time_mod.time() - reauth_time) < 300):
         return None
     return (
         jsonify(

@@ -2389,15 +2389,19 @@
             <p id="reauthMessage" style="color: var(--archie-text-secondary); margin-bottom: 16px;">
                 This operation requires password verification to proceed.
             </p>
+            {% if current_user.is_sso %}
+            <p style="color: var(--archie-text-secondary); margin-bottom: 16px;">You’ll confirm your Kytran account password and, if enabled, your two-factor code in a secure Kytran window. KSO will continue only after Kytran verifies the same account.</p>
+            {% else %}
             <label class="sysops-label-muted"><span data-i18n="system_operations.enter_your_password">Enter your password:</span></label>
             <input type="password" id="reauthPassword" placeholder="Password"
                    class="sysops-input"
                    onkeydown="if(event.key==='Enter')submitReauth()">
+            {% endif %}
             <div id="reauthError" style="display: none; margin-top: 10px; padding: 8px; background: rgba(255,107,107,0.1); border: 1px solid var(--archie-red); border-radius: 4px; color: var(--archie-red); font-size: 0.85rem;"></div>
         </div>
         <div class="modal-footer">
             <button class="btn btn-ghost" onclick="closeReauthModal()"><span data-i18n="system_operations.cancel_12">Cancel</span></button>
-            <button class="btn btn-danger" onclick="submitReauth()"><span data-i18n="system_operations.verify_amp_continue">Verify &amp; Continue</span></button>
+            <button class="btn btn-danger" onclick="submitReauth()"><span>{% if current_user.is_sso %}Verify with Kytran &amp; Continue{% else %}Verify &amp; Continue{% endif %}</span></button>
         </div>
     </div>
 </div>
@@ -2931,11 +2935,12 @@
 
 <!-- Load Chart.js synchronously right before main script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>window.KSO_SSO_REAUTH = {{ current_user.is_sso|tojson }};</script>
 
 {% if sysops_theme and sysops_theme.frame_style == 'lcars' %}
 <script src="/static/js/lcars-header.js"></script>
 {% endif %}
-<script src="/static/js/system-operations.js?v=5140gpu1v23"></script>
+<script src="/static/js/system-operations.js?v=20261022-sso-reauth"></script>
 {% if chat_enabled %}
 <script src="/static/js/archie-chat-overlay.js"></script>
 <script src="/static/js/kso-chat.js" defer></script>
