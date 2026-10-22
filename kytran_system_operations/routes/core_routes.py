@@ -1277,7 +1277,7 @@ def api_auth_verify():
     """Verify user password for re-authentication of destructive operations"""
     try:
         from flask import session
-        from werkzeug.security import check_password_hash
+        from ..auth import verify_password
 
         data = request.get_json() or {}
         password = data.get("password", "")
@@ -1285,33 +1285,23 @@ def api_auth_verify():
         if not password:
             return jsonify({"success": False, "error": "Password required"}), 400
 
-        # Get user's password hash from DB
-        conn = get_db()
-        cur = conn.cursor(cursor_factory=RealDictCursor)
-        cur.execute("SELECT password_hash FROM users WHERE id = %s", (current_user.id,))
-        user = cur.fetchone()
-
-        if not user:
+        # KSO authentication stores users in its standalone SQLite database.
+        # The generic get_db() used by metrics and audit routes connects to the
+        # separate PostgreSQL database, which has no KSO users table. Reuse the
+        # authentication verifier so bcrypt and Werkzeug hashes are both handled.
+        verified_user = verify_password(current_user.username, password)
+        if not verified_user or verified_user.id != current_user.id:
             audit_log(
                 "reauth_attempt",
                 "verify",
                 success=False,
-                error_message="User not found",
-            )
-            return jsonify({"success": False, "error": "User not found"}), 404
-
-        if not check_password_hash(user["password_hash"], password):
-            audit_log(
-                "reauth_attempt",
-                "verify",
-                success=False,
-                error_message=f"Invalid password for user {current_user.username}",
+                error_message=f"Password verification failed for user {current_user.username}",
             )
             return (
                 jsonify(
                     {
                         "success": False,
-                        "error": f"Invalid password for user '{current_user.username}'",
+                        "error": "Invalid password",
                     }
                 ),
                 401,
@@ -1332,12 +1322,6 @@ def api_auth_verify():
     except Exception as e:
         audit_log("reauth_attempt", "verify", success=False, error_message=str(e))
         return jsonify({"success": False, "error": str(e)}), 500
-    finally:
-        try:
-            cur.close()
-            conn.close()
-        except Exception:
-            pass
 
 
 # ============================================================================
