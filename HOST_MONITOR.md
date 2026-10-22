@@ -40,6 +40,6 @@ merge fast-forward `/mnt/archie_brain` and restart the service:
 KSO reads its output from `/mnt/archie_brain/host_monitor_data.json`; it never
 imports this module.
 
-⚠️ Related, still unresolved: `kytran_system_operations/system_service.py` and
-`kytran_system_operations/services/system_service.py` are both present with
-different md5s. Determine which one is imported before editing either.
+KSO's active system service is `kytran_system_operations/system_service.py`.
+The unused duplicate under `kytran_system_operations/services/` was removed after
+confirming all route and compliance imports resolve to the active top-level service.

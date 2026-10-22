@@ -63,6 +63,9 @@ def register_all_routes(app, admin_required_decorator):
     register_billing_routes(system_operations_bp, admin_required_decorator)
     register_app_catalog_routes(system_operations_bp, admin_required_decorator)
 
+    from .internal_routes import register_internal_routes
+    register_internal_routes(app)
+
     # Cross-node Docker visibility (#3763)
     from .fleet_docker_routes import register_fleet_docker_routes
     register_fleet_docker_routes(system_operations_bp, admin_required_decorator)

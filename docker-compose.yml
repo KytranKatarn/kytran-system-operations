@@ -96,6 +96,7 @@ services:
       # Shared hub key so the compliance rule-pack sync authenticates to the
       # (now gated) hub /api/compliance/rule-packs endpoint. Provision in KSO .env.
       - INTERNAL_API_KEY=${INTERNAL_API_KEY:-}
+      - KSO_PLATFORM_API_KEY=${KSO_PLATFORM_API_KEY:?KSO_PLATFORM_API_KEY must be set}
       # P.R.O.B.E. QA auth — internal-only /api/qa/auth, shared platform token
       - ARCHIE_QA_TOKEN=${ARCHIE_QA_TOKEN}
     # AdGuard primary, Cloudflare fallback for when AdGuard cycles or the

@@ -1866,7 +1866,7 @@ def collect_evidence(scan_id=None):
 
     # Availability: Service status
     try:
-        from tools.system_operations.system_service import get_system_service
+        from ..system_service import get_system_service
 
         svc = get_system_service()
         overview = svc.get_overview()

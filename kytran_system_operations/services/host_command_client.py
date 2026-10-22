@@ -8,6 +8,8 @@ The host_monitor.py daemon (running as root on the host) picks up pending
 commands, validates them, executes whitelisted operations, and writes results.
 """
 
+import hashlib
+import hmac
 import json
 import os
 import time
@@ -18,6 +20,20 @@ BASE_DIR = os.environ.get("ARCHIE_BASE_DIR", "/mnt/archie_brain")
 COMMANDS_DIR = os.path.join(BASE_DIR, "host_commands")
 PENDING_DIR = os.path.join(COMMANDS_DIR, "pending")
 COMPLETED_DIR = os.path.join(COMMANDS_DIR, "completed")
+
+SIGNED_COMMAND_TYPES = {
+    "compliance_fix_command",
+    "compliance_fix_sysctl",
+    "compliance_fix_file_line",
+    "compliance_fix_service",
+    "hub_deploy",
+}
+
+
+def command_signature(command_type, params, secret):
+    """Sign privileged command payloads using host_monitor's canonical format."""
+    msg = command_type + ":" + json.dumps(params or {}, sort_keys=True, separators=(",", ":"))
+    return hmac.new(secret.encode(), msg.encode(), hashlib.sha256).hexdigest()
 
 
 # ============================================================================
@@ -102,6 +118,10 @@ def submit_host_command(command_type, params, submitted_by="platform", user_id=N
         "user_id": user_id,
         "submitted_at": datetime.now().isoformat(),
     }
+
+    secret = (os.environ.get("HOST_COMMAND_HMAC_KEY") or os.environ.get("INTERNAL_API_KEY", "")).strip()
+    if command_type in SIGNED_COMMAND_TYPES and secret:
+        command_data["hmac"] = command_signature(command_type, params, secret)
 
     pending_path = os.path.join(PENDING_DIR, f"{command_id}.json")
     with open(pending_path, "w") as f:
