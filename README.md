@@ -166,6 +166,10 @@ Set `KSO_THEME=mytheme` to use it.
 - **System Data:** psutil
 - **Auth:** bcrypt + Flask-Login
 
+## ARCHIE integration
+
+ARCHIE platform integrations use KSO's `/api/internal/kso/*` endpoints for host-command submission, result polling, queue status, and system overview. To enable integration, configure the same non-empty `KSO_PLATFORM_API_KEY` in the platform and KSO environment files; until then the internal API rejects requests with 401, while KSO itself can still start. Platform requests should use `KSO_INTERNAL_BASE_URL` on the hub mesh. KSO remains the only application container that writes to the host command queue.
+
 ## License
 
 Apache 2.0 — [Kytran Empowerment Inc.](https://kytranempowerment.com)
