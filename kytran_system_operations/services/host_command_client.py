@@ -120,7 +120,15 @@ def submit_host_command(command_type, params, submitted_by="platform", user_id=N
     }
 
     secret = (os.environ.get("HOST_COMMAND_HMAC_KEY") or os.environ.get("INTERNAL_API_KEY", "")).strip()
-    if command_type in SIGNED_COMMAND_TYPES and secret:
+    if command_type in SIGNED_COMMAND_TYPES:
+        if not secret:
+            # Queuing it would only make host_monitor reject it ("missing HMAC signature") with
+            # nobody told: on 2026-10-29 this container had no key, so every hub_deploy was
+            # refused for hours while the platform's banner read "waiting". Fail at the source.
+            raise HostCommandError(
+                f"{command_type} must be signed but this service has no HOST_COMMAND_HMAC_KEY or "
+                "INTERNAL_API_KEY; refusing to queue a command the host will reject"
+            )
         command_data["hmac"] = command_signature(command_type, params, secret)
 
     pending_path = os.path.join(PENDING_DIR, f"{command_id}.json")

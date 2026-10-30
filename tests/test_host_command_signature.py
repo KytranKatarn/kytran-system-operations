@@ -128,3 +128,39 @@ def test_host_monitor_stays_in_sync():
     # The gate is actually wired into the queue processor.
     assert "_verify_command_signature(cmd_data)" in src
     assert re.search(r"if not sig_ok", src)
+
+
+# --- a signed command type must never be queued unsigned (#7542) -------------------------------
+import pytest  # noqa: E402
+
+from kytran_system_operations.services import host_command_client as hcc  # noqa: E402
+
+
+@pytest.fixture
+def queue(tmp_path, monkeypatch):
+    pending = tmp_path / "pending"
+    pending.mkdir()
+    monkeypatch.setattr(hcc, "PENDING_DIR", str(pending))
+    monkeypatch.setattr(hcc, "is_queue_available", lambda: True)
+    monkeypatch.delenv("HOST_COMMAND_HMAC_KEY", raising=False)
+    monkeypatch.delenv("INTERNAL_API_KEY", raising=False)
+    return pending
+
+
+@pytest.mark.parametrize("command_type", sorted(SIGNED_COMMAND_TYPES))
+def test_signed_type_without_a_key_is_refused_not_queued_unsigned(queue, command_type):
+    with pytest.raises(hcc.HostCommandError, match="must be signed"):
+        hcc.submit_host_command(command_type, {})
+    assert list(queue.iterdir()) == []  # nothing was written for the host to reject
+
+
+def test_signed_type_with_a_key_carries_the_hmac(queue, monkeypatch):
+    monkeypatch.setenv("INTERNAL_API_KEY", "k" * 16)
+    cid = hcc.submit_host_command("hub_deploy", {})
+    data = json.loads((queue / f"{cid}.json").read_text())
+    assert data["hmac"] == command_signature("hub_deploy", {}, "k" * 16)
+
+
+def test_unsigned_types_still_queue_without_a_key(queue):
+    cid = hcc.submit_host_command("lvm_extend", {"x": 1})
+    assert "hmac" not in json.loads((queue / f"{cid}.json").read_text())
