@@ -1,3 +1,5 @@
+# KSO on Citadel — rebuilt 2026-11-06 after hub loss. Image-baked.
+# Mesh-only publish (100.64.0.10:8085): NOT routed through the public front door.
 services:
   postgres:
     image: postgres:16-alpine
@@ -6,8 +8,7 @@ services:
       POSTGRES_USER: sysops
       POSTGRES_DB: sysops
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - db_password
+    secrets: [db_password]
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     restart: unless-stopped
@@ -16,15 +17,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    mem_limit: 512m
-    cpus: 1.0
+    mem_limit: 384m
+    cpus: 0.5
     pids_limit: 200
-    read_only: true
-    tmpfs:
-      - /tmp
-      - /run/postgresql
-    security_opt:
-      - no-new-privileges:true
+    security_opt: ["no-new-privileges:true"]
 
   kytran-system-operations:
     build:
@@ -32,82 +28,38 @@ services:
       args:
         GIT_SHA: ${GIT_SHA:-unknown}
         BUILD_TIME: ${BUILD_TIME:-unknown}
+        DOCKER_GID: ${DOCKER_GID:-988}
+    image: kso-citadel:${GIT_SHA:-unknown}
     container_name: kytran-system-operations
     depends_on:
       postgres:
         condition: service_healthy
     ports:
-      - "8085:8085"
+      - "100.64.0.10:8085:8085"
+      - "172.17.0.1:8085:8085"      # beacon
+    env_file: .env
     volumes:
-      - ./data:/data
+      - ./data/app:/data
       - /var/run/docker.sock:/var/run/docker.sock
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
-      # Share ARCHIE's host monitor data + command queue
-      - /mnt/archie_brain/host_monitor_data.json:/data/host_monitor_data.json:ro
-      - /mnt/archie_brain/host_commands:/data/host_commands
-    secrets:
-      - db_password
+    secrets: [db_password]
     environment:
-      - KSO_SECRET_KEY=${KSO_SECRET_KEY}
-      - KSO_PLATFORM_API_KEY=${KSO_PLATFORM_API_KEY:-}
-      - KSO_THEME=kytran
-      - KSO_PORT=8085
-      - ARCHIE_BASE_DIR=/data
-      # Real PSU rating for power-headroom math (#5140). SMBIOS reports it Unknown, so
-      # it can't be auto-detected. Z420 ships 600 W or 800 W - set to your PSU label
-      # value (here or in .env). Blank -> assumes 600 W and flags it in the UI.
-      - PSU_WATTS=${PSU_WATTS:-}
-      - PSU_AUX_6PIN=${PSU_AUX_6PIN:-}
-      - PSU_MODEL=${PSU_MODEL:-}
-      - PSU_12V_AMPS=${PSU_12V_AMPS:-}
-      # Dual-PSU accounting (#5368). This box runs TWO supplies on a sync adapter:
-      # PSU1 Delta DPS-600UB 600 W (board/CPU/RAM/disks) + PSU2 Enermax Galaxy EVO
-      # 1050 W (video cards). There is no env_file here, so a value set in .env
-      # reaches the container ONLY if it is listed below — omitting a passthrough
-      # leaves PSU2_WATTS unset and the dual-PSU path silently never activates.
-      # PSU1_WATTS falls back to PSU_WATTS; leave PSU2_WATTS empty on a 1-PSU box.
-      - PSU1_WATTS=${PSU1_WATTS:-}
-      - PSU2_WATTS=${PSU2_WATTS:-}
-      - PSU1_MODEL=${PSU1_MODEL:-}
-      - PSU2_MODEL=${PSU2_MODEL:-}
-      - PSU_SLOT_WATTS_EACH=${PSU_SLOT_WATTS_EACH:-}
-      # Host admin auto-seed (skips first-run setup page)
-      - KSO_ADMIN_USER=admin
-      - KSO_ADMIN_PASSWORD=${KSO_ADMIN_PASSWORD}
-      # Postgres sidecar (see above)
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=sysops
-      - DB_USER=sysops
-      - DB_PASSWORD_FILE=/run/secrets/db_password
-      # Cross-node Docker visibility (#3763) — mesh IPs only ("Name@meship,...").
-      # node_api :3001 is now mesh-firewalled on every public outpost (DOCKER-USER
-      # DROP via archie-nodeapi-firewall.service, KB #278720), so the full mesh
-      # roster is safe. Beacon excluded — ingress-only, runs no node_api.
-      - FLEET_NODE_HOSTS=${FLEET_NODE_HOSTS:-Outpost-US@100.64.0.2,Starship-246@100.64.0.3,Starship-245@100.64.0.6,Citadel@100.64.0.10}
-      # ARCHIE hub SSO
-      - KYTRAN_CLIENT_ID=kso
-      - KYTRAN_AUTH_URL=https://platform.kytranempowerment.com
-      - KYTRAN_REDIRECT_URI=https://server.kytranempowerment.com/auth/kytran/callback
-      - KYTRAN_CLIENT_SECRET=${KYTRAN_CLIENT_SECRET}
-      # ARCHIE hub chat proxy
-      - KSO_ARCHIE_HUB_URL=http://192.168.1.200:3000
-      - KSO_CHAT_API_KEY=${KSO_CHAT_API_KEY}
-      # Shared hub key so the compliance rule-pack sync authenticates to the
-      # (now gated) hub /api/compliance/rule-packs endpoint. Provision in KSO .env.
-      - INTERNAL_API_KEY=${INTERNAL_API_KEY:-}
-      # Optional at boot so existing installs remain available during key setup.
-      # The internal API fails closed (401) until this shared key is configured.
-      - KSO_PLATFORM_API_KEY=${KSO_PLATFORM_API_KEY:-}
-      # P.R.O.B.E. QA auth — internal-only /api/qa/auth, shared platform token
-      - ARCHIE_QA_TOKEN=${ARCHIE_QA_TOKEN}
-    # AdGuard primary, Cloudflare fallback for when AdGuard cycles or the
-    # MagicDNS upstream SERVFAILs (see PR #258 for the 7-day Prowlarr
-    # outage that surfaced this pattern).
-    dns:
-      - 192.168.1.200
-      - 1.1.1.1
+      KSO_THEME: kytran
+      KSO_PORT: "8085"
+      ARCHIE_BASE_DIR: /data
+      KSO_ADMIN_USER: admin
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: sysops
+      DB_USER: sysops
+      DB_PASSWORD_FILE: /run/secrets/db_password
+      FLEET_NODE_HOSTS: "Outpost-US@100.64.0.2,Starship-246@100.64.0.3,Starship-245@100.64.0.6,Citadel@100.64.0.10"
+      KYTRAN_CLIENT_ID: kso
+      KYTRAN_AUTH_URL: https://platform.kytranempowerment.com
+      KYTRAN_REDIRECT_URI: https://server.kytranempowerment.com/auth/kytran/callback
+      KSO_ARCHIE_HUB_URL: http://100.64.0.10:3000
+    dns: [1.1.1.1]
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8085/health', timeout=3)\" || exit 1"]
@@ -115,14 +67,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
-    mem_limit: 1g
-    cpus: 2.0
+    mem_limit: 768m
+    cpus: 1.0
     pids_limit: 200
-    tmpfs:
-      - /tmp
-      - /run
-    security_opt:
-      - no-new-privileges:true
+    tmpfs: [/tmp, /run]
+    security_opt: ["no-new-privileges:true"]
 
 secrets:
   db_password:
