@@ -983,7 +983,39 @@ class SystemService:
         except Exception:
             pass
 
+        if not containers:
+            # The image has no docker CLI and the host monitor writes the container list (docker_health) for us.
+            containers = self._docker_containers_from_host_data()
+
         return containers
+
+    def _docker_containers_from_host_data(self) -> List[Dict[str, Any]]:
+        try:
+            from .routes.helpers import load_host_monitor_data
+
+            host_data, _age = load_host_monitor_data()
+        except Exception:
+            return []
+        out = []
+        for item in (host_data or {}).get("docker_health") or []:
+            state = str(item.get("state") or "").lower()
+            health = str(item.get("health") or "none").lower()
+            label = "Up" if state == "running" else (state.capitalize() or "Unknown")
+            if health not in ("", "none"):
+                label += " (%s)" % health
+            out.append(
+                {
+                    "id": "",
+                    "name": item.get("name", ""),
+                    "image": item.get("image", ""),
+                    "status": label,
+                    "ports": "",
+                    "running": state == "running",
+                    "compose_project": item.get("compose_project") or "",
+                    "source": "host_monitor",
+                }
+            )
+        return out
 
     def docker_action(self, container_id: str, action: str) -> Dict[str, Any]:
         """Perform action on a Docker container"""

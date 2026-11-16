@@ -56,6 +56,25 @@ def parse_ufw_rules(output):
     return rules
 
 
+def _host_firewall_view(kind):
+    """Firewall status/rules the host monitor collected (read only), used when the host command queue is not available."""
+    try:
+        from .helpers import load_host_monitor_data
+
+        host_data, age = load_host_monitor_data()
+    except Exception:
+        return None
+    fw = (host_data or {}).get("firewall") or {}
+    if kind == "status" and fw.get("status", {}).get("success"):
+        st = fw["status"]
+        return {"success": True, "active": bool(st.get("active")), "output": st.get("output", ""), "read_only": True}
+    if kind == "rules" and fw.get("rules", {}).get("success"):
+        rl = fw["rules"]
+        rules = rl.get("rules") if rl.get("from_config") and rl.get("rules") else parse_ufw_rules(rl.get("output", ""))
+        return {"success": True, "rules": rules, "output": rl.get("output", ""), "from_config": bool(rl.get("from_config")), "read_only": True}
+    return None
+
+
 def register_firewall_routes(bp, admin_required_decorator):
     """Register firewall-related routes on the given blueprint."""
     from ..middleware.tier_gate import require_tier
@@ -92,6 +111,9 @@ def register_firewall_routes(bp, admin_required_decorator):
                 )
 
         except HostCommandQueueUnavailable as e:
+            view = _host_firewall_view("status")
+            if view:
+                return jsonify(view)
             return (
                 jsonify({"success": False, "error": str(e), "queue_unavailable": True}),
                 503,
@@ -144,6 +166,9 @@ def register_firewall_routes(bp, admin_required_decorator):
                 )
 
         except HostCommandQueueUnavailable as e:
+            view = _host_firewall_view("rules")
+            if view:
+                return jsonify(view)
             return (
                 jsonify({"success": False, "error": str(e), "queue_unavailable": True}),
                 503,
