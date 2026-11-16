@@ -13,7 +13,8 @@ _DEFAULT_CONFIG = {
     "product_name": "System Operations",
     "product_short": "SYSOPS",
     "logo": "/static/img/kytran-logo.png",
-    "favicon": "/static/img/favicon.ico",
+    "favicon": "/static/img/kytran-logo.png",
+    "tab_title": None,
     "frame_style": "lcars",
     "colors": {
         "accent": "#00e5ff",
@@ -50,7 +51,12 @@ def load_theme(theme_name=None):
         theme_name = os.environ.get("SYSOPS_THEME", DEFAULT_THEME)
     theme_path = os.path.join(THEMES_DIR, f"{theme_name}.json")
     if not os.path.exists(theme_path):
-        return dict(_DEFAULT_CONFIG)
+        fallback = dict(_DEFAULT_CONFIG)
+        if os.environ.get("SYSOPS_TAB_TITLE"):
+            fallback["tab_title"] = os.environ["SYSOPS_TAB_TITLE"]
+        if os.environ.get("SYSOPS_FAVICON"):
+            fallback["favicon"] = os.environ["SYSOPS_FAVICON"]
+        return fallback
     with open(theme_path, "r") as f:
         override = json.load(f)
     merged = {}
@@ -64,6 +70,11 @@ def load_theme(theme_name=None):
             merged[key] = (
                 _DEFAULT_CONFIG[key] if not isinstance(_DEFAULT_CONFIG[key], dict) else dict(_DEFAULT_CONFIG[key])
             )
+    # Per-instance branding without a new theme file: the browser-tab title and icon (for example "Daystrom" on the Daystrom host).
+    if os.environ.get("SYSOPS_TAB_TITLE"):
+        merged["tab_title"] = os.environ["SYSOPS_TAB_TITLE"]
+    if os.environ.get("SYSOPS_FAVICON"):
+        merged["favicon"] = os.environ["SYSOPS_FAVICON"]
     # Include any extra keys from override not in defaults
     for key in override:
         if key not in merged:

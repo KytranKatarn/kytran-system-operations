@@ -18,6 +18,45 @@ from .helpers import (
 )
 
 
+def _detected_stacks(existing):
+    """Compose projects the host monitor reports (read only), for hosts whose stacks KSO did not create itself."""
+    try:
+        from .helpers import load_host_monitor_data
+
+        host_data, _age = load_host_monitor_data()
+    except Exception:
+        return []
+    known = {str(item.get("name")) for item in existing}
+    grouped = {}
+    for item in (host_data or {}).get("docker_health") or []:
+        project = item.get("compose_project") or ""
+        if project and project not in known:
+            grouped.setdefault(project, []).append(item)
+    out = []
+    for project, items in sorted(grouped.items()):
+        running = sum(1 for c in items if str(c.get("state")).lower() == "running")
+        out.append(
+            {
+                "id": None,
+                "name": project,
+                "display_name": project,
+                "description": "Detected from the host (read only)",
+                "color": "#64748b",
+                "compose_directory": "",
+                "is_system": False,
+                "detected": True,
+                "status": "running" if running == len(items) else ("partial" if running else "stopped"),
+                "containers_running": running,
+                "containers_total": len(items),
+                "containers": [
+                    {"name": c.get("name", ""), "state": str(c.get("state") or "unknown").lower(), "status": str(c.get("health") or "")}
+                    for c in items
+                ],
+            }
+        )
+    return out
+
+
 def register_stack_routes(bp, admin_required_decorator):
     from ..middleware.tier_gate import require_tier
 
@@ -337,6 +376,7 @@ def register_stack_routes(bp, admin_required_decorator):
                 stack_data["containers"] = container_list
                 results.append(stack_data)
 
+            results.extend(_detected_stacks(results))
             return jsonify({"success": True, "data": results})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)}), 500
